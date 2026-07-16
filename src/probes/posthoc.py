@@ -30,24 +30,36 @@ class Elicitation:
 
 def _ask(client: VLLMClient, context: str, question: str, *, seed: int,
          max_tokens: int, guided_regex: str | None = None):
+    # No stop string: raw-completions models often lead with a newline, and stop=["\n"]
+    # terminated those replies as EMPTY text (observed 2026-07-16 smoke: 45.6% P1 parse
+    # rate). Instead we cap tokens and parse the first non-empty line.
     return client.generate(
         context.rstrip() + "\n\n" + question,
         temperature=0.0, top_p=1.0, max_tokens=max_tokens, seed=seed,
-        stop=["\n"], guided_regex=guided_regex,
+        guided_regex=guided_regex,
     )[0]
+
+
+def _first_content_line(text: str) -> str:
+    """First non-empty line of a completion — the answer; later lines are transcript
+    continuation junk whose stray digits must not reach the parser."""
+    for line in (text or "").splitlines():
+        if line.strip():
+            return line
+    return ""
 
 
 def numeric(client: VLLMClient, stage_context: str, question: str, *,
             seed: int, guided: bool = False) -> Elicitation:
     gen = _ask(client, stage_context, question, seed=seed, max_tokens=8,
                guided_regex=_NUMERIC_REGEX if guided else None)
-    u, ok = parsers.numeric_uncertainty(gen.text)
+    u, ok = parsers.numeric_uncertainty(_first_content_line(gen.text))
     return Elicitation(u, ok, gen.text)
 
 
 def verbal(client: VLLMClient, stage_context: str, question: str, *, seed: int) -> Elicitation:
     gen = _ask(client, stage_context, question, seed=seed, max_tokens=16)
-    u, ok = parsers.verbal_uncertainty(gen.text)
+    u, ok = parsers.verbal_uncertainty(_first_content_line(gen.text))
     return Elicitation(u, ok, gen.text)
 
 

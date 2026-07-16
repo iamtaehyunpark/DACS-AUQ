@@ -27,7 +27,7 @@ judge:
 sampling:                            # one config across all cells (spec §0.1)
   temperature: 0.7
   top_p: 0.95
-  max_tokens: 512
+  max_tokens: 2048   # 512->2048 (2026-07-16 pre-data amendment): AUQ suffix emits think+action+confidence+explanation in ONE generation; 512 truncated 31% of smoke steps mid-think
 
 loop:
   step_cap: 50                       # AUQ-matched
