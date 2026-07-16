@@ -40,34 +40,55 @@ class FakeEnv:
         return "put a mug on the desk."
 
 
+REPAIR_CONF = "0.66"    # value the model completes after a forced '<confidence>' prefix
+
+
 class FakeClient:
     model = "fake"
 
-    def __init__(self):
+    def __init__(self, omit_tag=False, malformed_tag=False, finish_reason="stop"):
         self.prompts: list[str] = []    # every prompt sent, for the invariant test
+        self.omit_tag = omit_tag
+        self.malformed_tag = malformed_tag
+        self.finish_reason = finish_reason
 
     def generate(self, prompt, **kw):
         self.prompts.append(prompt)
-        if "single integer" in prompt:
+        if prompt.rstrip().endswith("<confidence>"):
+            # EOS-repair continuation: model completes the forced prefix
+            text = f"{REPAIR_CONF}"
+        elif "single integer" in prompt:
             text = "85"
         elif "YOUR CURRENT REASONING" in prompt:
-            # v2 action contract: command line, then tag (close eaten by the stop string)
-            text = f"go to desk 1\n<confidence>{ACTION_CONF}"
+            if self.omit_tag:
+                text = "go to desk 1"
+            elif self.malformed_tag:
+                text = "go to desk 1\n<confidence>1.5</confidence>"
+            else:  # v2 action contract: command line, then tag (close eaten by the stop string)
+                text = f"go to desk 1\n<confidence>{ACTION_CONF}"
         elif "Your thought process" in prompt:
-            text = (f"I should look for the mug on the desk.\n"
-                    f"<confidence>{THOUGHT_CONF}</confidence>")
+            if self.omit_tag:
+                text = "I should look for the mug on the desk."
+            elif self.malformed_tag:
+                text = "I should look for the mug on the desk.\n<confidence>1.5</confidence>"
+            else:
+                text = (f"I should look for the mug on the desk.\n"
+                        f"<confidence>{THOUGHT_CONF}</confidence>")
         else:  # entangled; </explanation> eaten by the stop string on purpose
-            text = (f"<think>I need the mug.</think>\n<action>go to desk 1</action> "
-                    f"<confidence>{ENTANGLED_CONF}</confidence> "
-                    f"<explanation>desk is likely")
+            if self.omit_tag:
+                text = "<think>I need the mug.</think>\n<action>go to desk 1</action>"
+            else:
+                text = (f"<think>I need the mug.</think>\n<action>go to desk 1</action> "
+                        f"<confidence>{ENTANGLED_CONF}</confidence> "
+                        f"<explanation>desk is likely")
         return [Generation(text=text, tokens=[text], logprobs=[-0.5],
                            top_logprobs=[{text: -0.5}], prompt_tokens=10,
-                           completion_tokens=1, finish_reason="stop")]
+                           completion_tokens=1, finish_reason=self.finish_reason)]
 
 
-def _run(arch, **cfg_kw):
+def _run(arch, client=None, **cfg_kw):
     env = FakeEnv()
-    client = FakeClient()
+    client = client or FakeClient()
     out = run_episode(arch, client, env, env.reset(), run_id="t", condition=arch,
                       prompts=Prompts.load(), sampling={"temperature": 0.7},
                       cfg=LoopConfig(step_cap=5, **cfg_kw))
@@ -152,3 +173,52 @@ class TestDecoupled:
         hp = out.records[1]["extra"]["thought_prompt"]
         assert hp.index("Observation: -= Welcome") < hp.index("Action: go to desk 1") \
             < hp.index("Observation: You executed")
+
+
+class TestEosRepair:
+    def test_natural_parse_not_continued(self):
+        out, _ = _run("decoupled")
+        p = out.records[0]["probes"]
+        assert p["U_T_verbalized_continued"] is False
+        assert p["U_A_verbalized_continued"] is False
+
+    def test_missing_tag_repaired_and_flagged(self):
+        out, client = _run("decoupled", client=FakeClient(omit_tag=True))
+        p = out.records[0]["probes"]
+        assert p["U_T_verbalized_parsed"] and p["U_T_verbalized_continued"] is True
+        assert abs(p["U_T_verbalized"] - (1 - float(REPAIR_CONF))) < 1e-9
+        assert p["U_A_verbalized_parsed"] and p["U_A_verbalized_continued"] is True
+        # a continuation prompt ends with the forced prefix
+        assert any(pr.rstrip().endswith("<confidence>") for pr in client.prompts)
+        assert out.records[0]["extra"]["verbalized_repair_raw"]["thought"] == REPAIR_CONF
+
+    def test_entangled_missing_tag_repaired(self):
+        out, _ = _run("entangled", client=FakeClient(omit_tag=True), auq_suffix=True)
+        p = out.records[0]["probes"]
+        assert p["U_T_verbalized_parsed"] and p["U_T_verbalized_continued"] is True
+        assert abs(p["U_T_verbalized"] - (1 - float(REPAIR_CONF))) < 1e-9
+        assert p["auq_explanation_text"] is None    # absent by construction, not backfilled
+
+    def test_malformed_tag_not_repaired(self):
+        # a given (out-of-range) answer is excluded, never overwritten
+        out, client = _run("decoupled", client=FakeClient(malformed_tag=True))
+        p = out.records[0]["probes"]
+        assert p["U_T_verbalized"] is None and p["U_T_verbalized_parsed"] is False
+        assert p["U_T_verbalized_continued"] is False
+        assert not any(pr.rstrip().endswith("<confidence>") for pr in client.prompts)
+
+    def test_length_truncation_not_repaired(self):
+        out, client = _run("decoupled",
+                           client=FakeClient(omit_tag=True, finish_reason="length"))
+        p = out.records[0]["probes"]
+        assert p["U_T_verbalized_parsed"] is False
+        assert p["U_T_verbalized_continued"] is False
+        assert not any(pr.rstrip().endswith("<confidence>") for pr in client.prompts)
+
+    def test_repaired_value_never_feeds_forward(self):
+        _, client = _run("decoupled", client=FakeClient(omit_tag=True))
+        # the repaired confidence must not leak into any subsequent prompt (except the
+        # forced-prefix continuation call itself, which contains only the prefix)
+        for pr in client.prompts:
+            if not pr.rstrip().endswith("<confidence>"):
+                assert REPAIR_CONF not in pr

@@ -107,6 +107,27 @@ def _sha(s: str) -> str:
     return "sha256:" + hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 
+def _repair_confidence(client: VLLMClient, base_prompt: str, generation_text: str,
+                       samp: dict, seed: int):
+    """EOS-repair continuation (pre-data amendment 2026-07-16). Trigger: the generation
+    ended WITHOUT any <confidence> tag (smoke: 18/104 steps EOS'd after </action>).
+    Mechanics: continue from prompt + generation + '\\n<confidence>' under the SAME sampling
+    params — autoregressively this samples the distribution the model would have continued
+    with had it not emitted EOS; nothing is supplied, no judgment question is asked, so the
+    reading stays in-generation under the §2.4 stipulation. Repaired values are flagged
+    (U_*_verbalized_continued) and sensitivity-analyzed with/without.
+    NOT triggered when a tag is present but malformed/out-of-range — that is a given answer,
+    excluded per the frozen policy (overwriting it would be imputation). NOT triggered on
+    length-truncated generations either (callers guard on finish_reason): a cap-hit stops
+    the model mid-sentence, so the continuation-identity argument does not hold there.
+    Returns (U, raw_tag, parsed, continuation_text)."""
+    cont = client.generate(base_prompt + generation_text.rstrip() + "\n<confidence>",
+                           **samp, max_tokens=8, seed=seed, stop=["</confidence>"])[0]
+    tag = "<confidence>" + cont.text.strip() + "</confidence>"
+    u, raw, ok, _ = verbalized_confidence(tag)
+    return u, raw, ok, cont.text
+
+
 def _window(items: list, window: int) -> list:
     return items if window <= 0 else items[-window:]
 
@@ -215,18 +236,24 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         m = stage_metrics(gen.tokens, gen.logprobs, gen.top_logprobs, a, b)
         probes.update(action_mte=m["mte"], action_ppl=m["ppl"], action_sp=m["sp"],
                       action_nll=m["sp"])
+    repair_raw = None
     if cfg.auq_suffix:
         # AUQ's in-generation <confidence> IS Probe V for the entangled architecture.
         u, expl, ok = auq_entangled(text)
         _, raw, _, anomaly = verbalized_confidence(text)
+        continued = False
+        if not ok and "<confidence>" not in text.lower() and gen.finish_reason != "length":
+            u, raw, ok, repair_raw = _repair_confidence(client, prompt, gen.text, samp, seed)
+            continued = True   # explanation stays absent on repaired steps; logged as such
         probes.update(U_T_verbalized=u, U_T_verbalized_raw=raw, U_T_verbalized_parsed=ok,
-                      auq_explanation_text=expl)
+                      U_T_verbalized_continued=continued, auq_explanation_text=expl)
         if anomaly:
             print(f"[loops] ANOMALY: multiple <confidence> tags in entangled generation")
 
     extra = {"generation": text, "prompt": prompt, "action_match": match_kind,
              "action_tag_ok": tagged.action_tag_ok,
-             "admissible_commands": list(admissible), "posthoc_raw": {}}
+             "admissible_commands": list(admissible), "posthoc_raw": {},
+             "verbalized_repair_raw": repair_raw}
     # post-hoc context: the generation WITHOUT the self-assessment — confidence value AND
     # explanation excised (the explanation is the assessment in prose; leaving it leaks
     # Probe V into the post-hoc reading). think/action kept; explanation logged in probes.
@@ -268,9 +295,17 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     # STRIP the tag before anything goes downstream (no-feedback invariant): the action
     # call, history, and env must never see the verbalized value.
     thought = strip_confidence_tag(raw_thought).strip()
+    repair_raw = {"thought": None, "action": None}
     if cfg.verbalized:
         u, raw, ok, anomaly = verbalized_confidence(raw_thought)
-        probes.update(U_T_verbalized=u, U_T_verbalized_raw=raw, U_T_verbalized_parsed=ok)
+        continued = False
+        if (not ok and "<confidence>" not in raw_thought.lower()
+                and gen_t.finish_reason != "length"):
+            u, raw, ok, repair_raw["thought"] = _repair_confidence(
+                client, thought_prompt, gen_t.text, samp, seed)
+            continued = True
+        probes.update(U_T_verbalized=u, U_T_verbalized_raw=raw, U_T_verbalized_parsed=ok,
+                      U_T_verbalized_continued=continued)
         if anomaly:
             print("[loops] ANOMALY: multiple <confidence> tags in thought generation")
 
@@ -287,7 +322,14 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     action_exec, match_kind = choose_executable(command_line, raw_action, admissible)
     if cfg.verbalized:
         u, raw, ok, anomaly = verbalized_confidence(raw_action)
-        probes.update(U_A_verbalized=u, U_A_verbalized_raw=raw, U_A_verbalized_parsed=ok)
+        continued = False
+        if (not ok and "<confidence>" not in raw_action.lower()
+                and gen_a.finish_reason != "length"):
+            u, raw, ok, repair_raw["action"] = _repair_confidence(
+                client, action_prompt, gen_a.text, samp, seed)
+            continued = True
+        probes.update(U_A_verbalized=u, U_A_verbalized_raw=raw, U_A_verbalized_parsed=ok,
+                      U_A_verbalized_continued=continued)
         if anomaly:
             print("[loops] ANOMALY: multiple <confidence> tags in action generation")
 
@@ -306,7 +348,8 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     extra = {"thought_prompt": thought_prompt, "action_prompt": action_prompt,
              "thought_generation": gen_t.text, "action_generation": gen_a.text,
              "action_match": match_kind,
-             "admissible_commands": list(admissible), "posthoc_raw": {}}
+             "admissible_commands": list(admissible), "posthoc_raw": {},
+             "verbalized_repair_raw": repair_raw}
     # post-hoc contexts use the STRIPPED stage outputs — never the in-generation value
     _posthoc(client, prompts, cfg, seed,
              thought_prompt + thought, action_prompt + command_line, probes, extra)

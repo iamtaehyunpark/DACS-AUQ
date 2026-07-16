@@ -39,17 +39,24 @@ def cell_report(records: list[dict], *, n_boot: int = 10000, seed: int = 12345) 
                      "auroc": bootstrap_ci(s, y, g, auroc, n_boot=n_boot, seed=seed),
                      "prr": bootstrap_ci(s, y, g, prr, n_boot=n_boot, seed=seed)}
 
+    def _delta(pool: list[dict]) -> dict | None:
+        if len(pool) < 2:
+            return None
+        y = [_label(r) for r in pool]
+        g = [r["task_id"] for r in pool]
+        v = [r["probes"][DECISION_KEY] for r in pool]
+        best = max(ENTROPY_KEYS, key=lambda k: auroc([r["probes"][k] for r in pool], y))
+        return {"best_entropy_probe": best, "n": len(pool),
+                **paired_auroc_delta(v, [r["probes"][best] for r in pool], y, g,
+                                     n_boot=n_boot, seed=seed)}
+
     paired = [r for r in labeled if r["probes"].get(DECISION_KEY) is not None
               and all(r["probes"].get(k) is not None for k in ENTROPY_KEYS)]
-    delta = None
-    if len(paired) >= 2:
-        y = [_label(r) for r in paired]
-        g = [r["task_id"] for r in paired]
-        v = [r["probes"][DECISION_KEY] for r in paired]
-        best = max(ENTROPY_KEYS,
-                   key=lambda k: auroc([r["probes"][k] for r in paired], y))
-        delta = {"best_entropy_probe": best, "n": len(paired),
-                 **paired_auroc_delta(v, [r["probes"][best] for r in paired], y, g,
-                                      n_boot=n_boot, seed=seed)}
-    return {"probes": rows, "decision_delta": delta,
+    n_continued = sum(1 for r in paired if r["probes"].get(f"{DECISION_KEY}_continued"))
+    natural_only = [r for r in paired if not r["probes"].get(f"{DECISION_KEY}_continued")]
+    return {"probes": rows,
+            "decision_delta": _delta(paired),
+            # sensitivity: EOS-repaired steps excluded (spec §0.6 repair amendment)
+            "decision_delta_natural_only": _delta(natural_only) if n_continued else None,
+            "n_verbalized_continued": n_continued,
             "n_records": len(records), "n_labeled": len(labeled)}

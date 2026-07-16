@@ -14,7 +14,11 @@ from typing import Any
 # 1.1.0 (2026-07-16): pre-data amendment — verbalized/posthoc probe split (elicited_* ->
 # posthoc_*, U_auq_entangled -> U_T_verbalized, added U_[TA]_verbalized{,_raw}). No data
 # had been generated under 1.0.0.
-SCHEMA_VERSION = "1.1.0"
+# 1.2.0 (2026-07-16): pre-data amendment — EOS-repair continuation flags
+# (U_[TA]_verbalized_continued): True = value obtained via a forced-prefix continuation
+# after the model stopped without emitting the tag; False = parsed in-generation;
+# None = probe N/A. Smoke evidence: 18/104 steps omitted <confidence> at EOS.
+SCHEMA_VERSION = "1.2.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.
@@ -48,6 +52,8 @@ PROBE_KEYS: tuple[str, ...] = (
 PARSE_FLAG_KEYS: tuple[str, ...] = (
     "U_T_verbalized_parsed",
     "U_A_verbalized_parsed",
+    "U_T_verbalized_continued",
+    "U_A_verbalized_continued",
     "U_T_posthoc_numeric_parsed",
     "U_T_posthoc_verbal_parsed",
     "U_T_posthoc_yesno_parsed",
@@ -127,10 +133,10 @@ def validate_record(rec: dict) -> None:
     for k in PROBE_KEYS:
         if k not in probes:
             raise ValueError(f"probes missing key {k!r} (N/A fields must be present as null, not omitted)")
-    # U_* uncertainties, when present, must be normalized to [0,1] (*_raw holds tag text
-    # and *_parsed holds booleans — neither is a value field).
+    # U_* uncertainties, when present, must be normalized to [0,1] (*_raw holds tag text;
+    # *_parsed and *_continued hold booleans — none is a value field).
     for k, v in probes.items():
-        if (k.startswith("U_") and not k.endswith(("_raw", "_parsed"))
+        if (k.startswith("U_") and not k.endswith(("_raw", "_parsed", "_continued"))
                 and v is not None and not (0.0 <= float(v) <= 1.0)):
             raise ValueError(f"probe {k!r}={v!r} outside [0,1] (1 = maximally uncertain)")
 
