@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# experiment outputs (regenerated; never hand-edited)
+data/trajectories/
+data/labels/
+data/analysis/
+results/
+runs/
+*.log
+
+# local scratch
+scratch/
+.DS_Store
+
+# local inspection doc — not published (contains infra details)
+HANDOFF.md

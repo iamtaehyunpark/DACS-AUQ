@@ -1,0 +1,23 @@
+[project]
+name = "dacs-auq"
+version = "0.1.0"
+description = "Decoupled, action-conditioned step-wise uncertainty quantification for agentic LLMs (DACS). Built from scratch; see uq_theory.md / uq_experiments.md."
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.40",       # Completions API client against local vLLM servers
+    "requests>=2.31",     # /tokenize probe for logit_bias token pinning
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+alfworld = ["alfworld"]   # env + its data setup; installed in the serving env, not required for unit tests
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

@@ -1,0 +1,24 @@
+**REFLECTION REQUEST**
+Your previous response had confidence {confidence}. You mentioned the following concerns:
+{explanation}
+Given these concerns and the full context below, please reconsider your reasoning and provide a better response.
+—
+**FULL CONTEXT (including history):**
+{full_context}
+—
+**YOUR PREVIOUS RESPONSE:**
+{previous_response}
+—
+**REFLECTION INSTRUCTIONS:**
+Please provide a NEW response that addresses the confidence concerns you mentioned. Your new response should:
+1. Include updated reasoning in <think>...</think> tags
+2. Include a new action in <action>...</action> tags
+3. Include your new confidence level in <confidence>...</confidence> tags (0.0-1.0)
+4. Include an updated explanation in <explanation>...</explanation> tags - Specifically explain how you addressed the previous concerns
+- What makes you more or less confident now
+
+# ---
+# SOURCE: AUQ (arXiv:2601.15703v1), Appendix A.6.3, p.27-28 (Uncertainty-Aware Reflection).
+# Triggered when c_hat < tau (System 2). NOT used in our E0/E1 measurement pipeline; kept
+# verbatim for reference (relevant to E3's AUQ level-threshold baseline framing, not the
+# probe itself). AUQ System 2 also has a Memory Expansion prompt variant (see auq_notes.md).

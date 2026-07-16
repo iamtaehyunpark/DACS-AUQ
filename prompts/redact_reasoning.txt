@@ -1,0 +1,13 @@
+You are an AI agent solving a task in an interactive environment.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+AVAILABLE COMMANDS:
+{AVAILABLE COMMANDS}
+Think step by step about the current situation and consider what action to take next.
+Your thought process:
+
+# ---
+# SOURCE: ReDAct (arXiv:2604.07036v1), Figure 5, p.17 (ALFWorld reasoning-trace prompt).
+# This is the THOUGHT call of ReDAct's two-call ReAct. Transcribed from PDF extraction.

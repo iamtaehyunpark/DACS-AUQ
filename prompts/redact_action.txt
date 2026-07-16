@@ -1,0 +1,21 @@
+You are an AI agent solving a task in an interactive environment.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+YOUR CURRENT REASONING:
+{THOUGHTS}
+AVAILABLE COMMANDS:
+{AVAILABLE COMMANDS}
+OUTPUT RULES:
+- Output exactly ONE line.
+- That line must be EXACTLY one of the AVAILABLE COMMANDS.
+- Do NOT output reasoning, explanation, punctuation, or extra words.
+Now output your chosen action (one line only):
+
+# ---
+# SOURCE: ReDAct (arXiv:2604.07036v1), Figure 6, p.18 (ALFWorld action-selection prompt).
+# This is the ACTION call of ReDAct's two-call ReAct — a fresh prompt containing the
+# reasoning under "YOUR CURRENT REASONING:" plus AVAILABLE COMMANDS and strict output
+# rules. This IS the "distinct contract" our decoupled-action prompt should mirror.
+# Transcribed from PDF extraction.
