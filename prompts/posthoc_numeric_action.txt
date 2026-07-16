@@ -1,0 +1,6 @@
+On a scale of 0-100, how confident are you that the action above is the correct next action? Reply with a single integer.
+
+# ---
+# SOURCE: our spec uq_experiments.md §0.6 (U_A post-hoc self-evaluation: numeric, worded for
+# the action stage). COMPARATOR to U_A_verbalized. Post-hoc call: temperature=0, context =
+# everything the action stage saw + the chosen action, then this question. U_A = 1 - x/100.

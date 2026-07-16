@@ -11,35 +11,47 @@ from __future__ import annotations
 import json
 from typing import Any
 
-SCHEMA_VERSION = "1.0.0"
+# 1.1.0 (2026-07-16): pre-data amendment — verbalized/posthoc probe split (elicited_* ->
+# posthoc_*, U_auq_entangled -> U_T_verbalized, added U_[TA]_verbalized{,_raw}). No data
+# had been generated under 1.0.0.
+SCHEMA_VERSION = "1.1.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.
+#
+# TERMINOLOGY (definitional commitment, 2026-07-16, Taehyun — see uq_theory.md §2.4):
+# "verbalized" = confidence emitted IN THE SAME GENERATION as the content it qualifies
+# (Probe V, PRIMARY, both architectures; Cell B's instance is AUQ's verbatim suffix).
+# "posthoc" = post-hoc self-evaluation, a separate temperature=0 call on the frozen stage
+# output (Probes P1-P3, comparators only, never the decision variable).
 PROBE_KEYS: tuple[str, ...] = (
-    # elicited thought-uncertainty probes (E1b arms); numeric is primary for Cell D
-    "U_T_elicited_numeric",
-    "U_T_elicited_verbal",
-    "U_T_yesno_logprob",
-    # AUQ in-generation entangled probe (Cell B canonical) + its explanation text
-    "U_auq_entangled",
-    "auq_explanation_text",
-    # elicited action-uncertainty (numeric only)
-    "U_A_elicited_numeric",
+    # Probe V — verbalized (in-generation), primary. *_raw keeps the tag text for parse audits.
+    "U_T_verbalized",
+    "U_T_verbalized_raw",
+    "U_A_verbalized",
+    "U_A_verbalized_raw",
+    "auq_explanation_text",          # Cell B only: AUQ's <explanation> rides the same generation
+    # Probes P1-P3 — post-hoc self-evaluation, comparators (offline-able on frozen trajectories)
+    "U_T_posthoc_numeric",
+    "U_T_posthoc_verbal",
+    "U_T_posthoc_yesno",
+    "U_A_posthoc_numeric",
     # entropy-family, per stage (ReDAct App. A): MTE, PPL(=mean NLL), SP(=sum NLL)
     "thought_mte", "thought_ppl", "thought_sp",
     "action_mte", "action_ppl", "action_sp",
     "action_nll",
 )
 
-# Whether each elicitation probe parsed on this step (None = probe not run for this condition,
+# Whether each probe parsed on this step (None = probe not run for this condition,
 # True/False = ran and parsed / failed to parse). Drives per-cell exclusion-rate reporting
 # (our policy: unparseable -> excluded from that probe's metrics, NOT imputed).
 PARSE_FLAG_KEYS: tuple[str, ...] = (
-    "U_T_elicited_numeric_parsed",
-    "U_T_elicited_verbal_parsed",
-    "U_T_yesno_logprob_parsed",
-    "U_auq_entangled_parsed",
-    "U_A_elicited_numeric_parsed",
+    "U_T_verbalized_parsed",
+    "U_A_verbalized_parsed",
+    "U_T_posthoc_numeric_parsed",
+    "U_T_posthoc_verbal_parsed",
+    "U_T_posthoc_yesno_parsed",
+    "U_A_posthoc_numeric_parsed",
 )
 
 _VALID_C = {"free", "cheap", "costly"}
@@ -115,9 +127,11 @@ def validate_record(rec: dict) -> None:
     for k in PROBE_KEYS:
         if k not in probes:
             raise ValueError(f"probes missing key {k!r} (N/A fields must be present as null, not omitted)")
-    # U_* uncertainties, when present, must be normalized to [0,1].
+    # U_* uncertainties, when present, must be normalized to [0,1] (*_raw holds tag text
+    # and *_parsed holds booleans — neither is a value field).
     for k, v in probes.items():
-        if k.startswith("U_") and v is not None and not (0.0 <= float(v) <= 1.0):
+        if (k.startswith("U_") and not k.endswith(("_raw", "_parsed"))
+                and v is not None and not (0.0 <= float(v) <= 1.0)):
             raise ValueError(f"probe {k!r}={v!r} outside [0,1] (1 = maximally uncertain)")
 
 

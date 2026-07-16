@@ -10,9 +10,11 @@ After your action, you MUST provide:
 # ---
 # SOURCE: AUQ (arXiv:2601.15703v1), Appendix A.6.2, p.27 ("Elicitation Suffix").
 # Appended to the entangled agent prompt at EVERY inference step to extract c-hat and e-hat.
-# This is the CANONICAL Cell B probe (probe 4). The agent emits <action>, <confidence>,
-# <explanation> in ONE generation. U_auq_entangled = 1 - c_hat. This feeds back into the
-# agent's context (inherent to AUQ's design — that is the entanglement being measured).
+# This instantiates PROBE V (verbalized, in-generation) for the ENTANGLED architecture —
+# under the 2026-07-16 definitional commitment (theory §2.4) its parsed confidence maps to
+# U_T_verbalized (formerly U_auq_entangled). The agent emits <action>, <confidence>,
+# <explanation> in ONE generation. This feeds back into the agent's context (inherent to
+# AUQ's design — the ONLY sanctioned verbalized-value feedback, invariant §5.1).
 #
 # History format when propagating uncertainty (AUQ A.6.2, Variant B, primary UAM setting):
 #   ... Step {t-1}: Observation: {obs_prev} Action: <think>...</think>

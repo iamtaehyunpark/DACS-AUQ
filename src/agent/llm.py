@@ -56,11 +56,22 @@ class VLLMClient:
     # -- generation --------------------------------------------------------
     def generate(self, prompt: str, *, temperature: float = 0.7, top_p: float = 0.95,
                  n: int = 1, max_tokens: int = 512, seed: int = 0,
-                 stop: list[str] | None = None) -> list[Generation]:
+                 stop: list[str] | None = None,
+                 guided_regex: str | None = None,
+                 guided_choice: list[str] | None = None) -> list[Generation]:
+        # guided_* wire vLLM structured outputs (harness-level format regulation). OFF by
+        # default everywhere: forcing a format turns a refusal into an arbitrary sampled
+        # token — imputation by the sampler — and erases the parse-rate signal E1★.6 reports.
+        extra: dict = {}
+        if guided_regex:
+            extra["guided_regex"] = guided_regex
+        if guided_choice:
+            extra["guided_choice"] = guided_choice
         resp = self.client.completions.create(
             model=self.model, prompt=prompt, temperature=temperature, top_p=top_p,
             n=n, max_tokens=max_tokens, seed=seed, stop=stop,
             logprobs=self.top_logprobs, logit_bias=self.logit_bias or None,
+            extra_body=extra or None,
         )
         out = []
         for choice in resp.choices:
@@ -74,3 +85,13 @@ class VLLMClient:
                 completion_tokens=len(tokens), finish_reason=choice.finish_reason,
             ))
         return out
+
+    def chat(self, messages: list[dict], *, temperature: float = 0.0,
+             max_tokens: int = 4096, seed: int = 0) -> str:
+        """Chat endpoint (server applies the model's chat template). Used by the judge only —
+        agent generations go through generate() so we own the prompt string verbatim."""
+        resp = self.client.chat.completions.create(
+            model=self.model, messages=messages, temperature=temperature,
+            max_tokens=max_tokens, seed=seed,
+        )
+        return resp.choices[0].message.content or ""

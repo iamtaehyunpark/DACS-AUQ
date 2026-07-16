@@ -60,7 +60,7 @@ This is why decoupling is not a measurement trick bolted on. It is **the archite
 Autoregression already factorizes P(T, A | S) = P(T | S) · P(A | S, T). A naive stop-append-resume samples from the **identical distribution**. Decoupling only means something if the action policy π_A has a *different inference contract* — constrained action space, tool grammar, separate elicitation, control prompt.
 
 - **Against the thesis:** ReDAct's action call already has a stage-specific contract (fresh prompt, `YOUR CURRENT REASONING: {THOUGHTS}`, "exactly one line, exactly one of the available commands"). The architecture ground is more occupied than it first appears.
-- **For the thesis:** if the split is a no-op absent a contract, then any measured shift *must come from the contract* — and verbalized confidence is the metric that reads contracts. The central E1 prediction acquires a derivation, not a hunch.
+- **For the thesis:** if the split is a no-op absent a contract, then any measured shift *must come from the contract* — and verbalized confidence is the metric that reads contracts. The central E1 prediction acquires a derivation, not a hunch. And because the verbalized probe is emitted **in-generation** (§2.4), its contract is *part of the generation contract itself*, not an extra call bolted on — the "shift must come from the contract" argument applies to the probe with no residue.
 
 ### 2.4 The probe claim: entropy is not epistemic uncertainty
 
@@ -68,7 +68,9 @@ Thought-token entropy ≠ epistemic uncertainty. A model can fluently emit "I do
 
 **Provenance (cite before a reviewer does):** this argument is now **shared background, not our insight**. AUQ's Appendix A.5.4 makes it explicitly — token-level probability can be statistically confident in the next grammatical token while epistemically uncertain about content, and averaging log-probs over a long CoT introduces length bias that washes out the signal of a specific logical flaw — building on Lin et al. (verbalized uncertainty) and Tian et al. (elicited calibration under RLHF). The paper must frame it as a **shared premise whose step-level validity is untested**, with attribution.
 
-What follows from the shared premise, and what remains ours: ReDAct's negative result (reasoning-level AUROC 0.596) is not evidence that thought-level uncertainty is uninformative — it is evidence that **entropy is the wrong probe**. AUQ demonstrates that elicited confidence carries signal in agents, but only at **trajectory level, against trajectory labels, emitted entangled with the action**. Nobody has validated elicited U_T at **step granularity against step labels**, and nobody has decomposed how much of the signal comes from the elicitation contract vs. the architectural split. That validation and decomposition is the contribution (see §5.1, §6.2).
+**Definitional stipulation (2026-07-16, enforced throughout):** in this paper, **verbalized confidence means a confidence value emitted *in the same generation* as the content it qualifies** — a first-person report from the generating process itself (belief → thought → self-report, one uninterrupted pass), canonical form per Lin et al. 2022, Tian et al.'s main setting, and AUQ. A confidence judgment rendered on the stage's output in a *later* call is a distinct probe class, **post-hoc self-evaluation** — not a worse implementation of the same measurement, a different measurement. The empirical ground for the distinction is Kim & Kang's (2605.27752) supplied-answer analysis: once content arrives as supplied text in a later turn, reported confidence tracks **plausibility and provenance** (plausible-wrong ≈ gold, +0.021 paired gap; self-preference +0.055 for own answers) — the regime a post-hoc call structurally drifts toward. Honesty about the taxonomy: the literature (Xiong et al. 2024; Tian et al. 2023) also calls two-stage "self-probing" variants verbalized, so this is a **stipulation, stated once and then enforced**, not an uncontested definition. Its cost is stated in §8: the in-generation instruction precedes the thought, so the thought is written by a model that knows it will grade itself.
+
+What follows from the shared premise, and what remains ours: ReDAct's negative result (reasoning-level AUROC 0.596) is not evidence that thought-level uncertainty is uninformative — it is evidence that **entropy is the wrong probe**. AUQ demonstrates that verbalized confidence carries signal in agents, but only at **trajectory level, against trajectory labels, emitted entangled with the action**. Nobody has validated verbalized U_T at **step granularity against step labels**, and nobody has decomposed how much of the signal comes from the verbalized contract vs. the architectural split. That validation and decomposition is the contribution (see §5.1, §6.2).
 
 ### 2.5 The world enters: action semantics as the interpretation layer
 
@@ -108,7 +110,7 @@ Properties of this claim: grounded in action semantics rather than fitted to out
 
 ### 2.7 Why this is one paper, not two
 
-Measurement and propagation are **the same object viewed at t and t+1**. The typed, decoupled, elicited measurement at t is what makes the promise-check at t+1 well-defined. Without typed measurement, "did the promise hold" has no referent; without the promise-check, cross-step reading collapses back into aggregation.
+Measurement and propagation are **the same object viewed at t and t+1**. The typed, decoupled, verbalized measurement at t is what makes the promise-check at t+1 well-defined. Without typed measurement, "did the promise hold" has no referent; without the promise-check, cross-step reading collapses back into aggregation.
 
 This also resolves the apparent tension between locality and propagation: steps are conditionally posed, all dependence lives in the state, and the object of interest is **how U at t shapes S_{t+1}** — not any sum over steps.
 
@@ -122,7 +124,7 @@ SAUP starts from step scores whose semantics are **untyped**, then learns how mu
 
 Our order is reversed:
 
-1. Separate the semantic objects (U_T, U_A — decoupled, elicited)
+1. Separate the semantic objects (U_T, U_A — decoupled, verbalized in-generation)
 2. Identify the transition type (τ, from environment spec)
 3. Apply the typed reading / promise-check online
 4. *Derive* trajectory risk from typed local states, if a trajectory number is needed at all
@@ -149,15 +151,17 @@ Prefix scores do not escape it: scoring U(1..t) against a terminal bit still sha
 
 Verbalized confidence has well-known pathologies: clustering at round numbers, sensitivity to prompt wording, mode-collapsed miscalibration. If E1 lands, the first skeptical response will not be "mechanism confirmed" — it will be **"you swapped one flawed probe for another; show me it's not a prompt artifact."**
 
-The elicitation *is itself a generation with a contract*, which means the measurement depends on a researcher degree of freedom. This is deeper than a footnote: it is why the experimental program includes a robustness arm (E1b) with multiple elicitation phrasings, and why **discrimination (AUROC/PRR) and calibration (ECE) are reported separately, leading with discrimination**. The claim to establish is rank-stability of U_T across phrasings, not agreement of absolute values.
+The verbalized report *is itself part of a generation with a contract*, which means the measurement depends on a researcher degree of freedom. This is deeper than a footnote: it is why the experimental program includes a robustness arm (E1b) — post-hoc wording variants within their own class, plus the in-generation vs. post-hoc divergence analysis — and why **discrimination (AUROC/PRR) and calibration (ECE) are reported separately, leading with discrimination**. The claim to establish is rank-stability of U_T across phrasings, not agreement of absolute values.
 
 Two AUQ-derived updates to this risk. First, AUQ softens the naive version of the rebuttal — a published system already shows verbalized confidence discriminates in agents — but it sharpens the specific version: our claim is *step-level* discrimination against *step-level* labels, which AUQ never tested, so their trajectory-level success cannot be borrowed as evidence. Second, AUQ's Limitations note that verbalized-confidence quality **degrades below ~7B parameters**; the framework's instrument claim is therefore scoped to sufficiently capable models (Qwen3-80B clears this comfortably, but the scoping must be stated).
 
+**Plausibility circularity, and where the in-generation stipulation helps** *(anchor added 2026-07-16 with the definitional commitment — see §2.4)*. A post-hoc self-evaluation probe is a judgment rendered on supplied text; the GPT/local judge that produces our step labels is also a judgment rendered on supplied text. Two plausibility meters can agree spuriously — a post-hoc probe could "discriminate" judge labels merely because both read the same surface plausibility (Kim & Kang's supplied-answer regime). The **in-generation primary is structurally less exposed** to this confound: it is emitted before the content exists as a text object to be judged, by the process that produced it. This is an additional, independent reason the post-hoc probes are comparators rather than primaries; the E1b divergence analysis makes the exposure gap measurable rather than asserted.
+
 ### 5.2 The probe/architecture confound
 
-The thesis bundles two changes: a different **probe** (elicited vs. entropy) and a different **architecture** (decoupled vs. entangled). A single-condition experiment cannot attribute a positive result to either. The instinct-level bet, recorded here so it is a prediction and not a post-hoc story: **entangled + elicited may recover most of the signal**, because the elicitation prompt *is itself* a stage-specific contract. If so, the paper's center of gravity moves from "decoupling" to "elicitation + typing + reset" — which is arguably the stronger paper. The experimental design (2×2 factorial) makes that outcome a finding, not a failure.
+The thesis bundles two changes: a different **probe** (verbalized vs. entropy) and a different **architecture** (decoupled vs. entangled). A single-condition experiment cannot attribute a positive result to either. The instinct-level bet, recorded here so it is a prediction and not a post-hoc story: **entangled + verbalized may recover most of the signal**, because the verbalized-confidence instruction *is itself* a stage-specific contract. If so, the paper's center of gravity moves from "decoupling" to "verbalization + typing + reset" — which is arguably the stronger paper. The experimental design (2×2 factorial) makes that outcome a finding, not a failure.
 
-**AUQ is inadvertent published support for this bet.** Their elicitation mapping Φ emits (action, confidence, explanation) in **one generation** — structurally, our Cell B — and it discriminates at trajectory level. This raises the prior on "Cell B recovers signal" and simultaneously raises the value of the 2×2: the decomposition question (elicitation vs. split, at step granularity) is now the adjudication of a *live, deployed* mechanism, not a hypothetical. The spec accordingly implements Cell B with AUQ's **verbatim elicitation template**, so Cell B doubles as a faithful step-level evaluation of their published probe.
+**AUQ is inadvertent published support for this bet.** Their elicitation mapping Φ emits (action, confidence, explanation) in **one generation** — structurally, our Cell B — and it discriminates at trajectory level. This raises the prior on "Cell B recovers signal" and simultaneously raises the value of the 2×2: the decomposition question (verbalized contract vs. split, at step granularity) is now the adjudication of a *live, deployed* mechanism, not a hypothetical. The spec accordingly implements Cell B with AUQ's **verbatim elicitation template**, so Cell B doubles as a faithful step-level evaluation of their published probe.
 
 ### 5.3 The dangerous quadrant may be empty where labels exist
 
@@ -179,7 +183,7 @@ Addressed in §2.1. Keep it to one paragraph, tie it explicitly to the reset rul
 
 | Paper | What it took |
 |---|---|
-| **ReDAct** (2604.07036, Apr 2026) | Two-call ReAct split with stage-specific contracts. Reasoning-level UQ at PRR 0.168–0.279, AUROC 0.596–0.682 vs. action-level 0.684–0.710. Concluded reasoning-level UQ has poor discriminative power; used action-level only. Tested MTE/PPL/SP + 12 more (App. D). **Did not test verbalized confidence.** |
+| **ReDAct** (2604.07036, Apr 2026) | Two-call ReAct split with stage-specific contracts. Reasoning-level UQ at PRR 0.168–0.279, AUROC 0.596–0.682 vs. action-level 0.684–0.710. Concluded reasoning-level UQ has poor discriminative power; used action-level only. Tested MTE/PPL/SP + 12 more (App. D). **Did not test verbalized (in-generation) confidence — the precise referent under §2.4's stipulation.** |
 | **AUQ** (2601.15703, Jan 2026, Salesforce) | Full read (Jul 2026). Dual-process **control** framework: System 1 keeps verbalized confidence + explanation in memory (soft attention constraint); System 2 = reflection triggered by **level threshold ĉ < τ** (τ ∈ [0.8, 0.95]). Elicitation is **entangled** — (action, ĉ, ê) in one generation, `<confidence>`/`<explanation>` tags (App. A.6.2). Evaluation is **trajectory-level only**: aggregators Φlast/Φavg/Φmin against terminal task success (T-ECE, T-BS, AUROC); no step labels, no action typing, no decoupling. App. A.5.4 argues verbalized > logits (occupies part of our §2.4). Reports the **Delusion Gap**: reflection inflates confidence most in failures (§4.3, A.5.1). Environments: ALFWorld 140 seen, WebShop 140 dev, 50-step cap; Related Work names operationalizing UQ for "branching and backtracking decisions" as the open direction. |
 | **Matsnev** (2606.19559, Jun 2026, ITMO) | Decomposes action confidence vs. request uncertainty — **single forward pass**. SOTA on clarification benchmarks. Their stated next step: "move the decomposition out of the prompt." |
 | **Survey** (2602.05073, Feb 2026) | Concedes the trajectory-UQ critique in its introduction. Source for the 4/44 labeling gap. |
@@ -188,7 +192,7 @@ Addressed in §2.1. Keep it to one paragraph, tie it explicitly to the reset rul
 
 Revised after the AUQ full read. "Elicitation works in agents" is no longer claimable — AUQ shows it at trajectory level. What no prior work does:
 
-> Prior work either elicits uncertainty **entangled with the action and validates it only at trajectory level against terminal success** (AUQ), decomposes it **within a single forward pass** (Matsnev), or probes the reasoning stage with **format-blind entropy measures and finds it uninformative** (ReDAct). We provide the first **step-level validation** of elicited agentic uncertainty against step-level labels; we **decompose** the signal's source between the elicitation contract and the architectural split (a 2×2 no prior work runs); we show the measurement is interpretable only **relative to environment-derived action type**; and we show drift is signaled by the **failure of a typed action to deliver its promised uncertainty reduction** — a promise-check that a deployed level-threshold mechanism demonstrably cannot make (AUQ's own Delusion Gap).
+> Prior work either verbalizes uncertainty **entangled with the action and validates it only at trajectory level against terminal success** (AUQ), decomposes it **within a single forward pass** (Matsnev), or probes the reasoning stage with **format-blind entropy measures and finds it uninformative** (ReDAct). We provide the first **step-level validation** of verbalized (in-generation) agentic uncertainty against step-level labels; we **decompose** the signal's source between the verbalized contract and the architectural split (a 2×2 no prior work runs); we show the measurement is interpretable only **relative to environment-derived action type**; and we show drift is signaled by the **failure of a typed action to deliver its promised uncertainty reduction** — a promise-check that a deployed level-threshold mechanism demonstrably cannot make (AUQ's own Delusion Gap).
 
 The novelty is the **measurement validation and its granularity**, not the probe.
 
@@ -204,11 +208,24 @@ The paper makes four claims, each with its own falsification path, inheriting in
 
 | # | Claim | Test | Kills what if it fails |
 |---|---|---|---|
-| 1 | **Instrument**: elicited U_T carries signal entropy misses | E1 (2×2) + E1b (robustness) | Everything. Full stop. |
-| 2 | **Architecture**: physical decoupling adds signal beyond elicitation | E1 cells B vs. D | The decoupling story; paper re-centers on elicitation + typing + reset |
+| 1 | **Instrument**: verbalized (in-generation) U_T carries signal entropy misses | E1 (2×2) + E1b (robustness + divergence) | Everything. Full stop. |
+| 2 | **Architecture**: physical decoupling adds signal beyond the verbalized contract | E1 cells B vs. D | The decoupling story; paper re-centers on verbalization + typing + reset |
 | 3 | **Semantics**: typing by τ improves predictive validity | E2 (stratified vs. pooled) + E2b (existence) | The interpretation-layer claim; matrix becomes illustrative |
 | 4 | **Propagation**: promise-violation predicts error better than level, accumulation, or AUQ's level-threshold trigger | E3 (4 baselines) | The reset rule; framing retreats to per-step measurement only |
 
-Kill-switch: if claim 1 fails (elicited ≈ entropy in all cells), the thesis is dead and no downstream experiment resurrects it. Pre-commit interpretations of all E1 outcomes **in writing before running** (done — see spec §E1, "Outcome table").
+Kill-switch: if claim 1 fails (verbalized ≈ entropy in all cells), the thesis is dead and no downstream experiment resurrects it. Pre-commit interpretations of all E1 outcomes **in writing before running** (done — see spec §E1, "Outcome table").
 
 Full specifications, protocols, and implementation detail: `uq_experiments.md`.
+
+---
+
+## 8. Open Problems
+
+*(Section created 2026-07-16 alongside the verbalized-confidence definitional commitment; the handoff referenced an "§8 open problem" from a discussion whose edits had not yet landed in this file — this is the minimal anchor holding that content.)*
+
+**Eliciting U_T without contaminating it — the two horns.** There is no probe of the thought's epistemic state that leaves both the thought and the reading untouched:
+
+- **In-generation contaminates the thought.** The confidence instruction sits in the prompt *before* the thought is written, so the thought is generated by a model that knows it will grade itself. The measured object is "reasoning under a self-report contract," not "reasoning simpliciter."
+- **Post-hoc contaminates the reading.** A later call receives the thought as supplied text, and reported confidence then tracks plausibility and provenance (Kim & Kang 2605.27752) — the reading drifts from the epistemic state that produced the thought to a judgment about a text object.
+
+The design does not pretend to escape the dilemma; it instruments both horns. The **E1b divergence analysis** (in-generation vs. post-hoc rank agreement, both architectures) measures how far apart the two readings actually are, and the **pre-registered contamination ablation** (decoupled thoughts generated with vs. without the confidence instruction, same seeds — thought length, MTE, action distribution) bounds horn one empirically. If the divergence is small, the stipulation in §2.4 is cheap; if it is large, the stipulation is doing real work and the paper says which object it measured.

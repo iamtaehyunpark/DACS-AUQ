@@ -1,0 +1,21 @@
+You are an AI agent solving a task in an interactive environment.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+YOUR CURRENT REASONING:
+{THOUGHTS}
+AVAILABLE COMMANDS:
+{AVAILABLE COMMANDS}
+OUTPUT RULES:
+- First line: EXACTLY one of the AVAILABLE COMMANDS. No reasoning, explanation, punctuation, or extra words.
+- Second line: your confidence level (0.0-1.0) that this action is correct, in <confidence>...</confidence> tags.
+- Do NOT output anything else.
+Now output your chosen action (one line), then the confidence tag (next line):
+
+# ---
+# v2 (2026-07-16, U_A verbalized — handoff §4.3 DEFAULT (a)): ReDAct Fig. 6 action prompt
+# amended to "one command line, then the confidence tag on the next line". The tag is
+# stripped before env execution. DEVIATION from ReDAct's verbatim contract — flag in the
+# E1 anchor discussion (Cell C action-entropy computed over the command line only).
+# v1 = redact_action.txt (kept; used by the E1b contamination-ablation arm).

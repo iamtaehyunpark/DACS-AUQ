@@ -1,0 +1,6 @@
+How confident are you that the reasoning above is factually correct and sufficient to decide the next action? Reply with exactly one of the following phrases and nothing else: almost certain, likely, unsure, unlikely, almost certainly not.
+
+# ---
+# SOURCE: our spec uq_experiments.md §0.6 Probe P2 (post-hoc self-evaluation, verbal scale, U_T).
+# 5-point scale mapped to uncertainty {0.05, 0.275, 0.5, 0.725, 0.95} in src/metrics/elicited.py.
+# E1b arm: runs post-hoc on frozen Cell B/D trajectories.

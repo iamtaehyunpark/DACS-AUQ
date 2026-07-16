@@ -1,0 +1,9 @@
+On a scale of 0-100, how confident are you that the reasoning above is factually correct and sufficient to decide the next action? Reply with a single integer.
+
+# ---
+# SOURCE: our spec uq_experiments.md §0.6 Probe P1 (post-hoc self-evaluation, numeric, U_T).
+# COMPARATOR, not primary: under the verbalized := in-generation stipulation (theory §2.4)
+# this is a judgment on supplied text — a different measurement class (Kim & Kang 2605.27752).
+# Post-hoc call: temperature=0, context = everything the thought stage saw + the thought
+# itself, then this question. U_T = 1 - x/100. Unparseable -> excluded, never imputed.
+# The agent NEVER sees the value (spec §0.5).

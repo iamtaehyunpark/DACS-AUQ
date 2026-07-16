@@ -1,0 +1,6 @@
+Do you know enough to be confident in this reasoning? Answer Yes or No.
+
+# ---
+# SOURCE: our spec uq_experiments.md §0.6 Probe P3 (post-hoc self-evaluation, yes/no logprob, U_T).
+# U_T = P("No") from first-token top logprobs, renormalized over {Yes,No} token variants
+# (leading-space/case handled in src/metrics/elicited.py). E1b arm.

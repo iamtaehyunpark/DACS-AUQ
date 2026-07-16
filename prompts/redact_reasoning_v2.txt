@@ -1,0 +1,18 @@
+You are an AI agent solving a task in an interactive environment.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+AVAILABLE COMMANDS:
+{AVAILABLE COMMANDS}
+Think step by step about the current situation and consider what action to take next.
+After your thought process, you MUST end your response with your confidence level (0.0-1.0) that your reasoning is correct and sufficient to decide the next action, in <confidence>...</confidence> tags.
+Your thought process:
+
+# ---
+# v2 (2026-07-16, verbalized-confidence definitional commitment): ReDAct Fig. 5 reasoning
+# prompt + in-generation confidence instruction (Probe V, tag format mirrors AUQ App. A.6.2
+# for cross-cell comparability). The <confidence> tag is STRIPPED from the thought before it
+# is passed to the action call (no-downstream-feedback invariant); the generation-time
+# contamination is constitutive of the protocol and retained deliberately.
+# v1 = redact_reasoning.txt (kept; used by the E1b contamination-ablation arm).

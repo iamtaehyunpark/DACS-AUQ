@@ -1,0 +1,48 @@
+# E1b contamination ablation (PRE-REGISTERED, handoff 2026-07-16 §3.2.6): on a ~30-task
+# subset, decoupled thoughts WITH vs WITHOUT the in-generation confidence instruction,
+# same seeds. Compare thought length, MTE, action distribution (src/analysis/contamination.py).
+# Purpose: empirically bound "self-grading changes the thought" instead of arguing about it.
+run_id_prefix: e1b_contam
+out_dir: data/trajectories
+
+env:
+  alfworld_config: configs/alfworld_base.yaml
+  split: eval_in_distribution
+
+agent:
+  base_url: http://127.0.0.1:8000/v1
+  model: agent
+  top_logprobs: 20
+  ban_think: true
+
+judge:
+  prompt: prompts/judge_redact_fig9.txt
+  include_thought: true
+  local:
+    base_url: http://127.0.0.1:8001/v1
+    model: judge
+  frontier:
+    base_url: https://api.openai.com/v1
+    model: gpt-5.2
+    api_key_env: OPENAI_API_KEY
+
+sampling:
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 512
+
+loop:
+  step_cap: 50
+  seed_base: 1000                    # same seeds as primary by construction
+  history_window: 0
+  history_include_thoughts: false
+  max_action_tokens: 80
+  posthoc_numeric_thought: false     # ablation compares GENERATION, no probe calls needed
+  posthoc_numeric_action: false
+  posthoc_guided: false
+
+tasks: {start: 0, end: 30}
+
+conditions:
+  decoupled_conf:   {arch: decoupled, verbalized: true}    # v2 prompts (tag instruction)
+  decoupled_noconf: {arch: decoupled, verbalized: false}   # v1 prompts (tag-free)

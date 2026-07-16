@@ -19,13 +19,29 @@ VERBAL_SCALE = {
 
 
 def numeric_uncertainty(text: str | None) -> tuple[float | None, bool]:
-    """Probe 1 / U_A: parse an integer 0-100 -> U = 1 - n/100. Unparseable -> (None, False)."""
+    """Probe 1 / U_A: parse an integer 0-100 -> U = 1 - n/100. Unparseable -> (None, False).
+
+    Parsing rules (each guards a real failure mode of instruction-echoing models):
+    - 'N/100' and 'N out of 100' denominators parse as N ("85/100" is 85, not 100).
+    - Scale echoes ('0-100', '0 to 100') are stripped before matching, so a reply that
+      repeats the question ("On a scale of 0-100, I'd say 85") parses 85, not 0.
+    - Among remaining standalone integers the LAST wins (models state the answer at the end).
+    - An integer > 100 is a protocol violation -> (None, False). Clamping it would be
+      imputation, which the frozen policy forbids (E1*.6: exclude + report, never impute).
+    """
     if not text:
         return None, False
-    m = re.search(r"\b(\d{1,3})\b", text)
-    if not m:
+    m = re.search(r"\b(\d{1,3})\s*(?:/|out of)\s*100\b", text)
+    if m:
+        n = int(m.group(1))
+        return (1.0 - n / 100.0, True) if n <= 100 else (None, False)
+    cleaned = re.sub(r"\b0\s*(?:-|to|–)\s*100\b", " ", text)
+    hits = re.findall(r"\b(\d{1,3})\b", cleaned)
+    if not hits:
         return None, False
-    n = min(100, int(m.group(1)))
+    n = int(hits[-1])
+    if n > 100:
+        return None, False
     return 1.0 - n / 100.0, True
 
 
@@ -58,9 +74,57 @@ def yesno_uncertainty(first_token_top: dict[str, float] | None) -> tuple[float |
     return p_no / (p_yes + p_no), True
 
 
-# -- AUQ in-generation entangled probe (Cell B canonical, probe 4) ---------
+# -- Probe V: verbalized (in-generation) confidence tags --------------------
 _CONF_RE = re.compile(r"<confidence>\s*([0-9]*\.?[0-9]+)\s*</confidence>", re.IGNORECASE)
 _EXPL_RE = re.compile(r"<explanation>\s*(.*?)\s*</explanation>", re.IGNORECASE | re.DOTALL)
+_CONF_OPEN_RE = re.compile(r"<confidence>", re.IGNORECASE)
+
+
+def verbalized_confidence(text: str | None) -> tuple[float | None, str | None, bool, bool]:
+    """Parse an in-generation <confidence>c</confidence> tag (Probe V, c in [0,1]).
+
+    Returns (U = 1 - c, raw_tag_text, parsed, multiple_tags_anomaly). Multiple tags: the
+    FIRST wins (the one adjacent to the content it qualifies) and the anomaly is flagged
+    for logging. Missing/malformed/out-of-range -> (None, raw-or-None, False, anomaly).
+    """
+    if not text:
+        return None, None, False, False
+    matches = _CONF_RE.findall(text)
+    anomaly = len(matches) > 1
+    m = _CONF_RE.search(text)
+    if not m:
+        return None, None, False, anomaly
+    raw = m.group(0)
+    try:
+        c = float(m.group(1))
+    except ValueError:
+        return None, raw, False, anomaly
+    if not (0.0 <= c <= 1.0):
+        return None, raw, False, anomaly
+    return 1.0 - c, raw, True, anomaly
+
+
+def strip_confidence_tag(text: str) -> str:
+    """Truncate a stage output at its (terminal) confidence tag BEFORE it is passed
+    downstream (no-feedback invariant: the verbalized value must never appear in a later
+    call's prompt). Everything from the first <confidence> onward is dropped; the pre-tag
+    content is returned rstripped and otherwise byte-identical. Use for the decoupled
+    thought/action outputs, whose contract puts the tag at the END."""
+    m = _CONF_OPEN_RE.search(text or "")
+    return (text[:m.start()] if m else (text or "")).rstrip()
+
+
+def remove_confidence_tags(text: str) -> str:
+    """Excise confidence tag(s) IN PLACE, keeping surrounding text. Use where content
+    legitimately follows the tag (AUQ's <explanation> comes after <confidence>) — e.g.
+    when building post-hoc probe contexts, which must not see the in-generation value
+    (it would anchor the post-hoc reading and inflate E1b's rank agreement trivially)."""
+    if not text:
+        return ""
+    out = _CONF_RE.sub("", text)
+    # unclosed trailing tag (stop-string ate the close): drop from the opener to end-of-line
+    out = re.sub(r"<confidence>[^\n<]*", "", out, flags=re.IGNORECASE)
+    return out
 
 
 def auq_entangled(text: str | None) -> tuple[float | None, str | None, bool]:

@@ -23,18 +23,18 @@ Companion to `uq_theory.md`. This document is written so that a coding agent can
 uq-agentic/
 ├── configs/               # yaml per experiment/condition
 ├── prompts/               # ALL prompts as versioned text files, never inline
-│   ├── entangled_react.txt
-│   ├── decoupled_thought.txt
-│   ├── decoupled_action.txt
-│   ├── elicit_numeric.txt
-│   ├── elicit_verbal.txt
-│   ├── elicit_yesno.txt
-│   ├── elicit_auq_entangled.txt   # AUQ App. A.6.2 elicitation suffix, VERBATIM (Cell B canonical)
+│   ├── auq_baseline_system.txt        # entangled ReAct (AUQ A.6.1)
+│   ├── elicit_auq_entangled.txt       # AUQ A.6.2 suffix, VERBATIM — Probe V, entangled
+│   ├── redact_reasoning.txt / _v2.txt # decoupled thought (Fig 5); v2 adds <confidence> tag
+│   ├── redact_action.txt / _v2.txt    # decoupled action  (Fig 6); v2 adds <confidence> tag
+│   ├── posthoc_numeric.txt / posthoc_numeric_action.txt
+│   ├── posthoc_verbal.txt
+│   ├── posthoc_yesno.txt
 │   └── judge_redact_fig9.txt
 ├── src/
 │   ├── env/               # ALFWorld wrapper + tau tagging
 │   ├── agent/             # entangled + decoupled loops
-│   ├── probes/            # entropy, ppl, sp, elicitation
+│   ├── probes/            # post-hoc self-evaluation callers (P1-P3); entropy in metrics/
 │   ├── judge/             # labeling pipeline
 │   ├── analysis/          # metrics, bootstrap, plots
 │   └── run.py             # single entrypoint: python -m src.run --config configs/<x>.yaml
@@ -52,7 +52,7 @@ Every step in every condition is one JSONL record. **This schema is frozen; all 
 ```json
 {
   "run_id": "e1_cellD_seed1042",
-  "condition": "decoupled_elicited",
+  "condition": "decoupled",
   "task_id": "alfworld/pick_and_place-042",
   "step_idx": 7,
   "state_summary_hash": "sha256:...",
@@ -62,12 +62,15 @@ Every step in every condition is one JSONL record. **This schema is frozen; all 
   "tau": {"I": 0, "W": 0, "R": 1, "C": "free"},
   "observation_text": "...",
   "probes": {
-    "U_T_elicited_numeric": 0.35,
-    "U_T_elicited_verbal": 0.40,
-    "U_T_yesno_logprob": 0.31,
-    "U_auq_entangled": 0.15,
+    "U_T_verbalized": 0.30,
+    "U_T_verbalized_raw": "<confidence>0.7</confidence>",
+    "U_A_verbalized": 0.10,
+    "U_A_verbalized_raw": "<confidence>0.9</confidence>",
     "auq_explanation_text": "...",
-    "U_A_elicited_numeric": 0.10,
+    "U_T_posthoc_numeric": 0.35,
+    "U_T_posthoc_verbal": 0.40,
+    "U_T_posthoc_yesno": 0.31,
+    "U_A_posthoc_numeric": 0.10,
     "thought_mte": 1.82,
     "thought_ppl": 4.1,
     "thought_sp": 0.88,
@@ -83,7 +86,8 @@ Every step in every condition is one JSONL record. **This schema is frozen; all 
 ```
 
 Notes:
-- All `U_*` values normalized to [0,1] where 1 = maximally uncertain. Elicited confidence c ∈ [0,100] → U = 1 − c/100.
+- All `U_*` values normalized to [0,1] where 1 = maximally uncertain. Numeric post-hoc confidence c ∈ [0,100] → U = 1 − c/100; verbalized tag confidence c ∈ [0.0,1.0] → U = 1 − c.
+- **Terminology (definitional commitment, 2026-07-16):** `U_*_verbalized` = **Probe V**, confidence emitted *in the same generation* as the content it qualifies (theory doc §2.4); `*_raw` keeps the tag text for parse auditing. `U_*_posthoc_*` = **post-hoc self-evaluation** (Probes P1–P3), a separate temperature-0 call on the frozen stage output — comparators, never the decision variable. Former names `U_T_elicited_*`/`U_auq_entangled` are retired (schema 1.1.0, pre-data).
 - `tau` is assigned by the environment wrapper (§0.4), **never** by the model.
 - `probes` fields not applicable to a condition are `null`, not omitted.
 
@@ -107,23 +111,28 @@ Static mapping in `src/env/tau_map.py`:
 
 **Entangled (baseline architecture).** Single call per step. Prompt = ReAct standard: task + history + `Thought:`/`Action:` few-shot format. Parse thought and action from one completion. Stop on `\nObservation`.
 
-**Decoupled (test architecture).** Two calls per step with **distinct contracts**:
-1. *Thought call* (`prompts/decoupled_thought.txt`): task + history; instruction: reason about current state, next sub-goal, what is known/unknown. **No action vocabulary in the prompt.** Free-form, ≤150 tokens.
-2. *Action call* (`prompts/decoupled_action.txt`): fresh prompt containing `YOUR CURRENT REASONING: {thought}` + the admissible-commands list from the environment + "Output exactly one line, exactly one of the available commands." (Mirrors ReDAct's contract so the comparison is fair.)
+**Decoupled (test architecture).** Two calls per step with **distinct contracts** (implemented as ReDAct's verbatim Fig 5/6 prompts per E1★, versioned v2 for the verbalized probe):
+1. *Thought call* (`prompts/redact_reasoning_v2.txt`): task + history + available commands; free-form reasoning. **The prompt ends with an instruction to close the response with `<confidence>0.0–1.0</confidence>`** (tag format mirrors AUQ A.6.2 for cross-cell comparability) — this in-generation emission is Probe V. **The tag is stripped from the thought text before it is passed to the action call**, preserving the no-downstream-feedback property; the generation-time contamination (the model knows it will grade itself) is constitutive of the protocol and retained deliberately.
+2. *Action call* (`prompts/redact_action_v2.txt`): fresh prompt containing `YOUR CURRENT REASONING: {thought}` + the admissible-commands list + "first line: exactly one command; second line: `<confidence>` tag" (U_A Probe V; tag stripped before env execution). v2 deviates from ReDAct's one-line contract by the added tag line — flagged in the E1 anchor discussion; stage entropy is computed over the **pre-tag span only** so tag tokens never contaminate the Cell C anchor.
 
-**Elicitation calls** (probe, §0.6) are additional calls appended after the relevant stage; they never feed back into the agent's context (the agent does not see its own elicited number — measurement must not perturb the trajectory beyond the architecture change itself).
+**Post-hoc self-evaluation calls** (Probes P1–P3, §0.6) are additional calls appended after the relevant stage; they never feed back into the agent's context, and their contexts use the **stripped** stage outputs (a post-hoc reading anchored by the in-generation value would be trivially correlated with it, voiding E1b).
 
-### 0.6 The three elicitation probes (E1b arms)
+### 0.6 The probes: Probe V (primary) + Probes P1–P3 (comparators)
 
-All elicitation calls: `temperature=0`, fresh call, context = everything the relevant stage saw plus the stage's own output.
+**Restructured 2026-07-16 (pre-data, definitional commitment — theory doc §2.4):** "verbalized confidence" is stipulated to mean confidence emitted **in the same generation** as the content it qualifies. The former "elicitation probes 1–3" are a distinct class — **post-hoc self-evaluation** — retained as comparators, never primary.
 
-1. **Numeric** (`elicit_numeric.txt`): "On a scale of 0–100, how confident are you that the reasoning above is factually correct and sufficient to decide the next action? Reply with a single integer." → U_T = 1 − x/100.
-2. **Verbal-scale** (`elicit_verbal.txt`): 5-point scale {almost certain, likely, unsure, unlikely, almost certainly not} mapped to {0.05, 0.275, 0.5, 0.725, 0.95} uncertainty.
-3. **Yes/no logprob** (`elicit_yesno.txt`): "Do you know enough to be confident in this reasoning? Answer Yes or No." → U_T = P("No") from first-token logprobs, renormalized over {Yes, No} token variants (handle leading-space and case variants; sum probability mass per class).
+**Probe V — verbalized (in-generation). PRIMARY, both architectures.**
+- *Entangled (Cell B):* AUQ's published elicitation suffix (`elicit_auq_entangled.txt`, their App. A.6.2, verbatim) appended to the agent prompt; the agent emits `<action>`, `<confidence>0.0–1.0</confidence>`, `<explanation>` **in one generation**. → `U_T_verbalized` = 1 − ĉ; explanation kept (`auq_explanation_text`). Cell B is thereby a faithful step-level evaluation of a *published, deployed* probe. **Caveat, logged:** AUQ's value persists in the agent's own generation context — inherent to their design, exactly the entanglement being measured; do not "fix" it. This is the ONLY sanctioned verbalized-value feedback.
+- *Decoupled (Cell D):* the v2 thought prompt instructs a closing `<confidence>` tag (same format); `U_T_verbalized` = 1 − c, `U_T_verbalized_raw` keeps the tag text. Tag stripped before the action call. The action call likewise emits a tag → `U_A_verbalized` (tag stripped before env execution).
+- Probe V adds **zero** model calls — it rides the stage generation.
 
-U_A elicitation: numeric probe only, worded for the action stage ("...that the action above is the correct next action?").
+**Probes P1–P3 — post-hoc self-evaluation. COMPARATORS, offline-able on frozen trajectories.** All: `temperature=0`, fresh call, context = everything the relevant stage saw plus the stage's own output **with the in-generation confidence value removed**.
 
-4. **AUQ-entangled** (`elicit_auq_entangled.txt`) — **applies to the entangled loop only, and is the canonical Cell B probe.** Not a separate call: AUQ's published elicitation suffix (their App. A.6.2) is appended to the entangled agent prompt itself, so the agent emits `<action>`, `<confidence>0.0–1.0</confidence>`, and `<explanation>` **in one generation** — exactly their mechanism, verbatim template. → `U_auq_entangled` = 1 − ĉ; store the explanation text (`auq_explanation_text`) for qualitative analysis. This makes Cell B a faithful step-level evaluation of a *published, deployed* probe rather than our own construction, which is worth more than any argument. **Caveat, logged:** unlike probes 1–3, this one feeds back into the agent's context (the confidence is in the generation the agent conditions its own action on) — that is inherent to AUQ's design and is exactly the entanglement being measured; do not "fix" it. The post-hoc numeric probe (probe 1) is *also* run on the same entangled trajectories so Cell B reports both variants: `in-generation (AUQ)` and `post-hoc numeric`.
+1. **P1 Numeric** (`posthoc_numeric.txt`): "On a scale of 0–100, how confident are you that the reasoning above is factually correct and sufficient to decide the next action? Reply with a single integer." → U_T = 1 − x/100.
+2. **P2 Verbal-scale** (`posthoc_verbal.txt`): 5-point scale {almost certain, likely, unsure, unlikely, almost certainly not} mapped to {0.05, 0.275, 0.5, 0.725, 0.95} uncertainty.
+3. **P3 Yes/no logprob** (`posthoc_yesno.txt`): "Do you know enough to be confident in this reasoning? Answer Yes or No." → U_T = P("No") from first-token logprobs, renormalized over {Yes, No} token variants (handle leading-space and case variants; sum probability mass per class).
+
+U_A post-hoc: numeric only, worded for the action stage (`posthoc_numeric_action.txt`).
 
 Entropy-family baselines (computed from logprobs, no extra calls): mean token entropy (MTE), perplexity (PPL), normalized sequence probability (SP), per stage. Implement to match ReDAct App. D definitions.
 
@@ -180,7 +189,7 @@ onto the paired-difference decision metric defined here.
 ### E1★.2 Model roster — single agent family (Qwen), disjoint judge family (Llama)
 
 Within-family sweep makes capability a controlled axis (shared tokenizer/lineage/chat template), so the
-"where elicitation stops working" boundary is a *scale* result, not scale-confounded-with-family.
+"where verbalization stops working" boundary is a *scale* result, not scale-confounded-with-family.
 
 | Role | Model | Availability | Notes |
 |---|---|---|---|
@@ -212,17 +221,23 @@ during the Cell A pilot (step 2), log the `<think>`-leak rate and per-probe pars
     real admissible-command set (the only gap found — TextWorld's meta-command `help` — is now tagged I=1/free).
 - **Primary = 2 generation runs:** (a) entangled-with-AUQ-suffix → Cells A+B; (b) decoupled (ReDAct two-call) → Cells C+D.
   Vanilla-ReAct third run **held in reserve** — trigger only if Cell A entropy looks pathological *and* debugging implicates the suffix.
-- Cell B probe: AUQ verbatim in-generation `<confidence>` canonical + post-hoc numeric alongside. Cell D: post-hoc numeric
-  primary; verbal + yes/no deferred to E1b on frozen trajectories.
+- Probe V (verbalized, in-generation) is primary in BOTH cells (2026-07-16 commitment): Cell B = AUQ verbatim
+  `<confidence>` suffix; Cell D = v2 thought/action prompts' closing `<confidence>` tag (stripped before any
+  downstream use). Post-hoc numeric (P1) rides alongside as comparator; P2/P3 deferred to E1b on frozen trajectories.
 - Entropy MTE/PPL/SP per ReDAct App. A, **computed within-cell only** — raw values never compared across cells (state as policy in
   the paper; cite Kim & Kang). Top-20 logprob entropy is a ranking-invariant approximation — fine for AUROC/PRR.
 
 ### E1★.4 Decision metric — paired difference, pre-frozen
 
-For each architecture, decision variable **Δ = AUROC(elicited U_T) − AUROC(best entropy probe on the SAME steps)**,
+**[Rebound 2026-07-16 — dated PRE-DATA amendment; no data had been generated. Former decision variable
+read "elicited U_T" (post-hoc numeric); it now reads the verbalized (in-generation) probe per the
+definitional commitment. Post-hoc probes appear as additional rows, never as the decision variable.]**
+
+For each architecture, decision variable **Δ = AUROC(`U_T_verbalized`) − AUROC(best entropy probe on the SAME steps)**,
 trajectory-level bootstrap CI, 10k resamples. "Best entropy probe" chosen **within** each cell (generous to the baseline so a win means something).
-The E1 outcome table keys on: **Δ_D** (does the instrument claim live), **Δ_B** (does elicitation alone recover it), and the
+The E1 outcome table keys on: **Δ_D** (does the instrument claim live), **Δ_B** (does the verbalized contract alone recover it), and the
 **B-vs-D paired comparison** (does the architectural split add anything). ReDAct's 0.596 appears once as anchor context — **never in a decision rule**.
+Implementation: `src/analysis/e1_decision.py`.
 
 ### E1★.5 Order of operations (strict)
 
@@ -237,7 +252,7 @@ Nothing in the sweep starts until the outcome table has fired. Primary-model E1 
 
 ### E1★.6 Two failure modes to guard in code (build them in now)
 
-- **Elicitation parse failures:** log every one with the raw completion; imputation policy fixed in advance — **unparseable → excluded from that probe's metrics, exclusion rate reported per cell** (Kim & Kang parse-rate lesson).
+- **Probe parse failures (verbalized tag AND post-hoc):** log every one with the raw completion; imputation policy fixed in advance — **unparseable → excluded from that probe's metrics, exclusion rate reported per cell** (Kim & Kang parse-rate lesson).
 - **τ mis-tagging:** the τ tagger is a **pure function of the environment action string** with a **unit test per action family** — a silent mis-tag corrupts E2/E3 invisibly while leaving E1 looking fine.
 
 ---
@@ -246,10 +261,10 @@ Nothing in the sweep starts until the outcome table has fired. Primary-model E1 
 
 **Design:** two factors, fully crossed. Same **140 ALFWorld Seen-split tasks** (AUQ-matched, §0.1) in all cells, same seeds, 50-step cap, so trajectories are as comparable as the architecture change allows.
 
-| | Probe: entropy-family (MTE/PPL/SP) | Probe: elicited U_T |
+| | Probe: entropy-family (MTE/PPL/SP) | Probe: verbalized U_T (in-generation, Probe V) |
 |---|---|---|
-| **Arch: entangled** | **Cell A** — ReDAct replication anchor | **Cell B** — **AUQ's verbatim elicitation (probe 4)** + post-hoc numeric |
-| **Arch: decoupled** | **Cell C** | **Cell D** — headline |
+| **Arch: entangled** | **Cell A** — ReDAct replication anchor | **Cell B** — **AUQ's verbatim suffix** (+ post-hoc P1 comparator) |
+| **Arch: decoupled** | **Cell C** | **Cell D** — headline (v2 tag; + post-hoc P1 comparator) |
 
 - Cells A+B share trajectories (one entangled run **with the AUQ elicitation suffix in the prompt** — this generates Cell B's in-generation probe natively; entropy for Cell A computed from the same run's logprobs; post-hoc numeric elicitation added via extra calls). **Note the consequence, accept it, report it:** the AUQ suffix in the prompt means the "entangled" run is AUQ-System-1-style, not vanilla ReAct. If Cell A's entropy anchor then misses ReDAct's band, generate a second vanilla-ReAct entangled run for the anchor only and report both — the suffix's effect on entropy is itself a (minor) finding.
 - Cells C+D share trajectories (one decoupled run) likewise.
@@ -259,14 +274,16 @@ Nothing in the sweep starts until the outcome table has fired. Primary-model E1 
 
 **Anchor check:** Cell A's MTE/PPL/SP AUROC must land near ReDAct's reported 0.596–0.682 band for reasoning-level. If it does not (±0.05), stop and debug the replication before interpreting anything else.
 
-**Outcome table (pre-committed — do not reinterpret after seeing data):**
+**Outcome table (pre-committed — do not reinterpret after seeing data). [Rebound 2026-07-16, dated
+pre-data amendment: every probe reference below is `U_T_verbalized` (in-generation, Probe V); the
+paired-difference decision variable is Δ of E1★.4. Post-hoc probes are extra rows, never deciders.]**
 
 | Result | Interpretation | Consequence |
 |---|---|---|
-| D > A significantly; entropy flat across A/C | Elicitation reads what entropy cannot; contract mechanism confirmed | Paper proceeds as framed. Run E3 next. |
-| B ≈ D > A; C ≈ A | Elicitation alone recovers the signal; decoupling adds nothing | **Recorded pre-registration bet.** Re-center paper on elicitation + typing + reset; decoupling becomes an ablation. Still run E3. |
-| D > B > A | Both mechanisms contribute; clean decomposition | Strongest version of the paper. Run E3. |
-| B ≈ D ≈ A ≈ C (all ~0.6) | Elicited U_T is no better than entropy | **THESIS DEAD. STOP.** Write up negative result; do not run E2/E3/E5. |
+| Δ_D > 0 significantly; entropy flat across A/C | Verbalized probe reads what entropy cannot; contract mechanism confirmed | Paper proceeds as framed. Run E3 next. |
+| Δ_B ≈ Δ_D > 0; C ≈ A | The verbalized contract alone recovers the signal; decoupling adds nothing | **Recorded pre-registration bet.** Re-center paper on verbalization + typing + reset; decoupling becomes an ablation. Still run E3. |
+| Δ_D > Δ_B > 0 | Both mechanisms contribute; clean decomposition | Strongest version of the paper. Run E3. |
+| Δ_B ≈ Δ_D ≈ 0 (all cells ~entropy) | Verbalized U_T is no better than entropy | **THESIS DEAD. STOP.** Write up negative result; do not run E2/E3/E5. |
 | D shifts vs. A but AUROC does not improve | Interference exists but does not matter | Much weaker paper; discuss with Taehyun before continuing. |
 
 **Reading the outcome table post-AUQ:** because Cell B is AUQ's verbatim probe, the "B ≈ D > A" row now has a sharper meaning — *AUQ's published mechanism carries step-level signal, and the split adds nothing* — which is simultaneously a validation of their probe at a granularity they never tested and a demotion of our decoupling claim. Either way the paper reports the first step-level evaluation of a deployed elicitation mechanism. The prior on this row is now elevated (theory doc §5.2).
@@ -277,21 +294,20 @@ Nothing in the sweep starts until the outcome table has fired. Primary-model E1 
 
 ---
 
-## E1b — Elicitation Robustness (runs inside E1, same trajectories)
+## E1b — Probe Robustness & Protocol Divergence (runs inside E1, same trajectories)
 
-**Purpose:** pre-empt the "prompt artifact" rebuttal (theory doc §5.1).
+**Purpose:** pre-empt the "prompt artifact" rebuttal (theory doc §5.1) **and** measure the in-generation vs. post-hoc divergence that the definitional commitment (theory §2.4) makes load-bearing.
 
 **Protocol:**
-1. On Cell B and Cell D trajectories, run **all post-hoc elicitation probes** (§0.6 probes 1–3) on every step. (Numeric is already there; add verbal + yes/no — re-elicitation on frozen trajectories, cheap.) Cell B additionally carries the in-generation AUQ probe (probe 4) natively, giving Cell B four probe readings per step.
-2. One temperature arm: repeat numeric elicitation at `temperature=0.7`, 3 samples per step, take the mean.
+1. **Headline contrast (2026-07-16): in-generation vs. post-hoc rank agreement, in BOTH architectures.** On Cell B and Cell D trajectories, compare `U_T_verbalized` against each post-hoc probe (P1–P3, run offline on the frozen trajectories with the in-generation value removed from context): Kendall's τ (`src/analysis/rank_agreement.py`) + per-probe AUROC, per cell. **High agreement** → the verbalized/post-hoc distinction is philosophical and either protocol works. **Low agreement** → the two protocols measure different objects (Kim & Kang's supplied-text regime vs. first-person report). Either outcome is a reported finding, not a failure.
+2. The three post-hoc phrasings (P1–P3) remain the **wording-robustness arm within the post-hoc class**: pairwise τ, target rank-stability (τ ≥ 0.5, AUROC CIs overlapping each other while excluding the entropy baseline).
+3. One temperature arm: repeat P1 at `temperature=0.7`, 3 samples per step, take the mean.
+4. **Contamination ablation (PRE-REGISTERED, added 2026-07-16 pre-data):** on a ~30-task subset, generate decoupled thoughts WITH vs. WITHOUT the confidence instruction (v2 vs. v1 prompts, same seeds; `configs/e1b_contamination.yaml`). Compare thought length, thought MTE, and executed-action distribution (`src/analysis/contamination.py`). Purpose: empirically **bound** the "self-grading changes the thought" contamination instead of arguing about it. One figure. The two-horns framing this serves: *in-generation contaminates the thought; post-hoc contaminates the reading* — this ablation bounds horn one, the divergence analysis (item 1) exhibits horn two.
 
-**Analysis:**
-- Kendall's τ between the probes' step rankings (pairwise, per cell; in Cell B this includes AUQ-in-generation vs. post-hoc numeric — **the rank agreement between AUQ's probe and a post-hoc probe on identical steps is itself a publishable side-result**, since it measures how much the in-generation entanglement perturbs the reading).
-- AUROC per probe per cell, same bootstrap protocol.
-- **Claim to establish:** rank-stability. Absolute values may disagree; the *ordering* of steps by U_T must be stable (target: pairwise τ ≥ 0.5 and all three probes' AUROC CIs overlapping each other while excluding the entropy baseline).
-- Report round-number clustering: histogram of raw numeric responses (expect spikes at 50/70/80/90 — show it, own it, demonstrate ranking survives it).
+**Analysis additions:**
+- Round-number clustering histogram runs on **both** `U_T_verbalized` and `U_T_posthoc_numeric` (expect spikes at 50/70/80/90 — show it, own it, demonstrate ranking survives it).
 
-**Budget:** ~1 day of extra elicitation calls + analysis. No new trajectories.
+**Budget:** ~1 day of extra post-hoc calls + analysis + half a day for the ablation generation. No other new trajectories.
 
 ---
 
@@ -324,7 +340,7 @@ Nothing in the sweep starts until the outcome table has fired. Primary-model E1 
 **Environment (decision):** WebShop. Rationale: text-based (same agent stack), has a genuinely irreversible terminal commit (`buy now`), well-established, cheap — **and AUQ evaluated on it**, so protocol-matching buys direct comparability. τ map: `search[...]` → I=1/W=0; `click[item]`/`click[option]` → I=0/W=1/R=1; `click[buy now]` → I=0/W=1/R=0/C=costly. If WebShop integration exceeds 2 days of engineering, fall back to a τ-instrumented ToolBench slice and flag the substitution.
 
 **Protocol (AUQ-matched):**
-1. **140 episodes randomly sampled from the standard Development Set, 50-step cap** — AUQ's exact protocol (their App. A.3.1). Fix and log the sampling seed for the episode draw. Decoupled architecture + numeric elicitation only (the E1-winning probe if different). AUQ characterizes WebShop as high-observation-noise; that makes it a *harder* test of the instrument than ALFWorld — say so in the paper rather than hiding it.
+1. **140 episodes randomly sampled from the standard Development Set, 50-step cap** — AUQ's exact protocol (their App. A.3.1). Fix and log the sampling seed for the episode draw. Decoupled architecture + verbalized probe only (the E1-winning probe if different). AUQ characterizes WebShop as high-observation-noise; that makes it a *harder* test of the instrument than ALFWorld — say so in the paper rather than hiding it.
 2. Judge-label with the same protocol, adapted rubric for WebShop step correctness (new prompt file `judge_webshop.txt`, derived from Fig. 9 structure; include it in the repo).
 3. **Deliverable is one figure + one table:** occupancy counts of the (U_T tercile × U_A tercile × τ) grid, and — the money panel — the set of steps in {high U_T, low U_A, I=0, W=1, R=0} with their labels. Show (a) the cell is occupied, (b) the instrument's uncertainty reading at those steps, (c) their error rate vs. the complement. The `buy now` steps also feed E3's analysis as the highest-stakes promise-check population.
 
@@ -340,8 +356,8 @@ Nothing in the sweep starts until the outcome table has fired. Primary-model E1 
 
 **Purpose:** test the reset rule's empirical content directly.
 
-**Definitions (frozen):**
-- For every step t with τ_t.I = 1 in decoupled trajectories: **ΔU_T(t) = U_T(t+1) − U_T(t)** (elicited, winning probe from E1). Undefined at terminal steps; excluded.
+**Definitions (frozen; probe binding updated 2026-07-16 pre-data):**
+- For every step t with τ_t.I = 1 in decoupled trajectories: **ΔU_T(t) = U_T(t+1) − U_T(t)**, read off **`U_T_verbalized`**. Undefined at terminal steps; excluded. No other change.
 - **Promise-violation indicator:** V(t) = 1 if ΔU_T(t) ≥ −ε, with ε = 0.05 (i.e., the epistemic action failed to reduce uncertainty by more than a trivial margin). Sensitivity analysis over ε ∈ {0, 0.05, 0.1}.
 - **Downstream error target:** label of step t+1, and separately, "any error in steps t+1..t+3" (windowed variant).
 
@@ -372,7 +388,7 @@ AUROC of each against the downstream-error targets, same steps, trajectory-level
 
 **Protocol:** from E1's two generation runs (no new compute):
 1. Task success rate: entangled vs. decoupled, with trajectory-level bootstrap CI on the difference.
-2. Tokens per step and per episode; wall-clock latency per step; number of model calls per step (entangled: 1; decoupled: 2 + elicitations — report with and without elicitation calls since elicitation is offline-able).
+2. Tokens per step and per episode; wall-clock latency per step; number of model calls per step (entangled: 1; decoupled: 2 + post-hoc calls — report with and without, since post-hoc probes are offline-able). **Note (2026-07-16): the verbalized probe adds ZERO calls — it rides the stage generation.** The instrument's marginal cost is a few tag tokens per stage; this strictly improves the cost story and is said explicitly in the paper.
 3. Episode length distribution (decoupling might change behavior, not just cost).
 
 **Framing rule:** this is overhead accounting, not a hypothesis test. If decoupling *degrades* success significantly, that is a limitation reported in the paper's cost section — it does not gate the measurement claims, but it must be visible.
