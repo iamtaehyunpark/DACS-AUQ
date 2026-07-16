@@ -22,10 +22,14 @@ from src.schema import write_jsonl
 _STEP_KEY_RE = re.compile(r"step\s*(\d+)", re.IGNORECASE)
 
 
-def format_trajectory(task: str, steps: list[dict], *, include_thought: bool = True) -> str:
+def format_trajectory(task: str, steps: list[dict], *, include_thought: bool = False) -> str:
     """Render one trajectory for the judge. Step numbering starts at 1 to match the judge's
-    "step i" keys. Thought included by default (the judge rates helpfulness of the step;
-    ReDAct's {TRAJECTORY} format is unspecified in the paper — this is our documented choice)."""
+    "step i" keys. Thought EXCLUDED by default (decision 2026-07-16, pre-data): entangled and
+    decoupled thoughts differ systematically in style/length, so a thought-visible judge
+    produces label distributions that differ by architecture — the 2x2's rows would be scored
+    against different standards. Labels come from an architecture-invariant rendering
+    (actions + observations only). This may diverge from ReDAct's unspecified {TRAJECTORY}
+    format — one more reason the anchor is context, never a gate."""
     lines = [f"Task: {task}"]
     for i, s in enumerate(steps, 1):
         lines.append(f"step {i}:")

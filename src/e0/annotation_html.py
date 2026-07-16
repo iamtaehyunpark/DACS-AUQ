@@ -2,8 +2,10 @@
 static HTML page reading the JSONL, radio buttons, exports CSV. Do not build infrastructure").
 
 Blindness: the page embeds NO judge labels and NO probe values. Annotators see the same rubric
-text as the judge prompt, the full trajectory, and the highlighted target step. Answers persist
-in localStorage; Export writes CSV (uid,label,note,annotator).
+text as the judge prompt, the full trajectory, and the highlighted target step — rendered
+EXACTLY as the judge sees it (architecture-invariant: actions + observations, NO thoughts;
+decision 2026-07-16 — kappa is only meaningful if humans and judge rate the same rendering).
+Answers persist in localStorage; Export writes CSV (uid,label,note,annotator).
 """
 from __future__ import annotations
 
@@ -52,7 +54,6 @@ function render(){
   document.getElementById("task").textContent = "Task: " + it.task;
   document.getElementById("traj").innerHTML = it.steps.map((s, j) =>
     `<div class="step ${j===it.target ? "target" : ""}"><b>step ${j+1}</b>` +
-    (s.thought ? `\nthought: ${esc(s.thought)}` : "") +
     `\naction: ${esc(s.action)}\nobservation: ${esc(s.obs)}</div>`).join("");
   const a = store(it.uid);
   document.querySelectorAll('input[name="lab"]').forEach(r => r.checked = a.label === r.value);
@@ -100,8 +101,9 @@ def build_page(sampled_path: str, all_records_path: str, judge_prompt_path: str,
             "uid": step_uid(s),
             "task": (steps[0].get("extra") or {}).get("task", ""),
             "target": s["step_idx"],
-            "steps": [{"thought": r["thought_text"], "action": r["action_text"],
-                       "obs": r["observation_text"]} for r in steps],
+            # architecture-invariant rendering, identical to the judge's: no thoughts
+            "steps": [{"action": r["action_text"], "obs": r["observation_text"]}
+                      for r in steps],
         })
 
     rubric = load_prompt(judge_prompt_path)

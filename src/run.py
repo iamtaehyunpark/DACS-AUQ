@@ -96,7 +96,7 @@ def stage_judge(cfg: dict, in_path: str, backend: str) -> None:
     out_path = os.path.join("data/labels",
                             os.path.basename(in_path).replace(".jsonl", f".{backend}.labeled.jsonl"))
     stats = judge_file(in_path, out_path, client, template,
-                       include_thought=cfg["judge"].get("include_thought", True),
+                       include_thought=cfg["judge"].get("include_thought", False),
                        judge_name=backend)
     _append_json(out_path.replace(".jsonl", ".stats.json"), stats)
     print(f"[judge:{backend}] {stats}")

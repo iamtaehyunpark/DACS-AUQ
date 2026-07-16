@@ -109,6 +109,18 @@ class TestStripAndRemove:
         out = E.remove_confidence_tags("line one\n<confidence>0.9\nline two")
         assert "0.9" not in out and "line one" in out and "line two" in out
 
+    def test_remove_self_assessment_excises_confidence_and_explanation(self):
+        t = ("<think>hm</think><action>go</action> <confidence>0.7</confidence> "
+             "<explanation>I am fairly sure about the desk</explanation>")
+        out = E.remove_self_assessment(t)
+        assert "0.7" not in out and "fairly sure" not in out
+        assert "<think>hm</think>" in out and "<action>go</action>" in out
+
+    def test_remove_self_assessment_unclosed_explanation(self):
+        out = E.remove_self_assessment("<action>go</action> <confidence>0.7</confidence> "
+                                       "<explanation>partial text")
+        assert "partial text" not in out and "0.7" not in out and "<action>go</action>" in out
+
 
 class TestAuqEntangled:
     def test_full_parse(self):

@@ -40,7 +40,7 @@ from src.agent.parse import parse_entangled, patch_unclosed, choose_executable, 
 from src.agent.prompts import fill, load_prompt, prompt_path
 from src.env.alfworld_env import AlfworldEnv
 from src.env.tau_map import tau_of
-from src.metrics.elicited import (auq_entangled, remove_confidence_tags,
+from src.metrics.elicited import (auq_entangled, remove_self_assessment,
                                   strip_confidence_tag, verbalized_confidence)
 from src.metrics.logprob import char_span_to_token_range, stage_metrics
 from src.probes import posthoc
@@ -178,8 +178,13 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
 def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens, seed, *,
                     task, initial_obs, current_obs, history, admissible, t):
     shown = _window(history, cfg.history_window)
+    # AUQ A.6.2 history format, VERIFIED against their PDF: the {action_history} slot carries
+    # the prior generation's <think> + <action>. Confidence/explanation are NOT retained —
+    # that retention is UAM (their System-1 mechanism), excluded by recorded decision
+    # (probe, not mechanism); it also preserves the no-feedback invariant across steps.
     hist_str = " ".join(
-        f"Step {i + 1}: Observation: {h['obs']} Action: {h['action']}"
+        f"Step {i + 1}: Observation: {h['obs']} Action: "
+        f"<think>{h['thought']}</think> <action>{h['action']}</action>"
         for i, h in enumerate(shown)
     ) or "(none)"
     prompt = fill(prompts.entangled, {
@@ -222,9 +227,10 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     extra = {"generation": text, "prompt": prompt, "action_match": match_kind,
              "action_tag_ok": tagged.action_tag_ok,
              "admissible_commands": list(admissible), "posthoc_raw": {}}
-    # post-hoc context: the generation WITHOUT the confidence value (tag excised in place —
-    # think/action/explanation kept), so the post-hoc reading is not anchored by Probe V.
-    stage_ctx = prompt + remove_confidence_tags(text)
+    # post-hoc context: the generation WITHOUT the self-assessment — confidence value AND
+    # explanation excised (the explanation is the assessment in prose; leaving it leaks
+    # Probe V into the post-hoc reading). think/action kept; explanation logged in probes.
+    stage_ctx = prompt + remove_self_assessment(text)
     _posthoc(client, prompts, cfg, seed, stage_ctx, stage_ctx, probes, extra)
 
     return {"thought": tagged.think or "", "probes": probes, "state_hash": _sha(prompt),

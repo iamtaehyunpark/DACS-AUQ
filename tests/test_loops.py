@@ -96,9 +96,19 @@ class TestEntangled:
 
     def test_no_feedback_invariant(self):
         _, client = _run("entangled", auq_suffix=True)
-        # the in-generation value must not appear in ANY prompt (incl. post-hoc contexts;
-        # our history keeps plain actions, so this holds globally even for Cell B)
+        # the in-generation value must not appear in ANY prompt: history keeps <think>+<action>
+        # but NOT confidence/explanation (UAM excluded), post-hoc contexts are excised
         assert all(ENTANGLED_CONF not in p for p in client.prompts)
+        # the explanation (self-assessment prose) must not reach the post-hoc context either
+        posthoc_prompts = [p for p in client.prompts if "single integer" in p]
+        assert posthoc_prompts and all("desk is likely" not in p for p in posthoc_prompts)
+
+    def test_history_is_auq_format_with_think(self):
+        out, _ = _run("entangled", auq_suffix=True)
+        hp = out.records[1]["extra"]["prompt"]
+        # AUQ A.6.2 slot format: prior thoughts ARE in entangled history, tags reconstructed,
+        # confidence/explanation NOT retained (checked by value in the invariant test)
+        assert "Action: <think>I need the mug.</think> <action>go to desk 1</action>" in hp
 
 
 class TestDecoupled:

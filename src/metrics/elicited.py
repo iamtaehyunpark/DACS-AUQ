@@ -127,6 +127,21 @@ def remove_confidence_tags(text: str) -> str:
     return out
 
 
+def remove_self_assessment(text: str) -> str:
+    """Excise confidence AND explanation tags (decision 2026-07-16, pre-data): AUQ's
+    <explanation> is the self-assessment in prose form — leaving it in a post-hoc probe
+    context leaks Probe V's judgment and makes E1b's rank agreement partially circular.
+    For probe-independence analyses, err toward independence. The excised explanation is
+    already logged separately (probes.auq_explanation_text)."""
+    if not text:
+        return ""
+    out = remove_confidence_tags(text)
+    out = _EXPL_RE.sub("", out)
+    # unclosed trailing explanation (stop-string ate the close): drop opener to end of text
+    out = re.sub(r"<explanation>.*", "", out, flags=re.IGNORECASE | re.DOTALL)
+    return out
+
+
 def auq_entangled(text: str | None) -> tuple[float | None, str | None, bool]:
     """Parse AUQ's in-generation tags: returns (U = 1 - conf, explanation_text, parsed).
     conf is a float in [0,1] inside <confidence>...</confidence>. Missing/malformed -> (None, expl, False).

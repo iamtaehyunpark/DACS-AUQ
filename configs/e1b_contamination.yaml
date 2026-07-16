@@ -17,7 +17,7 @@ agent:
 
 judge:
   prompt: prompts/judge_redact_fig9.txt
-  include_thought: true
+  include_thought: false   # architecture-invariant labels (2026-07-16): actions+observations only
   local:
     base_url: http://127.0.0.1:8001/v1
     model: judge
