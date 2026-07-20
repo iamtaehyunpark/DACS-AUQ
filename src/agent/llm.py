@@ -104,9 +104,14 @@ class VLLMClient:
     def chat(self, messages: list[dict], *, temperature: float = 0.0,
              max_tokens: int = 4096, seed: int = 0) -> str:
         """Chat endpoint (server applies the model's chat template). Used by the judge only —
-        agent generations go through generate() so we own the prompt string verbatim."""
+        agent generations go through generate() so we own the prompt string verbatim.
+
+        Sends `max_completion_tokens` (2026-07-20): GPT-5.x deployments reject the legacy
+        `max_tokens` on chat ("Unsupported parameter", verified against the Foundry
+        gpt-5.2 judge deployment); vLLM's OpenAI-compatible chat endpoint accepts both.
+        temperature=0 verified accepted by gpt-5.2. Same request otherwise."""
         resp = self.client.chat.completions.create(
             model=self.model, messages=messages, temperature=temperature,
-            max_tokens=max_tokens, seed=seed,
+            max_completion_tokens=max_tokens, seed=seed,
         )
         return resp.choices[0].message.content or ""
