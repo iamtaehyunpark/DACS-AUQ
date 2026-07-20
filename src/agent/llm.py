@@ -35,13 +35,21 @@ class Generation:
 
 class VLLMClient:
     def __init__(self, base_url: str, model: str, *, api_key: str = "EMPTY",
-                 top_logprobs: int = 20, timeout: float = 300.0):
+                 top_logprobs: int = 20, timeout: float = 300.0,
+                 chat_max_tokens: int | None = None):
         from openai import OpenAI
         self.client = OpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
         self.base_url = base_url
         self.model = model
         self.top_logprobs = top_logprobs
         self.logit_bias: dict[str, int] = {}
+        # chat() completion cap override (config-driven). Reasoning-tier judges spend
+        # hidden reasoning tokens INSIDE max_completion_tokens, so the report-only
+        # gpt-5.6-sol arm needs headroom the 4096 default doesn't give.
+        self.chat_max_tokens = chat_max_tokens
+        # Set True after a judge model rejects the temperature parameter (reasoning-tier
+        # models lock temperature=1); subsequent chat() calls omit it. See chat().
+        self._omit_chat_temperature = False
 
     # -- thinking-off enforcement -----------------------------------------
     def ban_token(self, s: str) -> bool:
@@ -102,16 +110,36 @@ class VLLMClient:
         return out
 
     def chat(self, messages: list[dict], *, temperature: float = 0.0,
-             max_tokens: int = 4096, seed: int = 0) -> str:
+             max_tokens: int | None = None, seed: int = 0) -> str:
         """Chat endpoint (server applies the model's chat template). Used by the judge only —
         agent generations go through generate() so we own the prompt string verbatim.
 
         Sends `max_completion_tokens` (2026-07-20): GPT-5.x deployments reject the legacy
         `max_tokens` on chat ("Unsupported parameter", verified against the Foundry
         gpt-5.2 judge deployment); vLLM's OpenAI-compatible chat endpoint accepts both.
-        temperature=0 verified accepted by gpt-5.2. Same request otherwise."""
-        resp = self.client.chat.completions.create(
-            model=self.model, messages=messages, temperature=temperature,
-            max_completion_tokens=max_tokens, seed=seed,
-        )
+        temperature=0 verified accepted by gpt-5.2. Same request otherwise.
+
+        Temperature fallback (2026-07-20, for the REPORT-ONLY gpt-5.6-sol robustness
+        arm): reasoning-tier deployments reject any non-default temperature
+        ("'temperature' does not support 0.0", verified live). On that specific error
+        the call retries once WITHOUT the parameter and all later calls omit it, logged
+        loudly — a documented deviation of the robustness arm only. The decisional
+        judges (local vLLM, gpt-5.2) accept temperature=0 and never take this path."""
+        from openai import BadRequestError
+        cap = max_tokens if max_tokens is not None else (self.chat_max_tokens or 4096)
+        kw: dict = dict(model=self.model, messages=messages,
+                        max_completion_tokens=cap, seed=seed)
+        if not self._omit_chat_temperature:
+            kw["temperature"] = temperature
+        try:
+            resp = self.client.chat.completions.create(**kw)
+        except BadRequestError as e:
+            if "temperature" not in str(e):
+                raise
+            print(f"[llm] NOTE: {self.model} rejects the temperature parameter "
+                  f"(reasoning-tier); omitting it for this and all later chat() calls. "
+                  f"Requested temperature={temperature} is NOT honored.")
+            self._omit_chat_temperature = True
+            kw.pop("temperature", None)
+            resp = self.client.chat.completions.create(**kw)
         return resp.choices[0].message.content or ""

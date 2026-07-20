@@ -90,7 +90,8 @@ def stage_judge(cfg: dict, in_path: str, backend: str) -> None:
 
     j = cfg["judge"][backend]
     api_key = os.environ.get(j["api_key_env"], "EMPTY") if "api_key_env" in j else "EMPTY"
-    client = VLLMClient(j["base_url"], j["model"], api_key=api_key)
+    client = VLLMClient(j["base_url"], j["model"], api_key=api_key,
+                        chat_max_tokens=j.get("chat_max_tokens"))
     template = load_prompt(cfg["judge"]["prompt"])
     os.makedirs("data/labels", exist_ok=True)
     out_path = os.path.join("data/labels",
@@ -109,7 +110,7 @@ def main() -> None:
                     choices=["generate", "judge", "e0-sample", "e0-html", "e0-agreement"])
     ap.add_argument("--condition", help="generate: which conditions block to run")
     ap.add_argument("--in", dest="in_path", help="judge/e0-*: input records file")
-    ap.add_argument("--backend", default="local", choices=["local", "frontier"])
+    ap.add_argument("--backend", default="local", choices=["local", "frontier", "frontier56"])
     ap.add_argument("--human-csv", nargs="*", default=[], help="e0-agreement: annotator CSVs")
     args = ap.parse_args()
     cfg = _load_cfg(args.config)

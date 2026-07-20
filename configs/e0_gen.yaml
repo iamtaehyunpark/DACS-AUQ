@@ -27,6 +27,18 @@ judge:
     base_url: https://llmjudgejul20-resource.services.ai.azure.com/openai/v1
     model: gpt-5.2
     api_key_env: AZURE_FRONTIER_API_KEY
+  frontier56:
+    # REPORT-ONLY robustness arm, pre-registered 2026-07-20 BEFORE any 5.6 label
+    # existed: label-source sensitivity of the E0 labels vs judge vintage. NON-DECISIONAL
+    # regardless of outcome — the ~0.1 kappa rule is evaluated against `frontier`
+    # (gpt-5.2) only; this arm can never be promoted. Documented deviations, forced by
+    # the reasoning-tier deployment (verified live): temperature parameter rejected
+    # (model locks 1.0 — greedy-then-0.2 parse retry degrades to two same-config draws),
+    # hidden reasoning tokens spend inside max_completion_tokens (hence the raised cap).
+    base_url: https://llmjudgejul20-resource.services.ai.azure.com/openai/v1
+    model: gpt-5.6-sol
+    api_key_env: AZURE_FRONTIER_API_KEY
+    chat_max_tokens: 16384
 
 sampling:
   temperature: 0.7
