@@ -105,6 +105,18 @@ def parse_entangled(text: str, *, prefilled_think: bool = False) -> TaggedGen:
     return out
 
 
+def first_content_line(text: str) -> str:
+    """First non-empty line of a generation, stripped — the v1 decoupled action contract's
+    answer. A FIXED rule: whatever the first content line is (command or leaked tag), that
+    IS the action read; later lines are never searched for a better-looking candidate.
+    Mirrors src/probes/posthoc.py:_first_content_line (kept separate: that one preserves
+    the line unstripped for its numeric parser)."""
+    for line in (text or "").splitlines():
+        if line.strip():
+            return line.strip()
+    return ""
+
+
 def choose_executable(action_text: str | None, generation_text: str,
                       admissible: list[str]) -> tuple[str, str]:
     """Pick the command string to execute. Returns (command, match_kind) where match_kind is

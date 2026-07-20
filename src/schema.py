@@ -58,7 +58,26 @@ from typing import Any
 # exempt). No fields added; generation_retry.retry_degenerate now correctly flags this
 # case for the decoupled path. Scoped to Cell C/D generation; does not touch E0
 # (entangled-only) -- Step 5 (E0 judge labeling) is unaffected and unblocked by this.
-SCHEMA_VERSION = "1.6.0"
+# 1.7.0 (2026-07-20): pre-data amendment -- ROOT CAUSE of the v1 empty-action rate found
+# by re-verifying the 2181701 diagnostic rerun (byte-identical generations confirmed by
+# hash, as forced by per-step seeds). The v1 (tag-free) decoupled action call used
+# stop=["\n"] on a prompt that already ends with "\n": whenever the model sampled a
+# newline as its FIRST token (~50% of draws at temp 0.7 -- a formatting choice, not a
+# refusal; the thought call had 0/69 empties), the stop fired at 1 completion token and
+# the record got an empty action, which executed as "Nothing happens." (tau=None) --
+# 14/50 wasted turns on Bowl-301 alone, confounding the loop-control comparison. All 31
+# retried first draws show finish_reason='stop' at exactly 1 token. Fixes, contract-level
+# only: (a) v1 action call drops the "\n" stop and draws to max_action_tokens; the action
+# read is the FIRST CONTENT LINE (fixed rule -- a degenerate first line is kept+flagged,
+# never searched past); (b) _degenerate_action_line judges that same first line, so
+# post-line ramble cannot fail a good action; (c) pre-registered span rule: action-stage
+# entropy (action_mte/ppl/sp/nll) covers the command line's tokens ONLY, uniform across
+# v1/v2 -- leading newlines and post-line ramble are formatting, not action content
+# (matches how think-block spans already exclude non-content). Same failure class as
+# 1.3.0/1.5.0: the contract cutting off the read at a formatting token. Scoped to
+# decoupled Cells C/D; entangled path (E0, Cells A/B) untouched. ReDAct Fig-6 prompt
+# text remains byte-identical -- stop sequences were never part of their published spec.
+SCHEMA_VERSION = "1.7.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.

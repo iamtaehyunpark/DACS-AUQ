@@ -2,6 +2,8 @@
 must produce frozen-schema-valid records with verbalized (Probe V) + post-hoc probes, stage
 metrics, and tau set — and the verbalized VALUE must never appear in any downstream prompt
 (grep-level invariant, handoff 2026-07-16 §4.5)."""
+import pytest
+
 from src.agent.llm import Generation
 from src.agent.loops import LoopConfig, Prompts, run_episode
 from src.env.alfworld_env import StepResult
@@ -47,19 +49,22 @@ class FakeClient:
     model = "fake"
 
     def __init__(self, omit_tag=False, malformed_tag=False, finish_reason="stop",
-                 empty_gens=0, echo_gens=0, action_leak_gens=0):
+                 empty_gens=0, echo_gens=0, action_leak_gens=0, action_multiline_gens=0):
         self.prompts: list[str] = []    # every prompt sent, for the invariant test
         self.seeds: list[int] = []      # seed of every call, for the retry-seed test
+        self.stops: list = []           # stop kwarg of every call, for the v1-stop test
         self.omit_tag = omit_tag
         self.malformed_tag = malformed_tag
         self.finish_reason = finish_reason
         self.empty_gens = empty_gens    # first N MAIN-STAGE calls return empty text
         self.echo_gens = echo_gens      # first N MAIN-STAGE calls echo the instruction list
         self.action_leak_gens = action_leak_gens  # first N v1 action calls leak '</think>'
+        self.action_multiline_gens = action_multiline_gens  # v1 action: leading \n + ramble
 
     def generate(self, prompt, **kw):
         self.prompts.append(prompt)
         self.seeds.append(kw.get("seed"))
+        self.stops.append(kw.get("stop"))
         if prompt.rstrip().endswith("<confidence>"):
             # EOS-repair continuation: model completes the forced prefix
             text = f"{REPAIR_CONF}"
@@ -87,6 +92,17 @@ class FakeClient:
             return [Generation(text=text, tokens=[text], logprobs=[-0.5],
                                top_logprobs=[{text: -0.5}], prompt_tokens=10,
                                completion_tokens=1, finish_reason=self.finish_reason)]
+        elif "YOUR CURRENT REASONING" in prompt and self.action_multiline_gens > 0:
+            # 1.7.0 no-stop v1 draw: leading formatting newline, then the command, then
+            # post-line ramble -- the shape the removed stop=["\n"] used to truncate at
+            # token 1. Distinct per-token logprobs so the span test can pin the window.
+            self.action_multiline_gens -= 1
+            toks = ["\n", "go to", " desk 1", "\n", "AVAILABLE"]
+            lps = [-1.0, -0.25, -0.25, -1.0, -2.0]
+            return [Generation(text="".join(toks), tokens=toks, logprobs=lps,
+                               top_logprobs=[{t: l} for t, l in zip(toks, lps)],
+                               prompt_tokens=10, completion_tokens=len(toks),
+                               finish_reason="stop")]
         elif "YOUR CURRENT REASONING" in prompt:
             # only the v2 prompt (redact_action_v2.txt) instructs a confidence tag --
             # detect it the way the real model would (by the instruction's presence),
@@ -407,3 +423,53 @@ class TestDecoupledActionDegenerateRetry:
     def test_thought_call_unaffected_by_action_leak_mode(self):
         out, _ = _run("decoupled", client=FakeClient(action_leak_gens=1), verbalized=False)
         assert out.records[0]["thought_text"] == "I should look for the mug on the desk."
+
+
+class TestV1ActionLeadingNewlineFix:
+    """2026-07-20 amendment (schema 1.7.0): stop=["\n"] on a prompt already ending in
+    "\n" terminated the v1 action draw on a LEADING newline (all 31 retried diagnostic
+    first draws: 1 token, finish_reason='stop'). v1 now draws with NO stop string, the
+    action is the first content line (fixed rule), the degenerate check judges that
+    line only, and action entropy spans the command line's tokens only."""
+
+    @staticmethod
+    def _action_calls(client):
+        # the main action-stage calls: REASONING marker present, and not a post-hoc
+        # probe prompt (those embed the stage context, so the marker leaks into them)
+        return [i for i, p in enumerate(client.prompts)
+                if "YOUR CURRENT REASONING" in p and "single integer" not in p]
+
+    def test_v1_action_call_sends_no_stop_string(self):
+        out, client = _run("decoupled", verbalized=False)
+        idx = self._action_calls(client)
+        assert idx and all(client.stops[i] is None for i in idx)
+
+    def test_v2_action_call_keeps_confidence_stop(self):
+        out, client = _run("decoupled")
+        idx = self._action_calls(client)
+        assert idx and all(client.stops[i] == ["</confidence>"] for i in idx)
+
+    def test_leading_newline_draw_reads_first_content_line(self):
+        out, client = _run("decoupled", client=FakeClient(action_multiline_gens=999),
+                           verbalized=False)
+        r = out.records[0]
+        assert r["action_text"] == "go to desk 1"
+        assert r["extra"]["action_match"] == "exact"
+        # a leading newline is formatting, not a non-response: no retry may fire
+        assert r["extra"]["generation_retry"]["action"] is None
+
+    def test_degenerate_check_judges_first_content_line_only(self):
+        from src.agent.loops import _degenerate_action_line
+        assert _degenerate_action_line("go to desk 1\n</think>") is False  # post-line ramble
+        assert _degenerate_action_line("\n\n</think>") is True             # leak IS the read
+        # fixed rule: the first content line is THE action -- never search past a bad one
+        assert _degenerate_action_line("</think>\ngo to desk 1") is True
+
+    def test_action_entropy_spans_command_line_only(self):
+        out, _ = _run("decoupled", client=FakeClient(action_multiline_gens=999),
+                      verbalized=False)
+        p = out.records[0]["probes"]
+        # tokens: ["\n", "go to", " desk 1", "\n", "AVAILABLE"], lps [-1,-.25,-.25,-1,-2]
+        # span must cover exactly ["go to", " desk 1"] -> sp=0.5, ppl=0.25
+        assert p["action_sp"] == pytest.approx(0.5)
+        assert p["action_ppl"] == pytest.approx(0.25)

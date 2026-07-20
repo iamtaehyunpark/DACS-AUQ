@@ -45,7 +45,8 @@ import time
 from dataclasses import dataclass, field
 
 from src.agent.llm import ContextOverflowError, VLLMClient
-from src.agent.parse import parse_entangled, patch_unclosed, choose_executable, parse_verb_arg
+from src.agent.parse import (parse_entangled, patch_unclosed, choose_executable,
+                             parse_verb_arg, first_content_line)
 from src.agent.prompts import fill, load_prompt, prompt_path
 from src.env.alfworld_env import AlfworldEnv
 from src.env.tau_map import tau_of
@@ -160,8 +161,13 @@ def _degenerate_action_line(text: str) -> bool:
     'Action: </think>' -- same failure CLASS as the entangled instruction-echo cascade
     (0617ee5), different symptom. No legitimate ALFWorld command contains '<': admissible
     strings are plain lowercase phrases (src/env/tau_map.py normalize_action), so any '<'
-    followed by a letter or slash is tag leakage, never a real answer."""
-    return bool(_TAG_LEAK_RE.search(text))
+    followed by a letter or slash is tag leakage, never a real answer.
+
+    Amendment 2026-07-20 (schema 1.7.0): judged on the FIRST CONTENT LINE only, not the
+    whole generation. Since the leading-newline stop fix, v1 draws run to max_action_tokens
+    with no stop string, so text may legitimately carry post-line ramble the extraction
+    rule already discards — ramble past the read line must not fail a good action."""
+    return bool(_TAG_LEAK_RE.search(first_content_line(text)))
 
 
 def _generate_nonempty(client: VLLMClient, prompt: str, *, seed: int,
@@ -425,7 +431,15 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     action_prompt = fill(prompts.action if cfg.verbalized else prompts.action_v1, {
         "DESCRIPTION": task, "HISTORY": hist_str, "THOUGHTS": thought,
         "AVAILABLE COMMANDS": cmds})
-    a_stop = ["</confidence>"] if cfg.verbalized else ["\n"]
+    # v1 runs with NO stop string (amendment 2026-07-20, schema 1.7.0): the old
+    # stop=["\n"] on a prompt already ending in "\n" terminated the draw the moment the
+    # model sampled a leading newline — a formatting token, not a refusal. Diagnostic
+    # (n=69): all 31 retried first draws were exactly 1 token / finish_reason='stop';
+    # 20 stayed empty after the one retry, each executing as "Nothing happens."
+    # (tau=None) and costing the episode a turn. The read is the first content line of
+    # the capped draw (choose_executable input below), a fixed rule — never a search
+    # past a bad first line.
+    a_stop = ["</confidence>"] if cfg.verbalized else None
     # degenerate check scoped to v1 only: v2's contract legitimately ends the line with a
     # '<confidence>' tag, so tag presence cannot signal degeneracy there.
     a_degenerate = None if cfg.verbalized else _degenerate_action_line
@@ -434,7 +448,7 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
                                         seed=seed, degenerate=a_degenerate, stop=a_stop)
     latency_ms = int((time.time() - t0) * 1000)
     raw_action = patch_unclosed(gen_a.text, "confidence") if cfg.verbalized else gen_a.text
-    command_line = strip_confidence_tag(raw_action).strip().split("\n")[0]
+    command_line = first_content_line(strip_confidence_tag(raw_action))
     action_exec, match_kind = choose_executable(command_line, raw_action, admissible)
     if cfg.verbalized:
         u, raw, ok, anomaly = verbalized_confidence(raw_action)
@@ -455,8 +469,17 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     a, b = char_span_to_token_range(gen_t.tokens, 0, t_end if t_end >= 0 else len(gen_t.text))
     m = stage_metrics(gen_t.tokens, gen_t.logprobs, gen_t.top_logprobs, a, b)
     probes.update(thought_mte=m["mte"], thought_ppl=m["ppl"], thought_sp=m["sp"])
-    a_end = gen_a.text.lower().find("<confidence>")
-    a, b = char_span_to_token_range(gen_a.tokens, 0, a_end if a_end >= 0 else len(gen_a.text))
+    # Action-stage entropy spans the COMMAND LINE's tokens only (uniform v1/v2 rule,
+    # pre-registered 2026-07-20, schema 1.7.0): leading formatting newlines and any
+    # post-line ramble are not action content and must not contaminate the Cell C
+    # anchor comparison. Empty/unlocatable line -> legacy full pre-tag span (such steps
+    # carry an empty action_text / retry_degenerate flag and are excluded downstream).
+    a_at = gen_a.text.find(command_line) if command_line else -1
+    if a_at >= 0:
+        a, b = char_span_to_token_range(gen_a.tokens, a_at, a_at + len(command_line))
+    else:
+        a_end = gen_a.text.lower().find("<confidence>")
+        a, b = char_span_to_token_range(gen_a.tokens, 0, a_end if a_end >= 0 else len(gen_a.text))
     m = stage_metrics(gen_a.tokens, gen_a.logprobs, gen_a.top_logprobs, a, b)
     probes.update(action_mte=m["mte"], action_ppl=m["ppl"], action_sp=m["sp"],
                   action_nll=m["sp"])
