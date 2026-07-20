@@ -473,3 +473,27 @@ class TestV1ActionLeadingNewlineFix:
         # span must cover exactly ["go to", " desk 1"] -> sp=0.5, ppl=0.25
         assert p["action_sp"] == pytest.approx(0.5)
         assert p["action_ppl"] == pytest.approx(0.25)
+
+
+class TestActionStageAudit:
+    """Schema 1.8.0 pure-logging amendment: extra.action_stage_audit persists the token
+    window the action metrics were computed over, so the span rule is offline-verifiable
+    (the 0dea4e3 diagnostic could not audit leading-newline exclusion post hoc)."""
+
+    def test_decoupled_audit_stores_whole_stage_and_span(self):
+        out, _ = _run("decoupled", client=FakeClient(action_multiline_gens=999),
+                      verbalized=False)
+        aud = out.records[0]["extra"]["action_stage_audit"]
+        assert aud["span_tok"] == [1, 3]                       # excludes the leading "\n"
+        assert aud["tokens"] == ["\n", "go to", " desk 1", "\n", "AVAILABLE"]  # whole stage
+        assert aud["logprobs"][1:3] == [-0.25, -0.25]
+        # audit alone must reproduce the recorded metric
+        a, b = aud["span_tok"]
+        assert -sum(aud["logprobs"][a:b]) == pytest.approx(out.records[0]["probes"]["action_sp"])
+
+    def test_entangled_audit_stores_slice(self):
+        out, _ = _run("entangled")
+        aud = out.records[0]["extra"]["action_stage_audit"]
+        assert aud is not None
+        a, b = aud["span_tok"]
+        assert b > a and len(aud["tokens"]) == b - a == len(aud["logprobs"])

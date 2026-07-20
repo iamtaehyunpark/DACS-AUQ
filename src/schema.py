@@ -77,7 +77,16 @@ from typing import Any
 # 1.3.0/1.5.0: the contract cutting off the read at a formatting token. Scoped to
 # decoupled Cells C/D; entangled path (E0, Cells A/B) untouched. ReDAct Fig-6 prompt
 # text remains byte-identical -- stop sequences were never part of their published spec.
-SCHEMA_VERSION = "1.7.0"
+# 1.8.0 (2026-07-20): pre-data-for-E1 amendment, PURE LOGGING (no measurement change) --
+# extra.action_stage_audit = {span_tok: [a,b), tokens, logprobs}: the token window the
+# action-stage entropy metrics were computed over. Motivated by the 0dea4e3 diagnostic,
+# where the pre-registered command-line-only span rule was not offline-verifiable
+# (per-token logprobs were not persisted; only aggregate mte/ppl/sp/nll survived).
+# Decoupled records store the WHOLE action stage (<=80 tokens by contract) so the
+# exclusion of leading formatting newlines is itself auditable; entangled records store
+# the tag-delimited slice only (full generations run to 2048 tokens; the tag span is
+# self-evident from generation+spans). None when the stage had no locatable span.
+SCHEMA_VERSION = "1.8.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.

@@ -340,11 +340,17 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         a, b = char_span_to_token_range(gen.tokens, *tagged.think_span)
         m = stage_metrics(gen.tokens, gen.logprobs, gen.top_logprobs, a, b)
         probes.update(thought_mte=m["mte"], thought_ppl=m["ppl"], thought_sp=m["sp"])
+    action_audit = None
     if tagged.action_span:
         a, b = char_span_to_token_range(gen.tokens, *tagged.action_span)
         m = stage_metrics(gen.tokens, gen.logprobs, gen.top_logprobs, a, b)
         probes.update(action_mte=m["mte"], action_ppl=m["ppl"], action_sp=m["sp"],
                       action_nll=m["sp"])
+        # Span-audit logging (2026-07-20, schema 1.8.0): the tokens+logprobs the action
+        # metrics were computed over, so the span rule is verifiable per record offline.
+        # Entangled stores the SLICE only (full generations are up to 2048 tokens).
+        action_audit = {"span_tok": [a, b], "tokens": gen.tokens[a:b],
+                        "logprobs": gen.logprobs[a:b]}
     repair_raw = None
     if cfg.auq_suffix:
         # AUQ's in-generation <confidence> IS Probe V for the entangled architecture.
@@ -368,7 +374,7 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
 
     extra = {"generation": text, "prompt": prompt, "action_match": match_kind,
              "action_tag_ok": tagged.action_tag_ok, "think_tag_ok": tagged.think_tag_ok,
-             "generation_retry": retry_log,
+             "generation_retry": retry_log, "action_stage_audit": action_audit,
              "admissible_commands": list(admissible), "posthoc_raw": {},
              "verbalized_repair_raw": repair_raw}
     # post-hoc context: the generation WITHOUT the self-assessment — confidence value AND
@@ -481,12 +487,17 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         a_end = gen_a.text.lower().find("<confidence>")
         a, b = char_span_to_token_range(gen_a.tokens, 0, a_end if a_end >= 0 else len(gen_a.text))
     m = stage_metrics(gen_a.tokens, gen_a.logprobs, gen_a.top_logprobs, a, b)
+    # Span-audit logging (2026-07-20, schema 1.8.0): the WHOLE action stage (<=80 tokens
+    # by contract) plus the chosen span, so the command-line-only rule — including the
+    # exclusion of leading formatting newlines — is verifiable per record offline.
+    action_audit = {"span_tok": [a, b], "tokens": gen_a.tokens,
+                    "logprobs": gen_a.logprobs}
     probes.update(action_mte=m["mte"], action_ppl=m["ppl"], action_sp=m["sp"],
                   action_nll=m["sp"])
 
     extra = {"thought_prompt": thought_prompt, "action_prompt": action_prompt,
              "thought_generation": gen_t.text, "action_generation": gen_a.text,
-             "action_match": match_kind,
+             "action_match": match_kind, "action_stage_audit": action_audit,
              "generation_retry": {"thought": retry_t, "action": retry_a},
              "admissible_commands": list(admissible), "posthoc_raw": {},
              "verbalized_repair_raw": repair_raw}
