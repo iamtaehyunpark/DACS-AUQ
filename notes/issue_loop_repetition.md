@@ -131,3 +131,28 @@ frozen — Q3 before E1 config freeze.
   measured almost entirely on repeated states).
 - **Step 4**: cleared to proceed once this amendment lands and Step 3 smoke
   re-passes under it.
+
+## 7. Addendum (2026-07-20): the per-step-seed smoke exposed a second latent mode
+
+The 4bd6a08 smoke failed terminally: 71/104 steps were degenerate echoes of the
+instruction suffix's bullet list (first sampled token `-`, ~16-token generations,
+no think/action). Diagnosis against the raw records — NOT a "seed pathology":
+
+1. Per-draw tail risk was always there. At temp 0.7 the model has a real per-draw
+   probability (~5–15% in clean context) of continuing the instruction list (or
+   emitting bare EOS — episode 16's mode in the first E0 run) instead of opening
+   `<think>`. The old per-episode seed replayed one RNG stream, sampling this risk
+   once per episode; per-step seeds sample it every step, making onset near-certain
+   somewhere in a 50-step episode. The seeds didn't create the behavior — they
+   measured it at the correct granularity.
+2. The cascade was history poisoning: the raw-action fallback executed the echo
+   line verbatim and rendered it into every later prompt as an `<action>`; 30/31
+   and 39/40 of post-onset bad steps carried the first echo in their history.
+
+Fix (schema 1.5.0, contract-level only): prefill `<think>` at the end of the
+entangled prompt (the degenerate-opening branch becomes unreachable at token 1;
+E1★'s logit-bias pin already sanctioned this), extend the one-re-draw retry to
+degenerate generations, and bar EOS-repair on degenerate text. Probe semantics
+untouched. Gate note for E0-full: with prefill, a surviving double-degenerate echo
+would parse as a garbage non-empty thought, so the quality gate must also count
+`generation_retry.retry_degenerate == true` steps.

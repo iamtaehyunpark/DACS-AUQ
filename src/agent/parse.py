@@ -49,25 +49,49 @@ def patch_unclosed(text: str, tag: str) -> str:
     return text
 
 
-def parse_entangled(text: str) -> TaggedGen:
+_THINK_REOPEN_RE = re.compile(r"\s*<think(?:ing)?>", re.IGNORECASE)
+_THINK_CLOSE_RE = re.compile(r"</think(?:ing)?>", re.IGNORECASE)
+_NEXT_TAG_RE = re.compile(r"<(?:action|confidence|explanation)\b", re.IGNORECASE)
+
+
+def parse_entangled(text: str, *, prefilled_think: bool = False) -> TaggedGen:
     """Extract <think> and <action> content + char spans from one entangled generation.
     Tolerates: </thinking>-style closes (either spelling, either side); an unclosed think
     block (content up to the next known tag, flagged not-ok); an unclosed <action>
     (content to end-of-line / next tag, flagged not-ok). Among closed think blocks the
     first NON-EMPTY one wins (models occasionally emit degenerate empty <think></think>
-    pairs before the real block); if all are empty the first is kept."""
+    pairs before the real block); if all are empty the first is kept.
+
+    prefilled_think=True (amendment 2026-07-20, post per-step-seed echo failure): the
+    prompt itself ends with the opening <think> tag, so the generation BEGINS inside the
+    think block. Content runs from position 0 (a redundantly re-emitted opener is
+    stripped) to the first closing tag — or to the first known tag / end of text when
+    the model never closes, flagged not-ok. Spans stay in generation coordinates, so
+    the stage-entropy token mapping is unchanged."""
     out = TaggedGen()
-    closed = list(_THINK_RE.finditer(text))
-    m = next((c for c in closed if c.group(1).strip()), closed[0] if closed else None)
-    if m:
-        out.think = m.group(1).strip()
-        out.think_span = (m.start(1), m.end(1))
-        out.think_tag_ok = True
+    if prefilled_think:
+        m = _THINK_REOPEN_RE.match(text)
+        start = m.end() if m else 0
+        close = _THINK_CLOSE_RE.search(text, start)
+        nxt = _NEXT_TAG_RE.search(text, start)
+        if close and (not nxt or close.start() <= nxt.start()):
+            end, out.think_tag_ok = close.start(), True
+        else:
+            end = nxt.start() if nxt else len(text)
+        out.think = text[start:end].strip()
+        out.think_span = (start, end)
     else:
-        m = _THINK_OPEN_RE.search(text)
-        if m and m.group(1).strip():
+        closed = list(_THINK_RE.finditer(text))
+        m = next((c for c in closed if c.group(1).strip()), closed[0] if closed else None)
+        if m:
             out.think = m.group(1).strip()
             out.think_span = (m.start(1), m.end(1))
+            out.think_tag_ok = True
+        else:
+            m = _THINK_OPEN_RE.search(text)
+            if m and m.group(1).strip():
+                out.think = m.group(1).strip()
+                out.think_span = (m.start(1), m.end(1))
     m = _ACTION_RE.search(text)
     if m:
         out.action = m.group(1).strip()

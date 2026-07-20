@@ -132,19 +132,41 @@ _SEED_STRIDE = 100
 _RETRY_SEED_OFFSET = 100003
 
 
-def _generate_nonempty(client: VLLMClient, prompt: str, *, seed: int, **kw):
-    """One generation attempt plus AT MOST one re-draw if the model emitted nothing
-    (empty/whitespace text without hitting the length cap). Returns (gen, retry_log)
-    where retry_log is None when the first attempt was non-empty, else
-    {first_finish_reason, first_completion_tokens, retry_seed, retry_empty}."""
+def _degenerate_entangled(text: str) -> bool:
+    """A non-response under the entangled contract: the model neither finished thinking
+    (no </think> variant) nor acted (no <action> opener). Observed mode (4bd6a08 smoke):
+    first-token continuation of the instruction suffix's bullet list — per-step seeds
+    sample the model's true per-draw tail risk ~50x/episode where the old per-episode
+    seed sampled it once, so onsets that were latent became near-certain. Such text
+    carries no measurable step content: no probe target, no executable action — only
+    history-poisoning potential (the raw-action fallback would feed it forward as an
+    <action>, which is what cascaded 2 onsets into 71/104 bad steps)."""
+    lo = text.lower()
+    return "</think" not in lo and "<action>" not in lo
+
+
+def _generate_nonempty(client: VLLMClient, prompt: str, *, seed: int,
+                       degenerate=None, **kw):
+    """One generation attempt plus AT MOST one re-draw if the model produced a
+    non-response: empty/whitespace text, or text the `degenerate` predicate rejects —
+    never on a length-cap hit (that is a truncated real response, not a non-response).
+    Returns (gen, retry_log); retry_log is None when the first attempt stood, else
+    {first_finish_reason, first_completion_tokens, retry_reason, retry_seed,
+    retry_degenerate}. If the re-draw is degenerate too, it is KEPT and logged —
+    never a third draw, never imputation."""
     first = client.generate(prompt, seed=seed, **kw)[0]
-    if first.text.strip() or first.finish_reason == "length":
+    is_empty = not first.text.strip()
+    is_degen = degenerate is not None and degenerate(first.text)
+    if (not is_empty and not is_degen) or first.finish_reason == "length":
         return first, None
     retry_seed = seed + _RETRY_SEED_OFFSET
     gen = client.generate(prompt, seed=retry_seed, **kw)[0]
     return gen, {"first_finish_reason": first.finish_reason,
                  "first_completion_tokens": first.completion_tokens,
-                 "retry_seed": retry_seed, "retry_empty": not gen.text.strip()}
+                 "retry_reason": "empty" if is_empty else "degenerate",
+                 "retry_seed": retry_seed,
+                 "retry_degenerate": (not gen.text.strip()
+                                      or (degenerate is not None and degenerate(gen.text)))}
 
 
 def _repair_confidence(client: VLLMClient, base_prompt: str, generation_text: str,
@@ -261,13 +283,21 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     if cfg.auq_suffix:
         prompt = prompt.rstrip() + "\n" + prompts.entangled_suffix
     stop_tag = "explanation" if cfg.auq_suffix else "action"
+    # PREFILL (amendment 2026-07-20, post per-step-seed echo failure): the prompt ends
+    # with the opening <think> tag, so token 1 is already inside the response block —
+    # the degenerate openings (continue-the-instruction-list echo, bare EOS) become
+    # unreachable at the root. Contract enforcement only: spec E1* already sanctions
+    # pinning <think> (logit_bias); Probe V is still emitted in-generation, stage
+    # entropy still spans only generated tokens, no probe value is touched.
+    prompt = prompt.rstrip() + "\n<think>\n"
 
     t0 = time.time()
     gen, retry_log = _generate_nonempty(client, prompt, **samp, max_tokens=max_tokens,
-                                        seed=seed, stop=[f"</{stop_tag}>"])
+                                        seed=seed, degenerate=_degenerate_entangled,
+                                        stop=[f"</{stop_tag}>"])
     latency_ms = int((time.time() - t0) * 1000)
     text = patch_unclosed(gen.text, stop_tag)
-    tagged = parse_entangled(text)
+    tagged = parse_entangled(text, prefilled_think=True)
     action_exec, match_kind = choose_executable(tagged.action, text, admissible)
 
     probes = new_probes()
@@ -286,11 +316,14 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         u, expl, ok = auq_entangled(text)
         _, raw, _, anomaly = verbalized_confidence(text)
         continued = False
-        # gen.text.strip() guard (2026-07-20): never attach a repaired confidence to an
-        # EMPTY generation — there is no in-generation content for the value to qualify,
-        # so the §2.4 continuation-identity argument does not hold (E0: 39 such repairs).
+        # Guards (2026-07-20): never attach a repaired confidence to an EMPTY or
+        # DEGENERATE generation — there is no in-generation step content for the value
+        # to qualify, so the §2.4 continuation-identity argument does not hold
+        # (first E0: 39 empty-gen repairs; 4bd6a08 smoke: repairs on instruction echo
+        # inflated the repaired fraction to 63.5%).
         if (not ok and "<confidence>" not in text.lower()
-                and gen.finish_reason != "length" and gen.text.strip()):
+                and gen.finish_reason != "length" and gen.text.strip()
+                and not _degenerate_entangled(gen.text)):
             u, raw, ok, repair_raw = _repair_confidence(client, prompt, gen.text, samp, seed)
             continued = True   # explanation stays absent on repaired steps; logged as such
         probes.update(U_T_verbalized=u, U_T_verbalized_raw=raw, U_T_verbalized_parsed=ok,

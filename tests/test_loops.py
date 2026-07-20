@@ -47,13 +47,14 @@ class FakeClient:
     model = "fake"
 
     def __init__(self, omit_tag=False, malformed_tag=False, finish_reason="stop",
-                 empty_gens=0):
+                 empty_gens=0, echo_gens=0):
         self.prompts: list[str] = []    # every prompt sent, for the invariant test
         self.seeds: list[int] = []      # seed of every call, for the retry-seed test
         self.omit_tag = omit_tag
         self.malformed_tag = malformed_tag
         self.finish_reason = finish_reason
         self.empty_gens = empty_gens    # first N MAIN-STAGE calls return empty text
+        self.echo_gens = echo_gens      # first N MAIN-STAGE calls echo the instruction list
 
     def generate(self, prompt, **kw):
         self.prompts.append(prompt)
@@ -69,6 +70,14 @@ class FakeClient:
             return [Generation(text="", tokens=[], logprobs=[], top_logprobs=[],
                                prompt_tokens=10, completion_tokens=1,
                                finish_reason="stop")]
+        elif self.echo_gens > 0:
+            # instruction-list echo (the 4bd6a08 smoke failure mode): no think-close,
+            # no <action> -- a degenerate non-response under the entangled contract
+            self.echo_gens -= 1
+            t = "- The text inside the <explanation> tag must be a single paragraph"
+            return [Generation(text=t, tokens=[t], logprobs=[-0.5],
+                               top_logprobs=[{t: -0.5}], prompt_tokens=10,
+                               completion_tokens=16, finish_reason="stop")]
         elif "YOUR CURRENT REASONING" in prompt:
             if self.omit_tag:
                 text = "go to desk 1"
@@ -255,7 +264,8 @@ class TestEmptyGenerationRetry:
         r = out.records[0]
         assert r["thought_text"] == "I need the mug."     # retry produced the real generation
         retry = r["extra"]["generation_retry"]
-        assert retry is not None and retry["retry_empty"] is False
+        assert retry is not None and retry["retry_degenerate"] is False
+        assert retry["retry_reason"] == "empty"
         assert retry["first_finish_reason"] == "stop"
         assert retry["retry_seed"] == r["sampling"]["seed"] + 100003
         assert retry["retry_seed"] in client.seeds
@@ -267,7 +277,7 @@ class TestEmptyGenerationRetry:
         out, _ = _run("entangled", client=FakeClient(empty_gens=999), auq_suffix=True)
         r = out.records[0]
         assert r["thought_text"] == ""
-        assert r["extra"]["generation_retry"]["retry_empty"] is True
+        assert r["extra"]["generation_retry"]["retry_degenerate"] is True
         assert r["probes"]["U_T_verbalized_continued"] is False
 
     def test_decoupled_double_empty_kept_unrepaired(self):
@@ -277,4 +287,39 @@ class TestEmptyGenerationRetry:
         assert p["U_A_verbalized_parsed"] is False and p["U_A_verbalized_continued"] is False
         assert not any(pr.rstrip().endswith("<confidence>") for pr in client.prompts)
         retry = out.records[0]["extra"]["generation_retry"]
-        assert retry["thought"]["retry_empty"] and retry["action"]["retry_empty"]
+        assert retry["thought"]["retry_degenerate"] and retry["action"]["retry_degenerate"]
+
+
+class TestPrefillAndEchoRetry:
+    """2026-07-20 amendment after the 4bd6a08 smoke echo failure: the entangled prompt
+    prefills <think> so generation begins inside the response block, and a degenerate
+    (no think-close, no <action>) first draw gets one seed-offset re-draw."""
+
+    def test_entangled_prompt_ends_with_think_prefill(self):
+        out, _ = _run("entangled", auq_suffix=True)
+        assert out.records[0]["extra"]["prompt"].endswith("<think>\n")
+
+    def test_redundant_opener_still_parsed(self):
+        # FakeClient emits a redundant <think> opener; the prefilled parser strips it
+        out, _ = _run("entangled", auq_suffix=True)
+        assert out.records[0]["thought_text"] == "I need the mug."
+
+    def test_echo_first_draw_retried_and_recovers(self):
+        out, client = _run("entangled", client=FakeClient(echo_gens=1), auq_suffix=True)
+        r = out.records[0]
+        assert r["thought_text"] == "I need the mug."
+        retry = r["extra"]["generation_retry"]
+        assert retry["retry_reason"] == "degenerate"
+        assert retry["retry_degenerate"] is False
+        assert retry["retry_seed"] == r["sampling"]["seed"] + 100003
+        assert r["probes"]["U_T_verbalized_parsed"]
+
+    def test_persistent_echo_kept_flagged_unrepaired(self):
+        out, client = _run("entangled", client=FakeClient(echo_gens=999), auq_suffix=True)
+        r = out.records[0]
+        retry = r["extra"]["generation_retry"]
+        assert retry["retry_reason"] == "degenerate" and retry["retry_degenerate"] is True
+        # degenerate text is never given a repaired confidence (nothing for it to qualify)
+        assert r["probes"]["U_T_verbalized_parsed"] is False
+        assert r["probes"]["U_T_verbalized_continued"] is False
+        assert not any(pr.rstrip().endswith("<confidence>") for pr in client.prompts)

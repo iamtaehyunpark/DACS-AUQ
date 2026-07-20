@@ -107,3 +107,38 @@ class TestVerbArg:
 
     def test_unknown_verb_never_fails(self):
         assert parse_verb_arg("dance wildly") == {"verb": "dance", "arg": "wildly"}
+
+
+class TestPrefilledThink:
+    """prefilled_think=True: the prompt ends with <think>, generation starts inside it."""
+
+    def test_basic_close_and_action(self):
+        g = "I need the mug. It is on the desk.\n</think>\n<action>go to desk 1</action>"
+        tg = parse_entangled(g, prefilled_think=True)
+        assert tg.think == "I need the mug. It is on the desk." and tg.think_tag_ok
+        assert g[tg.think_span[0]:tg.think_span[1]].strip() == tg.think
+        assert tg.action == "go to desk 1"
+
+    def test_thinking_spelled_close(self):
+        tg = parse_entangled("plan A</thinking><action>look</action>", prefilled_think=True)
+        assert tg.think == "plan A" and tg.think_tag_ok
+
+    def test_redundant_opener_stripped(self):
+        tg = parse_entangled("<think>\nplan B</think><action>look</action>",
+                             prefilled_think=True)
+        assert tg.think == "plan B" and tg.think_tag_ok
+
+    def test_unclosed_falls_to_next_tag(self):
+        g = "partial reasoning\n<action>look</action>"
+        tg = parse_entangled(g, prefilled_think=True)
+        assert tg.think == "partial reasoning" and not tg.think_tag_ok
+        assert tg.action == "look"
+
+    def test_no_tags_at_all_whole_text_is_thought(self):
+        tg = parse_entangled("rambling with no tags", prefilled_think=True)
+        assert tg.think == "rambling with no tags" and not tg.think_tag_ok
+        assert tg.action is None
+
+    def test_empty_generation(self):
+        tg = parse_entangled("", prefilled_think=True)
+        assert tg.think == "" and not tg.think_tag_ok

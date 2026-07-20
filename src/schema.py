@@ -33,7 +33,18 @@ from typing import Any
 # (E0 smoke: 41 identical thoughts; P(exact) ~0.3/step under independent draws).
 # E0 validates the judge on the step distribution E1 will produce, so the policy
 # changes for both at once, pre-data. No fields added or renamed.
-SCHEMA_VERSION = "1.4.0"
+# 1.5.0 (2026-07-20): pre-data amendment after the 4bd6a08 smoke TERMINAL failure
+# (71/104 steps degenerate instruction-list echo). Per-step seeds exposed the model's
+# true per-draw tail risk of degenerate openings ~50x/episode where the old
+# per-episode seed sampled it once; the raw-action fallback then fed echo text into
+# history as an <action>, cascading 2 onsets into 71 bad steps. Fixes, contract-level
+# only: (a) the entangled prompt now ends with the opening <think> tag (prefill) —
+# extra.generation therefore begins INSIDE the think block, without an opener;
+# (b) the one-re-draw retry extends to degenerate generations (no think-close, no
+# <action>), logged in extra.generation_retry {retry_reason, retry_degenerate};
+# (c) EOS-repair never fires on degenerate text. Probe semantics untouched: Probe V
+# still in-generation, stage entropy still spans only generated tokens.
+SCHEMA_VERSION = "1.5.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.
