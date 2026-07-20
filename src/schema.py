@@ -25,7 +25,15 @@ from typing import Any
 # empty non-cap generation (one episode degenerated to bare EOS on 39/50 steps), logged
 # in extra.generation_retry; (c) EOS-repair never fires on an empty generation. No probe
 # fields added or renamed; thought_text extraction semantics changed.
-SCHEMA_VERSION = "1.3.0"
+# 1.4.0 (2026-07-20): pre-data amendment, decided jointly for E0-full and E1 —
+# PER-STEP seeds. sampling.seed now varies within an episode:
+# seed = seed_base + task_index*100 + step_idx (episode summary keeps the episode
+# base). Old per-episode seed reuse replayed the identical RNG stream every step,
+# which with copy-collapsed loop distributions produced byte-exact locked repetition
+# (E0 smoke: 41 identical thoughts; P(exact) ~0.3/step under independent draws).
+# E0 validates the judge on the step distribution E1 will produce, so the policy
+# changes for both at once, pre-data. No fields added or renamed.
+SCHEMA_VERSION = "1.4.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.

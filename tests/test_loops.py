@@ -123,7 +123,11 @@ class TestEntangled:
         assert p["auq_explanation_text"] == "desk is likely"
         assert abs(p["U_T_posthoc_numeric"] - 0.15) < 1e-9
         assert p["thought_mte"] is not None and p["action_sp"] is not None
-        assert r["sampling"]["seed"] == 1001           # seed_base + task_index
+        # per-step seeds (2026-07-20): episode base = seed_base + task_index*100,
+        # step t generates under base + t; the summary keeps the episode base
+        assert r["sampling"]["seed"] == 1100
+        assert out.records[1]["sampling"]["seed"] == 1101
+        assert out.summary["seed"] == 1100
 
     def test_no_feedback_invariant(self):
         _, client = _run("entangled", auq_suffix=True)

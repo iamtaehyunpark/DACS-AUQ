@@ -26,8 +26,16 @@ Interpretation decisions not pinned by either paper (documented, config-controll
   (thoughts excluded by default — ReDAct regenerates reasoning per step).
 
 tau comes from tau_of() on the EXECUTED action string; unrecognized -> tau None + counted.
-seed = seed_base + task_index, where task_index is the game's position in the SORTED
-game_files list — deterministic across runs regardless of env reset order (spec §0.1).
+Seeds (amended 2026-07-20, pre E0-full data, jointly for E0+E1): episode base
+= seed_base + task_index * _SEED_STRIDE, and step t generates under base + t.
+task_index is the game's position in the SORTED game_files list — deterministic
+across runs regardless of env reset order (spec §0.1). The old per-episode seed
+(reused for every step) made the RNG stream identical across steps; combined with
+the copy-collapsed distributions of stuck loops it produced byte-exact locked
+repetition (smoke: 41 identical thoughts, P(exact) ~0.3/step under independent
+draws). Per-step seeds keep full reproducibility while restoring across-step
+sampling independence — loops may still repeat (the distribution is collapsed
+either way) but drift and fork as they would in deployment.
 """
 from __future__ import annotations
 
@@ -107,6 +115,14 @@ def _sha(s: str) -> str:
     return "sha256:" + hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 
+# Per-episode seed block width. Step t of episode e generates under
+# seed_base + e*_SEED_STRIDE + t, so blocks never overlap while step_cap <= stride,
+# and the max first-attempt seed (1000 + 139*100 + 49 = 15,949 over the full 140-task
+# roster) stays far below the minimum retry seed (1000 + _RETRY_SEED_OFFSET = 101,003)
+# — the two seed populations can never collide.
+_SEED_STRIDE = 100
+
+
 # Amendment 2026-07-20 (pre E0 rerun): one E0 episode degenerated into bare-EOS
 # generations (empty text, finish_reason 'stop') for 39/50 steps — empty action ->
 # "Nothing happens." -> blank history entry -> repeat. A same-seed retry would
@@ -164,7 +180,10 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
     gamefile = env.current_gamefile()
     t_index = task_index_of(env)
     task_id = task_id_of(gamefile)
-    seed = cfg.seed_base + t_index
+    if cfg.step_cap > _SEED_STRIDE:
+        raise ValueError(f"step_cap {cfg.step_cap} > seed stride {_SEED_STRIDE}: "
+                         "episode seed blocks would overlap")
+    ep_seed = cfg.seed_base + t_index * _SEED_STRIDE
     task = env.task_description(res.observation) or ""
     samp = {"temperature": sampling.get("temperature", 0.7),
             "top_p": sampling.get("top_p", 0.95)}
@@ -180,7 +199,7 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
     for t in range(cfg.step_cap):
         step = _entangled_step if arch == "entangled" else _decoupled_step
         rec, action_exec = step(
-            client, prompts, cfg, samp, max_tokens, seed,
+            client, prompts, cfg, samp, max_tokens, ep_seed + t,
             task=task, initial_obs=initial_obs, current_obs=current_obs,
             history=history, admissible=res.admissible_commands, t=t,
         )
@@ -197,7 +216,8 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
             tau=tau.as_dict() if tau else None,
             observation_text=res.observation,
             probes=rec["probes"],
-            sampling={**samp, "max_tokens": max_tokens, "seed": seed, "model": client.model},
+            sampling={**samp, "max_tokens": max_tokens, "seed": ep_seed + t,
+                      "model": client.model},
             timing=rec["timing"],
         )
         record["extra"] = {**rec["extra"], "task": task, "gamefile": gamefile,
@@ -212,7 +232,7 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
 
     return EpisodeOut(records=records, summary={
         "run_id": run_id, "condition": condition, "task_id": task_id,
-        "task_index": t_index, "gamefile": gamefile, "task": task, "seed": seed,
+        "task_index": t_index, "gamefile": gamefile, "task": task, "seed": ep_seed,
         "n_steps": len(records), "success": bool(success),
         "n_tau_unrecognized": n_tau_unknown, "model": client.model,
     })
