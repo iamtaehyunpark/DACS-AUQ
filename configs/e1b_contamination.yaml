@@ -22,9 +22,11 @@ judge:
     base_url: http://127.0.0.1:8001/v1
     model: judge
   frontier:
-    base_url: https://api.openai.com/v1
+    # Re-pointed 2026-07-20 with the other configs (Azure Foundry OpenAI-compatible
+    # route; key from env, never this file). Same pre-registered gpt-5.2.
+    base_url: https://llmjudgejul20-resource.services.ai.azure.com/openai/v1
     model: gpt-5.2
-    api_key_env: OPENAI_API_KEY
+    api_key_env: AZURE_FRONTIER_API_KEY
 
 sampling:
   temperature: 0.7
