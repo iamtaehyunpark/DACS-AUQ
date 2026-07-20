@@ -18,7 +18,14 @@ from dataclasses import dataclass
 
 from src.env.tau_map import normalize_action
 
-_THINK_RE = re.compile(r"<think>(.*?)</think>", re.IGNORECASE | re.DOTALL)
+# Amendment 2026-07-20 (pre E0 rerun): the E0 run showed Qwen3.6 frequently closes the
+# reasoning block with </thinking> (70/507 steps) or leaves it unclosed before <action>
+# (13/507); the strict </think>-only regex dropped those thoughts, which also blanked the
+# <think> slot in the entangled history. Both spellings are accepted on BOTH sides of the
+# tag, and an unclosed block falls back to content-up-to-the-next-known-tag, flagged not-ok.
+_THINK_RE = re.compile(r"<think(?:ing)?>(.*?)</think(?:ing)?>", re.IGNORECASE | re.DOTALL)
+_THINK_OPEN_RE = re.compile(r"<think(?:ing)?>(.*?)(?=<(?:action|confidence|explanation)\b|$)",
+                            re.IGNORECASE | re.DOTALL)
 _ACTION_RE = re.compile(r"<action>(.*?)</action>", re.IGNORECASE | re.DOTALL)
 _ACTION_OPEN_RE = re.compile(r"<action>(.*?)(?=$|\n|<)", re.IGNORECASE | re.DOTALL)
 
@@ -27,6 +34,7 @@ _ACTION_OPEN_RE = re.compile(r"<action>(.*?)(?=$|\n|<)", re.IGNORECASE | re.DOTA
 class TaggedGen:
     think: str | None = None
     think_span: tuple[int, int] | None = None    # char span of think CONTENT in the generation
+    think_tag_ok: bool = False                   # closed think block (either spelling) present
     action: str | None = None
     action_span: tuple[int, int] | None = None
     action_tag_ok: bool = False                  # well-formed <action>...</action> present
@@ -43,12 +51,23 @@ def patch_unclosed(text: str, tag: str) -> str:
 
 def parse_entangled(text: str) -> TaggedGen:
     """Extract <think> and <action> content + char spans from one entangled generation.
-    Tolerates an unclosed <action> (content to end-of-line / next tag), flagged not-ok."""
+    Tolerates: </thinking>-style closes (either spelling, either side); an unclosed think
+    block (content up to the next known tag, flagged not-ok); an unclosed <action>
+    (content to end-of-line / next tag, flagged not-ok). Among closed think blocks the
+    first NON-EMPTY one wins (models occasionally emit degenerate empty <think></think>
+    pairs before the real block); if all are empty the first is kept."""
     out = TaggedGen()
-    m = _THINK_RE.search(text)
+    closed = list(_THINK_RE.finditer(text))
+    m = next((c for c in closed if c.group(1).strip()), closed[0] if closed else None)
     if m:
         out.think = m.group(1).strip()
         out.think_span = (m.start(1), m.end(1))
+        out.think_tag_ok = True
+    else:
+        m = _THINK_OPEN_RE.search(text)
+        if m and m.group(1).strip():
+            out.think = m.group(1).strip()
+            out.think_span = (m.start(1), m.end(1))
     m = _ACTION_RE.search(text)
     if m:
         out.action = m.group(1).strip()

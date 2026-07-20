@@ -18,7 +18,14 @@ from typing import Any
 # (U_[TA]_verbalized_continued): True = value obtained via a forced-prefix continuation
 # after the model stopped without emitting the tag; False = parsed in-generation;
 # None = probe N/A. Smoke evidence: 18/104 steps omitted <confidence> at EOS.
-SCHEMA_VERSION = "1.2.0"
+# 1.3.0 (2026-07-20): pre-data amendment for the E0 rerun (first E0 attempt discarded —
+# 24.3% empty-thought rate vs the 10% gate). (a) think parser accepts </thinking>-spelled
+# and unclosed reasoning blocks (E0: 70 + 13 / 507 steps silently dropped, which also
+# blanked the <think> slot in entangled history); (b) one seed-offset re-draw on an
+# empty non-cap generation (one episode degenerated to bare EOS on 39/50 steps), logged
+# in extra.generation_retry; (c) EOS-repair never fires on an empty generation. No probe
+# fields added or renamed; thought_text extraction semantics changed.
+SCHEMA_VERSION = "1.3.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.

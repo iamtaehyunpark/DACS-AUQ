@@ -107,6 +107,30 @@ def _sha(s: str) -> str:
     return "sha256:" + hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 
+# Amendment 2026-07-20 (pre E0 rerun): one E0 episode degenerated into bare-EOS
+# generations (empty text, finish_reason 'stop') for 39/50 steps — empty action ->
+# "Nothing happens." -> blank history entry -> repeat. A same-seed retry would
+# deterministically reproduce the same sample, so the single retry re-draws under
+# seed + _RETRY_SEED_OFFSET (episode seeds are seed_base + task_index, far below the
+# offset, so retry seeds can never collide with a first-attempt seed).
+_RETRY_SEED_OFFSET = 100003
+
+
+def _generate_nonempty(client: VLLMClient, prompt: str, *, seed: int, **kw):
+    """One generation attempt plus AT MOST one re-draw if the model emitted nothing
+    (empty/whitespace text without hitting the length cap). Returns (gen, retry_log)
+    where retry_log is None when the first attempt was non-empty, else
+    {first_finish_reason, first_completion_tokens, retry_seed, retry_empty}."""
+    first = client.generate(prompt, seed=seed, **kw)[0]
+    if first.text.strip() or first.finish_reason == "length":
+        return first, None
+    retry_seed = seed + _RETRY_SEED_OFFSET
+    gen = client.generate(prompt, seed=retry_seed, **kw)[0]
+    return gen, {"first_finish_reason": first.finish_reason,
+                 "first_completion_tokens": first.completion_tokens,
+                 "retry_seed": retry_seed, "retry_empty": not gen.text.strip()}
+
+
 def _repair_confidence(client: VLLMClient, base_prompt: str, generation_text: str,
                        samp: dict, seed: int):
     """EOS-repair continuation (pre-data amendment 2026-07-16). Trigger: the generation
@@ -219,8 +243,8 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     stop_tag = "explanation" if cfg.auq_suffix else "action"
 
     t0 = time.time()
-    gen = client.generate(prompt, **samp, max_tokens=max_tokens, seed=seed,
-                          stop=[f"</{stop_tag}>"])[0]
+    gen, retry_log = _generate_nonempty(client, prompt, **samp, max_tokens=max_tokens,
+                                        seed=seed, stop=[f"</{stop_tag}>"])
     latency_ms = int((time.time() - t0) * 1000)
     text = patch_unclosed(gen.text, stop_tag)
     tagged = parse_entangled(text)
@@ -242,7 +266,11 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         u, expl, ok = auq_entangled(text)
         _, raw, _, anomaly = verbalized_confidence(text)
         continued = False
-        if not ok and "<confidence>" not in text.lower() and gen.finish_reason != "length":
+        # gen.text.strip() guard (2026-07-20): never attach a repaired confidence to an
+        # EMPTY generation — there is no in-generation content for the value to qualify,
+        # so the §2.4 continuation-identity argument does not hold (E0: 39 such repairs).
+        if (not ok and "<confidence>" not in text.lower()
+                and gen.finish_reason != "length" and gen.text.strip()):
             u, raw, ok, repair_raw = _repair_confidence(client, prompt, gen.text, samp, seed)
             continued = True   # explanation stays absent on repaired steps; logged as such
         probes.update(U_T_verbalized=u, U_T_verbalized_raw=raw, U_T_verbalized_parsed=ok,
@@ -251,7 +279,8 @@ def _entangled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
             print(f"[loops] ANOMALY: multiple <confidence> tags in entangled generation")
 
     extra = {"generation": text, "prompt": prompt, "action_match": match_kind,
-             "action_tag_ok": tagged.action_tag_ok,
+             "action_tag_ok": tagged.action_tag_ok, "think_tag_ok": tagged.think_tag_ok,
+             "generation_retry": retry_log,
              "admissible_commands": list(admissible), "posthoc_raw": {},
              "verbalized_repair_raw": repair_raw}
     # post-hoc context: the generation WITHOUT the self-assessment — confidence value AND
@@ -289,8 +318,9 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     thought_prompt = fill(prompts.thought if cfg.verbalized else prompts.thought_v1, {
         "DESCRIPTION": task, "HISTORY": hist_str, "AVAILABLE COMMANDS": cmds})
     t0 = time.time()
-    gen_t = client.generate(thought_prompt, **samp, max_tokens=max_tokens, seed=seed,
-                            stop=["\nObservation:", "\nAVAILABLE COMMANDS"])[0]
+    gen_t, retry_t = _generate_nonempty(client, thought_prompt, **samp,
+                                        max_tokens=max_tokens, seed=seed,
+                                        stop=["\nObservation:", "\nAVAILABLE COMMANDS"])
     raw_thought = patch_unclosed(gen_t.text, "confidence") if cfg.verbalized else gen_t.text
     # STRIP the tag before anything goes downstream (no-feedback invariant): the action
     # call, history, and env must never see the verbalized value.
@@ -300,7 +330,7 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         u, raw, ok, anomaly = verbalized_confidence(raw_thought)
         continued = False
         if (not ok and "<confidence>" not in raw_thought.lower()
-                and gen_t.finish_reason != "length"):
+                and gen_t.finish_reason != "length" and gen_t.text.strip()):
             u, raw, ok, repair_raw["thought"] = _repair_confidence(
                 client, thought_prompt, gen_t.text, samp, seed)
             continued = True
@@ -314,8 +344,9 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         "DESCRIPTION": task, "HISTORY": hist_str, "THOUGHTS": thought,
         "AVAILABLE COMMANDS": cmds})
     a_stop = ["</confidence>"] if cfg.verbalized else ["\n"]
-    gen_a = client.generate(action_prompt, **samp, max_tokens=cfg.max_action_tokens,
-                            seed=seed, stop=a_stop)[0]
+    gen_a, retry_a = _generate_nonempty(client, action_prompt, **samp,
+                                        max_tokens=cfg.max_action_tokens,
+                                        seed=seed, stop=a_stop)
     latency_ms = int((time.time() - t0) * 1000)
     raw_action = patch_unclosed(gen_a.text, "confidence") if cfg.verbalized else gen_a.text
     command_line = strip_confidence_tag(raw_action).strip().split("\n")[0]
@@ -324,7 +355,7 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         u, raw, ok, anomaly = verbalized_confidence(raw_action)
         continued = False
         if (not ok and "<confidence>" not in raw_action.lower()
-                and gen_a.finish_reason != "length"):
+                and gen_a.finish_reason != "length" and gen_a.text.strip()):
             u, raw, ok, repair_raw["action"] = _repair_confidence(
                 client, action_prompt, gen_a.text, samp, seed)
             continued = True
@@ -348,6 +379,7 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
     extra = {"thought_prompt": thought_prompt, "action_prompt": action_prompt,
              "thought_generation": gen_t.text, "action_generation": gen_a.text,
              "action_match": match_kind,
+             "generation_retry": {"thought": retry_t, "action": retry_a},
              "admissible_commands": list(admissible), "posthoc_raw": {},
              "verbalized_repair_raw": repair_raw}
     # post-hoc contexts use the STRIPPED stage outputs — never the in-generation value

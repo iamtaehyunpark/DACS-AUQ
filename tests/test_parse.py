@@ -46,6 +46,39 @@ class TestEntangledParse:
         tg = parse_entangled("<think>x</think><action>open drawer 2")
         assert tg.action == "open drawer 2" and not tg.action_tag_ok
 
+    # -- 2026-07-20 amendment: tolerant think extraction (observed E0 failure modes) --
+
+    def test_thinking_spelled_close(self):
+        g = "<think>I need the mug.</thinking>\n<action>go to desk 1</action>"
+        tg = parse_entangled(g)
+        assert tg.think == "I need the mug." and tg.think_tag_ok
+        assert g[tg.think_span[0]:tg.think_span[1]].strip() == tg.think
+        assert tg.action == "go to desk 1"
+
+    def test_thinking_spelled_open(self):
+        tg = parse_entangled("<thinking>plan A</think><action>look</action>")
+        assert tg.think == "plan A" and tg.think_tag_ok
+
+    def test_unclosed_think_stops_at_next_tag(self):
+        g = "<think>I will go to armchair 1 first.\n<action>go to armchair 1</action>"
+        tg = parse_entangled(g)
+        assert tg.think == "I will go to armchair 1 first." and not tg.think_tag_ok
+        assert g[tg.think_span[0]:tg.think_span[1]].strip() == tg.think
+        assert tg.action == "go to armchair 1"
+
+    def test_unclosed_think_to_end_of_text(self):
+        tg = parse_entangled("<think>truncated reasoning")
+        assert tg.think == "truncated reasoning" and not tg.think_tag_ok
+
+    def test_first_nonempty_think_block_wins(self):
+        g = "<think>\n</think>\n<think>real plan</think>\n<action>look</action>"
+        tg = parse_entangled(g)
+        assert tg.think == "real plan" and tg.think_tag_ok
+
+    def test_all_empty_think_blocks_keep_empty(self):
+        tg = parse_entangled("<think>\n</think>\n<action>look</action>")
+        assert tg.think == "" and tg.think_tag_ok
+
     def test_patch_unclosed(self):
         t = patch_unclosed("<explanation>partial", "explanation")
         assert t.endswith("</explanation>")
