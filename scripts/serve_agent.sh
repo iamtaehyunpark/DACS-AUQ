@@ -17,6 +17,6 @@ exec "$VLLM" serve "$MODEL" \
   --served-model-name agent \
   --port "$PORT" \
   --tensor-parallel-size "$TP" \
-  --max-model-len 32768 \
+  --max-model-len 65536 \
   --max-logprobs 20 \
   --seed 0

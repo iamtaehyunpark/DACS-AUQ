@@ -43,7 +43,7 @@ import hashlib
 import time
 from dataclasses import dataclass, field
 
-from src.agent.llm import VLLMClient
+from src.agent.llm import ContextOverflowError, VLLMClient
 from src.agent.parse import parse_entangled, patch_unclosed, choose_executable, parse_verb_arg
 from src.agent.prompts import fill, load_prompt, prompt_path
 from src.env.alfworld_env import AlfworldEnv
@@ -218,13 +218,22 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
     n_tau_unknown = 0
     success = False
 
+    context_overflow_at: int | None = None
     for t in range(cfg.step_cap):
         step = _entangled_step if arch == "entangled" else _decoupled_step
-        rec, action_exec = step(
-            client, prompts, cfg, samp, max_tokens, ep_seed + t,
-            task=task, initial_obs=initial_obs, current_obs=current_obs,
-            history=history, admissible=res.admissible_commands, t=t,
-        )
+        try:
+            rec, action_exec = step(
+                client, prompts, cfg, samp, max_tokens, ep_seed + t,
+                task=task, initial_obs=initial_obs, current_obs=current_obs,
+                history=history, admissible=res.admissible_commands, t=t,
+            )
+        except ContextOverflowError:
+            # The prompt outgrew the SERVED window: end this episode like a step-cap hit —
+            # logged in the summary, prior steps kept, run continues. Never trim history to
+            # squeeze under the ceiling (that would silently change the condition).
+            print(f"[loops] context overflow at step {t} of {task_id}; episode terminated")
+            context_overflow_at = t
+            break
         res = env.step(action_exec)
         tau = tau_of(action_exec)
         if tau is None:
@@ -257,6 +266,7 @@ def run_episode(arch: str, client: VLLMClient, env: AlfworldEnv, res, *, run_id:
         "task_index": t_index, "gamefile": gamefile, "task": task, "seed": ep_seed,
         "n_steps": len(records), "success": bool(success),
         "n_tau_unrecognized": n_tau_unknown, "model": client.model,
+        "context_overflow_at_step": context_overflow_at,
     })
 
 

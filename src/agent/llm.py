@@ -13,6 +13,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+class ContextOverflowError(Exception):
+    """prompt + max_tokens exceeded the SERVED context window (vLLM 400). Raised as a
+    distinct type so the episode driver can end THAT EPISODE gracefully (logged, like the
+    step cap) instead of crashing the whole run. 2026-07-20: a 50-step entangled episode
+    with full AUQ history reached 30,721 prompt tokens and killed a smoke run mid-flight;
+    the serve-side cap was raised 32,768 -> 65,536 (model-native RoPE window is 262,144,
+    so the raise is behavior-identical), and this guard covers whatever ceiling is served."""
+
+
 @dataclass
 class Generation:
     text: str
@@ -67,12 +76,18 @@ class VLLMClient:
             extra["guided_regex"] = guided_regex
         if guided_choice:
             extra["guided_choice"] = guided_choice
-        resp = self.client.completions.create(
-            model=self.model, prompt=prompt, temperature=temperature, top_p=top_p,
-            n=n, max_tokens=max_tokens, seed=seed, stop=stop,
-            logprobs=self.top_logprobs, logit_bias=self.logit_bias or None,
-            extra_body=extra or None,
-        )
+        from openai import BadRequestError
+        try:
+            resp = self.client.completions.create(
+                model=self.model, prompt=prompt, temperature=temperature, top_p=top_p,
+                n=n, max_tokens=max_tokens, seed=seed, stop=stop,
+                logprobs=self.top_logprobs, logit_bias=self.logit_bias or None,
+                extra_body=extra or None,
+            )
+        except BadRequestError as e:
+            if "maximum context length" in str(e):
+                raise ContextOverflowError(str(e)) from e
+            raise
         out = []
         for choice in resp.choices:
             lp = choice.logprobs

@@ -323,3 +323,37 @@ class TestPrefillAndEchoRetry:
         assert r["probes"]["U_T_verbalized_parsed"] is False
         assert r["probes"]["U_T_verbalized_continued"] is False
         assert not any(pr.rstrip().endswith("<confidence>") for pr in client.prompts)
+
+
+class TestContextOverflow:
+    """2026-07-20: a prompt outgrowing the served window ends the EPISODE gracefully
+    (like the step cap), never the run. History is never trimmed to fit."""
+
+    def test_overflow_terminates_episode_keeps_prior_steps(self):
+        from src.agent.llm import ContextOverflowError
+
+        class OverflowAtStep2(FakeClient):
+            def generate(self, prompt, **kw):
+                # main entangled call of step 2 blows the window; earlier calls fine
+                if "YOUR TASK" not in prompt and prompt.count("Action: <think>") >= 1 \
+                        and not prompt.rstrip().endswith("<confidence>") \
+                        and "single integer" not in prompt:
+                    raise ContextOverflowError("maximum context length exceeded (test)")
+                return super().generate(prompt, **kw)
+
+        env = FakeEnv()
+        env.step = lambda cmd: (env.__dict__.__setitem__("n", env.n + 1),
+                                StepResult(f"You executed {cmd}.", ADM, False, False,
+                                           [tau_of(c) for c in ADM]))[1]  # never done
+        client = OverflowAtStep2()
+        out = run_episode("entangled", client, env, env.reset(), run_id="t",
+                          condition="entangled", prompts=Prompts.load(),
+                          sampling={"temperature": 0.7}, cfg=LoopConfig(step_cap=5))
+        assert out.summary["n_steps"] == 1                      # step 0 kept
+        assert out.summary["context_overflow_at_step"] == 1     # terminated at step 1
+        for r in out.records:
+            validate_record(r)
+
+    def test_normal_episode_reports_no_overflow(self):
+        out, _ = _run("entangled", auq_suffix=True)
+        assert out.summary["context_overflow_at_step"] is None
