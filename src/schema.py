@@ -44,7 +44,21 @@ from typing import Any
 # <action>), logged in extra.generation_retry {retry_reason, retry_degenerate};
 # (c) EOS-repair never fires on degenerate text. Probe semantics untouched: Probe V
 # still in-generation, stage entropy still spans only generated tokens.
-SCHEMA_VERSION = "1.5.0"
+# 1.6.0 (2026-07-20): pre-data amendment from the decoupled loop-control DIAGNOSTIC
+# (not a protocol step; run to test whether looping replicates under ReDAct's exact
+# architecture). Found: the v1 (tag-free) DECOUPLED action call had no degenerate-content
+# retry guard -- only emptiness. 45% of action calls (diagnostic, n=69) drew an immediate
+# blank first token; the retry sometimes returned a stray '</think>' (the reasoning-tuned
+# model's habitual close-of-thinking artifact leaking past the one-line contract), which
+# was accepted AS THE ACTION, unflagged (retry_degenerate=False), executed raw, and
+# rendered into the next step's history as 'Action: </think>' -- same failure class as
+# the entangled instruction-echo cascade (0617ee5), never given the equivalent guard.
+# Fix: _degenerate_action_line (any '<' + letter/slash -- no legitimate ALFWorld command
+# contains one) wired into the v1 action call's retry only (v2's tag-ended contract is
+# exempt). No fields added; generation_retry.retry_degenerate now correctly flags this
+# case for the decoupled path. Scoped to Cell C/D generation; does not touch E0
+# (entangled-only) -- Step 5 (E0 judge labeling) is unaffected and unblocked by this.
+SCHEMA_VERSION = "1.6.0"
 
 # The probe keys the schema knows about. Present in every record (None when N/A for the condition),
 # so downstream analysis can rely on a fixed shape and compute per-cell exclusion rates.

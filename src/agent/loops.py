@@ -40,6 +40,7 @@ either way) but drift and fork as they would in deployment.
 from __future__ import annotations
 
 import hashlib
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -143,6 +144,24 @@ def _degenerate_entangled(text: str) -> bool:
     <action>, which is what cascaded 2 onsets into 71/104 bad steps)."""
     lo = text.lower()
     return "</think" not in lo and "<action>" not in lo
+
+
+_TAG_LEAK_RE = re.compile(r"<[a-zA-Z/]")
+
+
+def _degenerate_action_line(text: str) -> bool:
+    """Amendment 2026-07-20, decoupled loop-control diagnostic: the v1 (tag-free) action
+    contract asks for exactly one bare command line. Qwen3.6's reasoning-tuned habits
+    leak past it -- observed: an immediate blank first token (~45% of action calls in the
+    diagnostic), and on RETRY, a stray '</think>' (a vestigial close of reasoning the
+    one-line contract suppressed) accepted as the literal action because the retry path
+    had no content check, only an emptiness check. '</think>' then executed raw
+    ("Nothing happens") and rendered into the next step's history as
+    'Action: </think>' -- same failure CLASS as the entangled instruction-echo cascade
+    (0617ee5), different symptom. No legitimate ALFWorld command contains '<': admissible
+    strings are plain lowercase phrases (src/env/tau_map.py normalize_action), so any '<'
+    followed by a letter or slash is tag leakage, never a real answer."""
+    return bool(_TAG_LEAK_RE.search(text))
 
 
 def _generate_nonempty(client: VLLMClient, prompt: str, *, seed: int,
@@ -407,9 +426,12 @@ def _decoupled_step(client, prompts: Prompts, cfg: LoopConfig, samp, max_tokens,
         "DESCRIPTION": task, "HISTORY": hist_str, "THOUGHTS": thought,
         "AVAILABLE COMMANDS": cmds})
     a_stop = ["</confidence>"] if cfg.verbalized else ["\n"]
+    # degenerate check scoped to v1 only: v2's contract legitimately ends the line with a
+    # '<confidence>' tag, so tag presence cannot signal degeneracy there.
+    a_degenerate = None if cfg.verbalized else _degenerate_action_line
     gen_a, retry_a = _generate_nonempty(client, action_prompt, **samp,
                                         max_tokens=cfg.max_action_tokens,
-                                        seed=seed, stop=a_stop)
+                                        seed=seed, degenerate=a_degenerate, stop=a_stop)
     latency_ms = int((time.time() - t0) * 1000)
     raw_action = patch_unclosed(gen_a.text, "confidence") if cfg.verbalized else gen_a.text
     command_line = strip_confidence_tag(raw_action).strip().split("\n")[0]

@@ -47,7 +47,7 @@ class FakeClient:
     model = "fake"
 
     def __init__(self, omit_tag=False, malformed_tag=False, finish_reason="stop",
-                 empty_gens=0, echo_gens=0):
+                 empty_gens=0, echo_gens=0, action_leak_gens=0):
         self.prompts: list[str] = []    # every prompt sent, for the invariant test
         self.seeds: list[int] = []      # seed of every call, for the retry-seed test
         self.omit_tag = omit_tag
@@ -55,6 +55,7 @@ class FakeClient:
         self.finish_reason = finish_reason
         self.empty_gens = empty_gens    # first N MAIN-STAGE calls return empty text
         self.echo_gens = echo_gens      # first N MAIN-STAGE calls echo the instruction list
+        self.action_leak_gens = action_leak_gens  # first N v1 action calls leak '</think>'
 
     def generate(self, prompt, **kw):
         self.prompts.append(prompt)
@@ -78,8 +79,19 @@ class FakeClient:
             return [Generation(text=t, tokens=[t], logprobs=[-0.5],
                                top_logprobs=[{t: -0.5}], prompt_tokens=10,
                                completion_tokens=16, finish_reason="stop")]
+        elif "YOUR CURRENT REASONING" in prompt and self.action_leak_gens > 0:
+            # v1 decoupled action call leaking a vestigial close-of-thinking token
+            # (the diagnostic's actual failure mode) instead of a bare command line
+            self.action_leak_gens -= 1
+            text = "</think>"
+            return [Generation(text=text, tokens=[text], logprobs=[-0.5],
+                               top_logprobs=[{text: -0.5}], prompt_tokens=10,
+                               completion_tokens=1, finish_reason=self.finish_reason)]
         elif "YOUR CURRENT REASONING" in prompt:
-            if self.omit_tag:
+            # only the v2 prompt (redact_action_v2.txt) instructs a confidence tag --
+            # detect it the way the real model would (by the instruction's presence),
+            # so a v1 recovery draw is a bare command line with no tag to leak
+            if self.omit_tag or "confidence" not in prompt.lower():
                 text = "go to desk 1"
             elif self.malformed_tag:
                 text = "go to desk 1\n<confidence>1.5</confidence>"
@@ -357,3 +369,41 @@ class TestContextOverflow:
     def test_normal_episode_reports_no_overflow(self):
         out, _ = _run("entangled", auq_suffix=True)
         assert out.summary["context_overflow_at_step"] is None
+
+
+class TestDecoupledActionDegenerateRetry:
+    """2026-07-20 amendment from the loop-control diagnostic: the v1 (tag-free) decoupled
+    action call gets the same non-empty-AND-non-degenerate retry discipline as the
+    entangled path. Degenerate here = tag leakage ('</think>' etc.) — no legitimate
+    ALFWorld command contains '<'. v2 is exempt (its contract legitimately ends in a tag)."""
+
+    def test_leaked_tag_first_draw_retried_and_recovers(self):
+        out, client = _run("decoupled", client=FakeClient(action_leak_gens=1),
+                           verbalized=False)
+        r = out.records[0]
+        assert r["action_text"] == "go to desk 1"
+        retry = r["extra"]["generation_retry"]["action"]
+        assert retry["retry_reason"] == "degenerate"
+        assert retry["retry_degenerate"] is False
+        assert retry["retry_seed"] == r["sampling"]["seed"] + 100003
+
+    def test_persistent_leak_kept_and_correctly_flagged(self):
+        # THIS is the diagnostic's actual failure: before this fix, a persistent
+        # '</think>' leak was accepted as the action with retry_degenerate=False
+        out, client = _run("decoupled", client=FakeClient(action_leak_gens=999),
+                          verbalized=False)
+        r = out.records[0]
+        assert r["action_text"] == "</think>"          # kept, never fabricated
+        retry = r["extra"]["generation_retry"]["action"]
+        assert retry["retry_reason"] == "degenerate"
+        assert retry["retry_degenerate"] is True        # NOW correctly flagged (was False)
+        assert r["extra"]["action_match"] == "raw"
+
+    def test_v2_action_call_not_subject_to_degenerate_check(self):
+        # v2's contract legitimately ends with '<confidence>' -- must not be flagged
+        out, _ = _run("decoupled", client=FakeClient())
+        assert out.records[0]["extra"]["generation_retry"]["action"] is None
+
+    def test_thought_call_unaffected_by_action_leak_mode(self):
+        out, _ = _run("decoupled", client=FakeClient(action_leak_gens=1), verbalized=False)
+        assert out.records[0]["thought_text"] == "I should look for the mug on the desk."
