@@ -19,3 +19,9 @@ scratch/
 
 # local inspection doc — not published (contains infra details)
 HANDOFF.md
+
+# upstream ReAct clone — reference-only, never imported/edited (build-fresh policy)
+react_validation/ReAct/
+
+# npm / claude-code artifacts — not part of the research repo
+node_modules/
