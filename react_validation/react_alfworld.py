@@ -33,7 +33,21 @@ def llm(prompt, stop=["\n"]):
         presence_penalty=0.0,
         stop=stop,
     )
-    return completion.choices[0].text
+    text = completion.choices[0].text
+    # Gated wire-capture (default OFF; observability only, return value unchanged): when
+    # REACT_CAPTURE is set, append the EXACT prompt sent and the EXACT raw completion
+    # (pre-strip) plus finish_reason as one JSONL record.
+    _cap = os.environ.get("REACT_CAPTURE")
+    if _cap:
+        import json as _json
+        with open(_cap, "a") as _f:
+            _f.write(_json.dumps({
+                "prompt": prompt,
+                "response_raw": text,
+                "finish_reason": completion.choices[0].finish_reason,
+                "usage_completion_tokens": getattr(completion.usage, "completion_tokens", None),
+            }) + "\n")
+    return text
 
 # ===== cell 1 (verbatim): env setup =====
 import yaml
