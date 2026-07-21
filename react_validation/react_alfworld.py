@@ -1,10 +1,14 @@
 """Pure ReAct ALFWorld validation — pure-Python migration of ysymyth/ReAct's alfworld.ipynb.
 
 Provenance: ysymyth/ReAct (MIT), alfworld.ipynb, HEAD 6bdb3a1. Cells 1-4 (env setup,
-prompt load, alfworld_run, the 134-episode driver) are reproduced VERBATIM. The ONLY
-substitution is cell 0's llm() backend: davinci-002 (retired) -> Qwen served the standard
-vLLM way, queried with the standard OpenAI client. Same sampling params (greedy, max_tokens
-100, stop=["\\n"]). No probes, no retries, no project code.
+prompt load, alfworld_run, the 134-episode driver) are reproduced VERBATIM except for two
+unavoidable API migrations, each semantically identical to the original:
+  1. cell 0's llm() backend: davinci-002 (retired) -> Qwen served the standard vLLM way,
+     queried with the standard OpenAI client. Same sampling params (greedy, max_tokens 100,
+     stop=["\\n"]).
+  2. cell 1's env access: alfworld dropped the direct `AlfredTWEnv` attribute for a
+     get_environment(name) factory (resolves to the same class).
+No probes, no retries, no project code. The ReAct control loop is untouched.
 
 Run: serve a model first (see serve.sh), then `python react_alfworld.py`.
 Requires alfworld + its data (ALFWORLD_DATA set) importable in the environment.
@@ -40,7 +44,10 @@ with open('base_config.yaml') as reader:
 
 split = "eval_out_of_distribution"
 
-env = getattr(alfworld.agents.environment, config["env"]["type"])(config, train_eval=split)
+# API-migration compat (like the llm() SDK swap): newer alfworld removed the direct
+# `alfworld.agents.environment.AlfredTWEnv` attribute in favor of a get_environment(name)
+# factory. Same class, same call, same semantics — env resolution only, loop untouched.
+env = alfworld.agents.environment.get_environment(config["env"]["type"])(config, train_eval=split)
 env = env.init_env(batch_size=1)
 
 def process_ob(ob):
