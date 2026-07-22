@@ -70,9 +70,13 @@ def process_ob(ob):
     return ob
 
 # ===== cell 2 (verbatim): load few-shot prompts =====
+# Prompt file is selectable via REACT_PROMPTS (default = the pristine upstream exemplars,
+# so the pure replication is unchanged). alfworld_3prompts_moveverb.json is the same
+# exemplars with the placement verb migrated to ALFWorld 0.4.2 grammar ("put X in/on Y"
+# -> "move X to Y"), matching alfred.twl2's PutObject template + feedback.
 import json
 folder = './prompts/'
-prompt_file = 'alfworld_3prompts.json'
+prompt_file = os.environ.get('REACT_PROMPTS', 'alfworld_3prompts.json')
 with open(folder + prompt_file, 'r') as f:
     d = json.load(f)
 
