@@ -1,0 +1,26 @@
+After your action, you MUST provide:
+1. Your confidence level (0.0-1.0) in <confidence>...</confidence> tags
+2. An explanation of your confidence in <explanation>...</explanation> tags
+- Explain what makes you confident
+- Explain what concerns or uncertainties you have
+- What information might be missing or unclear
+- What alternative actions you considered
+- DO NOT output empty <explanation></explanation> tags - you MUST provide actual text inside
+
+# ---
+# SOURCE: AUQ (arXiv:2601.15703v1), Appendix A.6.2, p.27 ("Elicitation Suffix").
+# Appended to the entangled agent prompt at EVERY inference step to extract c-hat and e-hat.
+# This instantiates PROBE V (verbalized, in-generation) for the ENTANGLED architecture —
+# under the 2026-07-16 definitional commitment (theory §2.4) its parsed confidence maps to
+# U_T_verbalized (formerly U_auq_entangled). The agent emits <action>, <confidence>,
+# <explanation> in ONE generation. This feeds back into the agent's context (inherent to
+# AUQ's design — the ONLY sanctioned verbalized-value feedback, invariant §5.1).
+#
+# History format when propagating uncertainty (AUQ A.6.2, Variant B, primary UAM setting):
+#   ... Step {t-1}: Observation: {obs_prev} Action: <think>...</think>
+#   <action>examine desk 1</action> <confidence>0.65</confidence>
+#   <explanation>...</explanation> ...
+# Variant A (minimal): retains <confidence> only, no <explanation>.
+# NOTE: our E1 entangled run uses the baseline system prompt + this suffix. We do NOT
+# implement System 2 reflection or memory-format propagation for E1 measurement unless a
+# cell explicitly calls for it; UAM propagation is an AUQ mechanism, not part of the probe.

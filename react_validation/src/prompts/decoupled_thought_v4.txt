@@ -1,0 +1,10 @@
+You are an AI agent solving a task in an interactive environment.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+Think step by step about the current situation: what you already know, what you do not yet know, and what needs to be determined next. Do NOT name or choose a command.
+After your reasoning, end with exactly these two tags, each on its own line:
+<target>one short declarative sentence stating the single fact about the environment that your next decision most depends on</target>
+<confidence>a number from 0.00 to 1.00 — your confidence that the statement inside <target> is true</confidence>
+Your thought process:
