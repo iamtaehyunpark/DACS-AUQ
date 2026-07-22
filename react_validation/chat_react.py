@@ -102,7 +102,7 @@ def run_episode():
         obs = obs[0]; won = bool(info["won"][0]); done = bool(done[0])
         in_adm = action in cmds
         print("[step %d] THOUGHT: %s\n         ACTION: %r (admissible=%s)\n         OBS: %s"
-              % (i, thought[:200], action, in_adm, obs)); sys.stdout.flush()
+              % (i, thought, action, in_adm, obs)); sys.stdout.flush()
         if _CAP:
             with open(_CAP, "a") as f:
                 f.write(json.dumps({"step": i, "task": task, "thought": thought,
