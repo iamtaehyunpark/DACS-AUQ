@@ -111,9 +111,13 @@ else:  # entangled
                   and "ACTION_CONFIDENCE:" in c.get("prompt_templated", "")) for c in calls)
     B(fmt_ok, "4-label format (THOUGHT/THOUGHT_CONFIDENCE/ACTION/ACTION_CONFIDENCE) in every joint prompt")
     midcalls = [c for c in calls if c["step_idx"] >= 2]
-    hist_ok = all("THOUGHT:" in c.get("prompt_templated", "").split("ENVIRONMENT HISTORY:")[-1].split("AVAILABLE COMMANDS")[0]
-                  for c in midcalls) if midcalls else True
-    B(hist_ok, "history carries prior THOUGHT from step 2 on")
+    def _hist(c):
+        return c.get("prompt_templated", "").split("ENVIRONMENT HISTORY:")[-1].split("AVAILABLE COMMANDS")[0]
+    hist_ok = all("> " in _hist(c) for c in midcalls) if midcalls else True
+    B(hist_ok, "history carries prior action+observation from step 2 on")
+    retains_thought = any("CONFIDENCE:" in _hist(c) for c in midcalls)
+    W("history retention: %s" % ("full/AUQ (thought+confidence persisted)" if retains_thought
+                                 else "action+observation only (default)"))
 
 # 8. bad-step rate (empty action)
 empty = sum(1 for s in steps if not (s.get("action_parsed") or "").strip())

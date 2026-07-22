@@ -10,8 +10,9 @@ unified with the decoupled harness as U_T_verbalized / U_A_verbalized. No XML ta
 continuation-repair, no <explanation> (the tag-contract fragility the PI left the src/agent build
 to escape; enable_thinking=False already precludes </think> leakage).
 
-History persists the full Thought/ThoughtConf/Action/ActionConf/Obs transcript (AUQ System-1
-propagation); decoupled stays thought-free — the asymmetry is intentional.
+History retention: ACTION + OBSERVATION only, matching the decoupled arm (both arms symmetric).
+AUQ full-retention (thought + both confidences persisted into history, AUQ System-1 propagation)
+is shelved behind REACT_HISTORY_MODE=full, for a later comparison run only if needed.
 A12 tau:{I,W,R,C} per step from action_parsed.  A13 seed = 1000 + task*100000 + step*100.
 """
 import os, re, json, sys, time, hashlib
@@ -32,6 +33,7 @@ _UQLOG = os.environ.get("REACT_UQLOG")
 _TOK_PATH = os.environ.get("REACT_TOKENIZER", "Qwen/Qwen3.6-35B-A3B")
 _SEED_BASE = int(os.environ.get("REACT_SEED_BASE", "1000"))
 _RUN_ID = os.environ.get("REACT_RUN_ID", "entangled")
+_HIST_MODE = os.environ.get("REACT_HISTORY_MODE", "action_obs")  # "action_obs" (default) | "full" (AUQ retention)
 _SB = {"top_k": _TOP_K, "min_p": _MIN_P, "repetition_penalty": _REP_PEN}
 if _UQLOG:
     from uqlog import instrumented_chat, content_span
@@ -178,9 +180,13 @@ def run_episode(task_index):
                   "thought_text": thought, "U_T_verbalized": U_T_verbalized,
                   "U_A_verbalized": U_A_verbalized, "skip_reasons": skips})
         prev_obs = obs
-        # AUQ System-1 history — thought + both confidences + action + observation persist
-        history += "\n> THOUGHT: %s\n> THOUGHT_CONFIDENCE: %s\n> ACTION: %s\n> ACTION_CONFIDENCE: %s\n%s" % (
-            thought, _fmt(c_t), action, _fmt(c_a), obs)
+        # Retain action + observation only (default), same as the decoupled arm. REACT_HISTORY_MODE=full
+        # restores AUQ System-1 propagation (thought + both confidences persisted) for a later comparison.
+        if _HIST_MODE == "full":
+            history += "\n> THOUGHT: %s\n> THOUGHT_CONFIDENCE: %s\n> ACTION: %s\n> ACTION_CONFIDENCE: %s\n%s" % (
+                thought, _fmt(c_t), action, _fmt(c_a), obs)
+        else:
+            history += "\n> %s\n%s" % (action, obs)
         if done:
             if _UQLOG:
                 _log({"kind": "episode", "run_id": _RUN_ID, "task_id": name, "success": won,
