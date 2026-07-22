@@ -22,13 +22,19 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from openai import OpenAI
 _client = OpenAI(api_key="EMPTY", base_url="http://localhost:8000/v1")
 
+# Sampling is configurable; defaults reproduce ReAct's greedy decoding (temperature=0,
+# top_p=1). REACT_TEMPERATURE / REACT_TOP_P override it — e.g. a research-common
+# temperature=0.7, top_p=0.95 to break the greedy repetition loops.
+_TEMP = float(os.environ.get("REACT_TEMPERATURE", "0"))
+_TOP_P = float(os.environ.get("REACT_TOP_P", "1"))
+
 def llm(prompt, stop=["\n"]):
     completion = _client.completions.create(
         model="qwen",
         prompt=prompt,
-        temperature=0,
+        temperature=_TEMP,
         max_tokens=100,
-        top_p=1,
+        top_p=_TOP_P,
         frequency_penalty=0.0,
         presence_penalty=0.0,
         stop=stop,
