@@ -77,20 +77,22 @@ def group_steps(records):
         if "joint" in calls:                                  # entangled
             jc = calls["joint"]
             task, history = probes.parse_task_history(jc.get("prompt_templated", ""))
-            thought, action_line = probes.split_entangled(jc.get("completion_raw", ""))
-            action = (step or {}).get("action_parsed") or action_line
+            # A11: prefer the harness-logged clean thought (pre-ACTION); fall back for pre-v4 logs
+            thought = (step or {}).get("thought_text") or probes.split_entangled(jc.get("completion_raw", ""))[0]
+            action = (step or {}).get("action_parsed") or ""
             source_call_kind = "joint"
         elif "thought" in calls:                              # decoupled
             tc = calls["thought"]
             task, history = probes.parse_task_history(tc.get("prompt_templated", ""))
-            thought = (tc.get("completion_raw") or "").strip()
-            thought = thought.split("</think>", 1)[-1].strip() if "</think>" in thought else thought
-            ac = calls.get("action")
-            if ac is not None:
-                action = probes._first_content_line(ac.get("completion_raw", ""))
-            else:
-                action = (step or {}).get("action_parsed") or ""
-            source_call_kind = "thought+action"
+            # A11 / A8: condition on the CLEAN, trimmed, tag-free thought — the pre-action
+            # epistemic state — NOT the raw completion (which contained the committed action
+            # in the pilot). source_call_kind reflects that the action is no longer in scope.
+            thought = (step or {}).get("thought_clean")
+            if thought is None:                               # fallback for pre-v4 corpora
+                thought = (tc.get("completion_raw") or "").strip()
+                thought = thought.split("</think>", 1)[-1].strip() if "</think>" in thought else thought
+            action = (step or {}).get("action_parsed") or ""
+            source_call_kind = "thought"
         else:
             sys.stderr.write("skip %s/%s step %s: no thought/joint call\n" % (run_id, task_id, step_idx))
             continue
@@ -150,7 +152,12 @@ def main():
                 sys.stderr.write("ERROR step %s/%s/%s: %r\n" % (
                     step["run_id"], step["task_id"], step["step_idx"], e))
                 continue
+            # A11 roster relabel: posthoc_numeric (0-100) is THE post-hoc numeric roster row;
+            # sep_verbalized (0-1) is its wording variant for the E1b robustness arm (~46%
+            # identical to posthoc_numeric full-corpus). Recorded, not dropped.
+            _ROLE = {"posthoc_numeric": "roster", "sep_verbalized": "e1b_wording_variant"}
             for pr in probe_recs:
+                pr["roster_role"] = _ROLE.get(pr.get("probe_kind"), "roster")
                 fo.write(json.dumps(pr) + "\n")
                 n_probes += 1
                 if pr["probe_kind"] != "qt_extract":
