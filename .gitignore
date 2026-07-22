@@ -25,3 +25,11 @@ react_validation/ReAct/
 
 # npm / claude-code artifacts — not part of the research repo
 node_modules/
+
+# pilot run artifacts (raw thread dumps / logs) — not committed
+react_validation/thread_all.*
+react_validation/*.log
+react_validation/run*.log
+
+# manual probe scratch prompt
+react_validation/_prompt.txt
