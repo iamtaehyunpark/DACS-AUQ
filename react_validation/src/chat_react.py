@@ -117,7 +117,7 @@ def _chat_call(prompt, max_tokens, seed):
 
 
 config = yaml.safe_load(open("base_config.yaml"))
-env = alfworld.agents.environment.get_environment(config["env"]["type"])(config, train_eval="eval_out_of_distribution")
+env = alfworld.agents.environment.get_environment(config["env"]["type"])(config, train_eval=os.environ.get("REACT_SPLIT", "eval_out_of_distribution"))
 env = env.init_env(batch_size=1)
 
 
