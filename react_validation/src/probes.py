@@ -257,7 +257,7 @@ _METRIC_FIELD = {
     ("ptrue", "thought"): "U_T_ptrue", ("ptrue", "action"): "U_A_ptrue",
     ("sep_verbalized", "thought"): "U_T_verbalized_sep", ("sep_verbalized", "action"): "U_A_verbalized_sep",
     ("posthoc_numeric", "thought"): "U_T_posthoc_numeric", ("posthoc_numeric", "action"): "U_A_posthoc_numeric",
-    ("targeted", "thought"): "U_T_targeted",
+    ("targeted", "thought"): "U_T_targeted_posthoc",
 }
 
 

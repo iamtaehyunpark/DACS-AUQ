@@ -81,13 +81,13 @@ B(seed_ok == seed_tot, "per-step seeds match formula (%d/%d)" % (seed_ok, seed_t
 
 # 5. confidence label parsed OR skip logged (format-native, non-blocking parse)
 if arm == "decoupled":
-    miss = [s for s in steps if s.get("U_T_targeted") is None
+    miss = [s for s in steps if s.get("U_T_targeted_ingen") is None
             and "thought_confidence_parse_failed" not in (s.get("skip_reasons") or [])]
     B(not miss, "THOUGHT_CONFIDENCE (targeted u(q_t)) parsed or skip logged, every step (%d unaccounted)" % len(miss))
     qmiss = [s for s in steps if s.get("q_t_text") is None
              and "thought_target_parse_failed" not in (s.get("skip_reasons") or [])]
     B(not qmiss, "THOUGHT_TARGET (q_t) parsed or skip logged, every step (%d unaccounted)" % len(qmiss))
-    amiss = [s for s in steps if (s.get("action_parsed") or "").strip() and s.get("U_A_targeted") is None
+    amiss = [s for s in steps if (s.get("action_parsed") or "").strip() and s.get("U_A_targeted_ingen") is None
              and "action_confidence_parse_failed" not in (s.get("skip_reasons") or [])]
     B(not amiss, "ACTION_CONFIDENCE (u_A(g_t)) parsed or skip logged, every non-empty step (%d unaccounted)" % len(amiss))
     # 6. thought_clean excludes the confidence label AND trailing admissible-command lines

@@ -29,6 +29,7 @@ column; no metric is privileged a priori.
 | A16 | 07-22 | Format-native contracts (plain labels, no XML): THOUGHT_TARGET + targeted THOUGHT_CONFIDENCE = u(q_t) restored in-gen (E3 anchor); ACTION_CONFIDENCE = u_A(g_t); one in-gen label per stage; roster rows 5–6 amended accordingly |
 | A17 | 07-22 | Seed formula = harness/audit version: `1000 + task*100000 + step*100 + call_offset` |
 | A18 | 07-22 | Specs committed into the repo; freeze tag valid only after spec–code reconciliation (this document at this revision) |
+| A19 | 07-22 | u⁺ contract: probe-style value-excised call on the declared q_t (never agent-context continuation); provenance field split (`U_T_targeted_ingen` / `_posthoc` / `_uplus`); E3 reports mixed- and same-provenance deltas; continuation-repair demoted to fallback (smoke: 100% first-pass label compliance) |
 
 Post-freeze changes = dated deviation notes, never silent edits.
 
@@ -96,7 +97,9 @@ E1 looks healthy. τ never comes from the model.
   Action call: ReDAct contract, one command line, then
   `ACTION_CONFIDENCE: <0.00-1.00 that this action will achieve its intended
   effect as stated in the reasoning>` = u_A(g_t), stripped before env execution.
-  Continuation-repair (A11) on any label parse failure.
+  Label parse failure → value null, raw kept, exclusion rate reported per arm
+  (smoke: 100% first-pass compliance); same-context retry (A11) retained as
+  optional fallback only.
 - **Entangled (E1b ablation, A15).** One joint generation per step (thought +
   action + AUQ-style in-gen confidence ĉ + explanation), **history = actions +
   observations only — identical content to the decoupled arm**. Describe in the
@@ -112,9 +115,14 @@ E1 looks healthy. τ never comes from the model.
 - **Post-hoc probes** (P(True), numeric; verbal-scale in robustness arm): fresh T=0
   calls on frozen stages; contexts **value-excised** (strip ĉ AND `<explanation>` in
   the entangled condition); fully offline-able.
-- **Post-transition re-elicitation (for E3/perturbations):** after the observation,
-  re-elicit `u(q_t | S_{t+1})` conditioned on the *same q_t string* — this is u_t⁺.
-  Read-only; never fed back.
+- **Post-transition re-elicitation (E3/perturbations, contract per A19):** u_t⁺ is
+  a **probe-style, value-excised call** — same template family as the post-hoc
+  targeted probe: environment history through S_{t+1}, then the *declared* q_t
+  claim posed as a standalone confidence-that-this-claim-is-true question. NEVER a
+  continuation of agent context (smoke showed agent-voice contamination). Field
+  `U_T_targeted_uplus`. Read-only; never fed back. Provenance naming: in-gen
+  declared reading = `U_T_targeted_ingen`; extracted-target post-hoc probe =
+  `U_T_targeted_posthoc`.
 
 ### 0.6 Frozen metric roster (A6)
 | # | Metric | Family | Thought | Action | Cost |
@@ -280,7 +288,12 @@ Thin-cell rule pre-committed. Analysis-only, ~1 day.
 ## E3 — Transition / Promise Comparison (the delta column)
 
 For τ.I=1 steps (t+1 defined): per metric family, ΔU^(m)(t) = U^(m)(t+1) − U^(m)(t);
-targeted delta uses u(q_t) re-elicited on the same q_t string (u_t⁺ − u_t⁻).
+the targeted delta is reported in **two provenances (A19)**: mixed
+(`U_T_targeted_ingen` at t → `U_T_targeted_uplus` at t+1) and same-provenance
+(`U_T_targeted_posthoc` at t → `U_T_targeted_uplus` at t+1; the t-side probe already
+exists in the suite — zero new calls). Systematic disagreement between the two
+deltas is reported as a finding (provenance effect on the promise check), not
+treated as noise.
 V_m(t) = 𝟙[ΔU^(m) ≥ −ε_m], ε_m sensitivity over {0, .05, .1} (ΔH_k thresholds per
 TEPO's convention).
 **Predictor comparison, same steps, trajectory-clustered bootstrap on differences:**

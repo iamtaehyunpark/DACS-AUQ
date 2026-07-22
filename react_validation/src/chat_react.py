@@ -4,7 +4,7 @@ Format-native elicitation (no XML): plain trailing labels in the same style as t
 leniently and NEVER blocking. The thought call is the TARGETED reading u(q_t) (roster #6, §0.5/A16):
 `THOUGHT_TARGET:` declares the claim q_t the next decision turns on, `THOUGHT_CONFIDENCE:` is the
 confidence that q_t is true. The action call emits `ACTION:` + `ACTION_CONFIDENCE:` = u_A(g_t).
-Recorded as U = 1 - c (0 certain, 1 uncertain): q_t_text, U_T_targeted, U_A_targeted. (The generic
+Recorded as U = 1 - c (0 certain, 1 uncertain): q_t_text, U_T_targeted_ingen, U_A_targeted_ingen. (The generic
 in-gen verbalized row lives only in the entangled arm; here it is post-hoc.)
 (Rationale: keep the validation harness free of the tag-contract fragility the PI left the
 src/agent build to escape; enable_thinking=False already precludes </think> leakage.)
@@ -161,7 +161,7 @@ def run_episode(task_index):
         c_t = parse_conf(content, _TCONF_RE)               # confidence q_t is true -> targeted u(q_t)
         if c_t is None:
             skips.append("thought_confidence_parse_failed")
-        U_T_targeted = None if c_t is None else round(1.0 - c_t, 4)
+        U_T_targeted_ingen = None if c_t is None else round(1.0 - c_t, 4)
         # clean reasoning = everything before the first THOUGHT_TARGET/THOUGHT_CONFIDENCE label; then
         # trim trailing commands. Strips BOTH elicited labels before the action call + probe span.
         reasoning = _THOUGHT_TAIL.split(content, maxsplit=1)[0].rstrip()
@@ -184,7 +184,7 @@ def run_episode(task_index):
         c_a = parse_conf(acontent, _ACONF_RE)
         if c_a is None:
             skips.append("action_confidence_parse_failed")
-        U_A_targeted = None if c_a is None else round(1.0 - c_a, 4)
+        U_A_targeted_ingen = None if c_a is None else round(1.0 - c_a, 4)
         # action = first non-empty line before the ACTION_CONFIDENCE: line, stripped of an ACTION: label
         pre = _ACONF_SPLIT.split(acontent, maxsplit=1)[0]
         action = next((ln.strip() for ln in pre.splitlines() if ln.strip()), "")
@@ -196,8 +196,8 @@ def run_episode(task_index):
         if tau is None and action:
             skips.append("tau_unrecognized_action")
         print("[step %d] THOUGHT(%s): %s\n         q_t=%r U_T=%s | ACTION: %r U_A=%s adm=%s\n         OBS: %s"
-              % (i, "trim" if thought_trimmed else "-", thought_clean[:120], q_t, U_T_targeted,
-                 action, U_A_targeted, in_adm, obs)); sys.stdout.flush()
+              % (i, "trim" if thought_trimmed else "-", thought_clean[:120], q_t, U_T_targeted_ingen,
+                 action, U_A_targeted_ingen, in_adm, obs)); sys.stdout.flush()
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG:
             # completion_raw stays the INITIAL generation (what gen_logprobs covers). Stage entropy
@@ -222,7 +222,7 @@ def run_episode(task_index):
                   "admissible": cmds, "in_admissible": in_adm, "loop_flag": loop_flag,
                   "state_hash": hashlib.sha1(obs.encode()).hexdigest()[:16], "tau": tau,
                   "thought_clean": thought_clean, "thought_trimmed": thought_trimmed,
-                  "q_t_text": q_t, "U_T_targeted": U_T_targeted, "U_A_targeted": U_A_targeted,
+                  "q_t_text": q_t, "U_T_targeted_ingen": U_T_targeted_ingen, "U_A_targeted_ingen": U_A_targeted_ingen,
                   "skip_reasons": skips})
         prev_obs = obs
         history += "\n> %s\n%s" % (action, obs)
