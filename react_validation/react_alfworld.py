@@ -28,12 +28,18 @@ _client = OpenAI(api_key="EMPTY", base_url="http://localhost:8000/v1")
 _TEMP = float(os.environ.get("REACT_TEMPERATURE", "0"))
 _TOP_P = float(os.environ.get("REACT_TOP_P", "1"))
 
+# No-stop mode (gated): when REACT_NO_STOP is set, the loop passes stop=None so the model
+# emits its WHOLE turn with no regulation (incl. any <think> reasoning), and the action is
+# parsed from the full text offline. max_tokens is raised so the full turn isn't truncated.
+_NO_STOP = bool(os.environ.get("REACT_NO_STOP"))
+_MAXTOK = int(os.environ.get("REACT_MAX_TOKENS", "1024" if _NO_STOP else "100"))
+
 def llm(prompt, stop=["\n"]):
     completion = _client.completions.create(
         model="qwen",
         prompt=prompt,
         temperature=_TEMP,
-        max_tokens=100,
+        max_tokens=_MAXTOK,
         top_p=_TOP_P,
         frequency_penalty=0.0,
         presence_penalty=0.0,
@@ -101,6 +107,19 @@ def _admissible(info):
         return []
     return a[0] if isinstance(a[0], (list, tuple)) else a
 
+def _parse_action(raw):
+    # No-stop mode: the model returns a whole turn (possibly a <think>...</think> block, then
+    # the ReAct line). Take the text after </think> if present, then the first non-empty line.
+    # No stripping of anything else — the full raw turn is logged separately.
+    t = raw
+    if '</think>' in t:
+        t = t.split('</think>', 1)[-1]
+    for line in t.splitlines():
+        s = line.strip()
+        if s:
+            return s
+    return ''
+
 def alfworld_run(prompt, to_print=True, ob=''):
     init_prompt = prompt + ob + '\n>'
     prompt = ''
@@ -108,7 +127,8 @@ def alfworld_run(prompt, to_print=True, ob=''):
         print(ob)
         sys.stdout.flush()
     for i in range(1, 50):
-        action = llm(init_prompt + prompt, stop=['\n']).strip()
+        raw = llm(init_prompt + prompt, stop=(None if _NO_STOP else ['\n']))
+        action = _parse_action(raw) if _NO_STOP else raw.strip()
         observation, reward, done, info = env.step([action])
         observation, reward, done = process_ob(observation[0]), info['won'][0], done[0]
         if action.startswith('think:'):
@@ -116,7 +136,10 @@ def alfworld_run(prompt, to_print=True, ob=''):
         elif _SHOW_ADMISSIBLE and observation == 'Nothing happens.':
             observation = 'Nothing happens. Admissible commands: ' + ' | '.join(_admissible(info))
         if to_print:
-            print(f'Act {i}: {action}\nObs {i}: {observation}')
+            if _NO_STOP:
+                print(f'Act {i}: {action}\nRaw {i}: {raw!r}\nObs {i}: {observation}')
+            else:
+                print(f'Act {i}: {action}\nObs {i}: {observation}')
             sys.stdout.flush()
         prompt += f' {action}\n{observation}\n>'
         if done:
