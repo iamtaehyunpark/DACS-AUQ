@@ -61,6 +61,11 @@ def strip_think(t):
     return t.split("</think>", 1)[-1] if "</think>" in t else t
 
 
+def _is_overflow(e):
+    s = str(e).lower()
+    return "context length" in s or "context_length" in s
+
+
 def trim_trailing_commands(text, cmds):
     """A8.2: drop trailing lines that exactly match an admissible command (normalized).
     Returns (trimmed_text, trimmed_bool)."""
@@ -124,7 +129,17 @@ def run_episode(task_index):
         skips = []
         # ---- THOUGHT call (no action vocab; ends with plain THOUGHT_CONFIDENCE:) ----
         tp = THOUGHT_PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history)
-        content, trec = _chat_call(tp, 512, base + i * 100 + 0)
+        try:
+            content, trec = _chat_call(tp, 512, base + i * 100 + 0)
+        except Exception as e:            # graceful per-episode overflow guard — never crash the run
+            if not _is_overflow(e):
+                raise
+            print("[step %d] CONTEXT OVERFLOW — ending episode" % i); sys.stdout.flush()
+            if _UQLOG:
+                _log({"kind": "episode", "run_id": _RUN_ID, "task_id": name, "success": False,
+                      "terminal_reason": "context_overflow", "n_steps": i - 1,
+                      "loop_collapse_fraction": round(loops / max(1, i - 1), 3)})
+            return 0
         content = strip_think(content)
         c_t = parse_conf(content, _TCONF_RE)               # lenient; None if absent/out-of-range
         if c_t is None:
@@ -136,7 +151,17 @@ def run_episode(task_index):
         # ---- ACTION call (sees tag-free, trimmed thought; ends with ACTION_CONFIDENCE:) ----
         ap = (ACTION_PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history)
               .replace("{THOUGHTS}", thought_clean).replace("{COMMANDS}", cmd_block))
-        acontent, arec = _chat_call(ap, 96, base + i * 100 + 1)
+        try:
+            acontent, arec = _chat_call(ap, 96, base + i * 100 + 1)
+        except Exception as e:
+            if not _is_overflow(e):
+                raise
+            print("[step %d] CONTEXT OVERFLOW (action) — ending episode" % i); sys.stdout.flush()
+            if _UQLOG:
+                _log({"kind": "episode", "run_id": _RUN_ID, "task_id": name, "success": False,
+                      "terminal_reason": "context_overflow", "n_steps": i - 1,
+                      "loop_collapse_fraction": round(loops / max(1, i - 1), 3)})
+            return 0
         acontent = strip_think(acontent)
         c_a = parse_conf(acontent, _ACONF_RE)
         if c_a is None:

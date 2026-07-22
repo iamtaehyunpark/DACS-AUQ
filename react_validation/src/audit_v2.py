@@ -119,6 +119,13 @@ else:  # entangled
 empty = sum(1 for s in steps if not (s.get("action_parsed") or "").strip())
 B(empty <= max(1, len(steps) // 10), "empty-action rate <=10%% (%d/%d)" % (empty, len(steps)))
 
+# 9. context-overflow episodes (graceful guard fired) — a warning, not blocking; a high rate
+#    means the served context is too small for this arm (entangled accumulates full history).
+overflow = [e for e in eps if e.get("terminal_reason") == "context_overflow"]
+if overflow:
+    W("context_overflow ended %d/%d episodes — served context may be too small for this arm"
+      % (len(overflow), len(eps)))
+
 print("=== audit_v2 : %s (%d calls, %d steps, %d episodes) ===" % (arm, len(calls), len(steps), len(eps)))
 for m in warn:
     print("  " + m)

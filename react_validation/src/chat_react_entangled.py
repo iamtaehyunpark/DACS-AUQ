@@ -133,7 +133,18 @@ def run_episode(task_index):
     for i in range(1, 50):
         cmds = admissible(info); skips = []
         prompt = PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history).replace("{COMMANDS}", "\n".join(cmds))
-        full, rec = gen_joint(prompt, base + i * 100)
+        try:
+            full, rec = gen_joint(prompt, base + i * 100)
+        except Exception as e:
+            if "context length" not in str(e).lower() and "context_length" not in str(e).lower():
+                raise
+            # graceful per-episode overflow guard: end the episode, never crash the run.
+            print("[step %d] CONTEXT OVERFLOW — ending episode" % i); sys.stdout.flush()
+            if _UQLOG:
+                _log({"kind": "episode", "run_id": _RUN_ID, "task_id": name, "success": False,
+                      "terminal_reason": "context_overflow", "n_steps": i - 1,
+                      "loop_collapse_fraction": round(loops / max(1, i - 1), 3)})
+            return 0
         thought, c_t, action, c_a = parse_all(full)
         if c_t is None:
             skips.append("thought_confidence_parse_failed")
