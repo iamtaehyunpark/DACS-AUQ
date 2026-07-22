@@ -1,0 +1,111 @@
+"""audit_v2 — regeneration-gate checks for the v4 corpora (handoff §"Regeneration gate").
+
+Usage: python audit_v2.py <uq_log.jsonl> <arm: decoupled|entangled>
+Exits 0 with "GATE: PASS" only if there are zero BLOCKING findings.
+"""
+import json, sys, re
+from tau_map import tau_dict
+
+path, arm = sys.argv[1], sys.argv[2]
+R = [json.loads(l) for l in open(path)]
+calls = [r for r in R if r["kind"] == "call"]
+steps = [r for r in R if r["kind"] == "step"]
+eps = [r for r in R if r["kind"] == "episode"]
+blocking, warn = [], []
+
+
+def B(cond, msg):
+    (warn if cond else blocking).append(("ok " if cond else "FAIL ") + msg)
+
+
+TAG = re.compile(r"<target>|<confidence>|<explanation>", re.I)
+
+# 1. presence / schema
+B(len(calls) and len(steps) and len(eps), "records present (call/step/episode)")
+B(all("config" in c and "seed" in c["config"] for c in calls), "every call has config.seed")
+B(all("gen_logprobs" in c and "spans" in c for c in calls), "every call has gen_logprobs + spans")
+
+# 2. spans reconstruct to a prefix of completion_raw (excluding trailing specials)
+recon_fail = 0
+for c in calls:
+    g, raw = c["gen_logprobs"], c["completion_raw"]
+    for st in ("thought", "action"):
+        sp = c["spans"].get(st)
+        if not sp:
+            continue
+        txt = "".join(t["token"] for t in g[sp[0]:sp[1]])
+        if txt not in raw and not raw.startswith(txt):
+            recon_fail += 1
+B(recon_fail == 0, "span tokens reconstruct into completion_raw (%d fail)" % recon_fail)
+
+# 3. tau on every step, verb-consistent
+tau_missing = [s for s in steps if s.get("action_parsed") and s.get("tau") is None]
+tau_bad = [s for s in steps if s.get("tau") and s["tau"] != tau_dict(s["action_parsed"])]
+B(not tau_missing, "tau present on every non-empty-action step (%d missing)" % len(tau_missing))
+B(not tau_bad, "tau verb-consistent with action_parsed (%d mismatched)" % len(tau_bad))
+
+# 4. per-step seeds per formula: 1000 + task*100000 + step*100 + call_offset
+seed_ok = seed_tot = 0
+by_task = {}
+for i, s in enumerate([e for e in eps]):
+    pass
+task_order = []
+for c in calls:
+    if c["task_id"] not in task_order:
+        task_order.append(c["task_id"])
+for c in calls:
+    ti = task_order.index(c["task_id"])
+    off = 0 if c["call_kind"] in ("thought", "joint") else 1
+    exp = 1000 + ti * 100000 + c["step_idx"] * 100 + off
+    seed_tot += 1
+    seed_ok += 1 if c["config"]["seed"] == exp else 0
+B(seed_ok == seed_tot, "per-step seeds match formula (%d/%d)" % (seed_ok, seed_tot))
+
+# 5. tags parseable OR skip logged (in-gen elicited class present)
+if arm == "decoupled":
+    conf_field = ("U_T_targeted_ingen", "U_A_targeted_ingen")
+    miss = [s for s in steps if s.get(conf_field[0]) is None and "thought_confidence_parse_failed" not in (s.get("skip_reasons") or [])]
+    B(not miss, "thought <confidence> parsed or skip logged, every step (%d unaccounted)" % len(miss))
+    # 6. thought span excludes tags AND trailing admissible-command lines
+    tag_in_thought = 0; cmd_trailing = 0
+    for c in calls:
+        if c["call_kind"] != "thought":
+            continue
+        g = c["gen_logprobs"]; sp = c["spans"]["thought"]
+        txt = "".join(t["token"] for t in g[sp[0]:sp[1]])
+        if TAG.search(txt):
+            tag_in_thought += 1
+    for s in steps:
+        tclean = s.get("thought_clean") or ""
+        cset = {re.sub(r"\s+", " ", x.strip().lower()).strip(" .") for x in (s.get("admissible") or [])}
+        last = re.sub(r"\s+", " ", tclean.rstrip().split("\n")[-1].strip().lower()).strip(" .") if tclean else ""
+        if last in cset and last:
+            cmd_trailing += 1
+    B(tag_in_thought == 0, "no tag text inside thought span (%d found)" % tag_in_thought)
+    B(cmd_trailing == 0, "thought_clean has no trailing admissible-command line (%d found)" % cmd_trailing)
+    # 7. strip-before-pass: no tag text in the action call's prompt (THOUGHTS)
+    tag_in_action_prompt = sum(1 for c in calls if c["call_kind"] == "action" and TAG.search(c.get("prompt_templated", "")))
+    B(tag_in_action_prompt == 0, "no tag text in downstream action prompt (%d found)" % tag_in_action_prompt)
+else:  # entangled
+    miss = [s for s in steps if s.get("U_T_verbalized") is None and "confidence_parse_failed" not in (s.get("skip_reasons") or [])]
+    B(not miss, "AUQ <confidence> parsed or skip logged, every step (%d unaccounted)" % len(miss))
+    # AUQ suffix present + thoughts in history
+    suffix_ok = all("<confidence>" in c.get("prompt_templated", "") for c in calls)
+    B(suffix_ok, "AUQ <confidence> suffix present in every joint prompt")
+    midcalls = [c for c in calls if c["step_idx"] >= 2]
+    hist_ok = all("THOUGHT:" in c.get("prompt_templated", "").split("ENVIRONMENT HISTORY:")[-1].split("AVAILABLE COMMANDS")[0]
+                  for c in midcalls) if midcalls else True
+    B(hist_ok, "history carries prior THOUGHT from step 2 on")
+
+# 8. bad-step rate (empty action)
+empty = sum(1 for s in steps if not (s.get("action_parsed") or "").strip())
+B(empty <= max(1, len(steps) // 10), "empty-action rate <=10%% (%d/%d)" % (empty, len(steps)))
+
+print("=== audit_v2 : %s (%d calls, %d steps, %d episodes) ===" % (arm, len(calls), len(steps), len(eps)))
+for m in warn:
+    print("  " + m)
+for m in blocking:
+    print("  " + m)
+print("\nGATE: %s  (%d blocking finding%s)" % ("PASS" if not blocking else "FAIL",
+                                               len(blocking), "" if len(blocking) == 1 else "s"))
+sys.exit(0 if not blocking else 1)
