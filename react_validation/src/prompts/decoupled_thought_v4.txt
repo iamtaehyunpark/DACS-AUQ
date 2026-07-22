@@ -4,6 +4,7 @@ TASK DESCRIPTION:
 ENVIRONMENT HISTORY:
 {HISTORY}
 Think step by step about the current situation: what you already know, what you do not yet know, and what needs to be determined next. Do NOT name or choose a command.
-After your reasoning, end with exactly this line:
-THOUGHT_CONFIDENCE: a number from 0.00 to 1.00 — your confidence that the reasoning above correctly reflects the current situation
+After your reasoning, end with exactly these two lines:
+THOUGHT_TARGET: one short declarative sentence stating the single fact or assumption that your next decision most depends on
+THOUGHT_CONFIDENCE: a number from 0.00 to 1.00 — your confidence that the THOUGHT_TARGET statement is true
 Your thought process:

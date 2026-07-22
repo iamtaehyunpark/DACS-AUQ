@@ -1,9 +1,11 @@
 """Decoupled chat-harness ALFWorld agent (ReDAct-style, two calls/step) — v4 (A8-A13).
 
-Format-native confidence (no XML): the model emits confidence as a plain trailing label in the
-same style as the rest of the turn, parsed leniently and NEVER blocking. The thought call ends
-with `THOUGHT_CONFIDENCE:`; the action call emits `ACTION:` + `ACTION_CONFIDENCE:`. Confidence is
-recorded as U = 1 - c (0 certain, 1 uncertain), unified across both harnesses as U_T/U_A_verbalized.
+Format-native elicitation (no XML): plain trailing labels in the same style as the turn, parsed
+leniently and NEVER blocking. The thought call is the TARGETED reading u(q_t) (roster #6, §0.5/A16):
+`THOUGHT_TARGET:` declares the claim q_t the next decision turns on, `THOUGHT_CONFIDENCE:` is the
+confidence that q_t is true. The action call emits `ACTION:` + `ACTION_CONFIDENCE:` = u_A(g_t).
+Recorded as U = 1 - c (0 certain, 1 uncertain): q_t_text, U_T_targeted, U_A_targeted. (The generic
+in-gen verbalized row lives only in the entangled arm; here it is post-hoc.)
 (Rationale: keep the validation harness free of the tag-contract fragility the PI left the
 src/agent build to escape; enable_thinking=False already precludes </think> leakage.)
 
@@ -41,10 +43,13 @@ if _UQLOG:
 THOUGHT_PROMPT = open("prompts/decoupled_thought_v4.txt").read()
 ACTION_PROMPT = open("prompts/decoupled_action_v4.txt").read()
 
-# format-native confidence labels (no XML) — parsed leniently, never blocking.
+# format-native labels (no XML) — parsed leniently, never blocking. The decoupled thought elicits
+# the TARGETED reading u(q_t): a declared THOUGHT_TARGET claim + THOUGHT_CONFIDENCE that the claim is
+# true (roster #6, §0.5/A16); the action elicits u_A(g_t). Both thought labels stripped before pass.
+_TTARGET_RE = re.compile(r"THOUGHT_TARGET:\s*(.+)", re.IGNORECASE)
 _TCONF_RE = re.compile(r"THOUGHT_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
 _ACONF_RE = re.compile(r"ACTION_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
-_TCONF_SPLIT = re.compile(r"\n?[ \t>]*THOUGHT_CONFIDENCE:", re.IGNORECASE)
+_THOUGHT_TAIL = re.compile(r"\n?[ \t>]*(?:THOUGHT_TARGET:|THOUGHT_CONFIDENCE:)", re.IGNORECASE)
 _ACONF_SPLIT = re.compile(r"\n?[ \t>]*ACTION_CONFIDENCE:", re.IGNORECASE)
 
 
@@ -85,6 +90,15 @@ def _clip(c):
 def parse_conf(text, regex):
     m = regex.search(text or "")
     return _clip(float(m.group(1))) if m else None
+
+
+def parse_target(text):
+    """THOUGHT_TARGET: the declared q_t claim (one line). None if absent."""
+    m = _TTARGET_RE.search(text or "")
+    if not m:
+        return None
+    q = re.split(r"THOUGHT_CONFIDENCE:", m.group(1), flags=re.IGNORECASE)[0].strip()
+    return q or None
 
 
 def _chat_call(prompt, max_tokens, seed):
@@ -141,12 +155,16 @@ def run_episode(task_index):
                       "loop_collapse_fraction": round(loops / max(1, i - 1), 3)})
             return 0
         content = strip_think(content)
-        c_t = parse_conf(content, _TCONF_RE)               # lenient; None if absent/out-of-range
+        q_t = parse_target(content)                        # THOUGHT_TARGET (the declared claim / q_t)
+        if q_t is None:
+            skips.append("thought_target_parse_failed")
+        c_t = parse_conf(content, _TCONF_RE)               # confidence q_t is true -> targeted u(q_t)
         if c_t is None:
             skips.append("thought_confidence_parse_failed")
-        U_T_verbalized = None if c_t is None else round(1.0 - c_t, 4)
-        # clean reasoning = everything before the THOUGHT_CONFIDENCE: line; then trim trailing commands
-        reasoning = _TCONF_SPLIT.split(content, maxsplit=1)[0].rstrip()
+        U_T_targeted = None if c_t is None else round(1.0 - c_t, 4)
+        # clean reasoning = everything before the first THOUGHT_TARGET/THOUGHT_CONFIDENCE label; then
+        # trim trailing commands. Strips BOTH elicited labels before the action call + probe span.
+        reasoning = _THOUGHT_TAIL.split(content, maxsplit=1)[0].rstrip()
         thought_clean, thought_trimmed = trim_trailing_commands(reasoning, cmds)
         # ---- ACTION call (sees tag-free, trimmed thought; ends with ACTION_CONFIDENCE:) ----
         ap = (ACTION_PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history)
@@ -166,7 +184,7 @@ def run_episode(task_index):
         c_a = parse_conf(acontent, _ACONF_RE)
         if c_a is None:
             skips.append("action_confidence_parse_failed")
-        U_A_verbalized = None if c_a is None else round(1.0 - c_a, 4)
+        U_A_targeted = None if c_a is None else round(1.0 - c_a, 4)
         # action = first non-empty line before the ACTION_CONFIDENCE: line, stripped of an ACTION: label
         pre = _ACONF_SPLIT.split(acontent, maxsplit=1)[0]
         action = next((ln.strip() for ln in pre.splitlines() if ln.strip()), "")
@@ -177,9 +195,9 @@ def run_episode(task_index):
         tau = tau_dict(action)
         if tau is None and action:
             skips.append("tau_unrecognized_action")
-        print("[step %d] THOUGHT(%s): %s\n         U_T=%s | ACTION: %r U_A=%s adm=%s\n         OBS: %s"
-              % (i, "trim" if thought_trimmed else "-", thought_clean[:140], U_T_verbalized,
-                 action, U_A_verbalized, in_adm, obs)); sys.stdout.flush()
+        print("[step %d] THOUGHT(%s): %s\n         q_t=%r U_T=%s | ACTION: %r U_A=%s adm=%s\n         OBS: %s"
+              % (i, "trim" if thought_trimmed else "-", thought_clean[:120], q_t, U_T_targeted,
+                 action, U_A_targeted, in_adm, obs)); sys.stdout.flush()
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG:
             # completion_raw stays the INITIAL generation (what gen_logprobs covers). Stage entropy
@@ -204,7 +222,7 @@ def run_episode(task_index):
                   "admissible": cmds, "in_admissible": in_adm, "loop_flag": loop_flag,
                   "state_hash": hashlib.sha1(obs.encode()).hexdigest()[:16], "tau": tau,
                   "thought_clean": thought_clean, "thought_trimmed": thought_trimmed,
-                  "U_T_verbalized": U_T_verbalized, "U_A_verbalized": U_A_verbalized,
+                  "q_t_text": q_t, "U_T_targeted": U_T_targeted, "U_A_targeted": U_A_targeted,
                   "skip_reasons": skips})
         prev_obs = obs
         history += "\n> %s\n%s" % (action, obs)
