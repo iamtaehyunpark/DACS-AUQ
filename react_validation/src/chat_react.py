@@ -36,7 +36,7 @@ _SEED_BASE = int(os.environ.get("REACT_SEED_BASE", "1000"))
 _RUN_ID = os.environ.get("REACT_RUN_ID", "decoupled")
 _SB = {"top_k": _TOP_K, "min_p": _MIN_P, "repetition_penalty": _REP_PEN}
 if _UQLOG:
-    from uqlog import instrumented_chat, char_to_token_span
+    from uqlog import instrumented_chat, char_to_token_span, content_span
 
 THOUGHT_PROMPT = open("prompts/decoupled_thought_v4.txt").read()
 ACTION_PROMPT = open("prompts/decoupled_action_v4.txt").read()
@@ -157,18 +157,23 @@ def run_episode(task_index):
                  action, U_A_verbalized, in_adm, obs)); sys.stdout.flush()
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG:
-            # completion_raw stays the INITIAL generation (what gen_logprobs covers, so spans
-            # reconstruct). thought span = trimmed reasoning (pre-confidence); action span = command.
-            for rec, ck, span_text in ((trec, "thought", thought_clean), (arec, "action", action)):
-                if rec is None:
-                    continue
-                g = rec["gen_logprobs"]
-                end = char_to_token_span(g, 0, min(len(span_text), len(rec["completion_raw"])))[1]
-                rec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
-                            "call_kind": ck,
-                            "spans": {"thought": [0, end] if ck == "thought" else None,
-                                      "action": [0, end] if ck == "action" else None}})
-                _log(rec)
+            # completion_raw stays the INITIAL generation (what gen_logprobs covers). Stage entropy
+            # spans EXCLUDE the trailing confidence label+number. Thought call has no label and its
+            # reasoning precedes THOUGHT_CONFIDENCE:, so [0, len(thought_clean)] is the clean prefix;
+            # the action call now carries an ACTION: label, so span the command via content_span.
+            if trec is not None:
+                g = trec["gen_logprobs"]
+                t_end = char_to_token_span(g, 0, min(len(thought_clean), len(trec["completion_raw"])))[1]
+                trec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
+                             "call_kind": "thought",
+                             "spans": {"thought": [0, t_end] if thought_clean else None, "action": None}})
+                _log(trec)
+            if arec is not None:
+                g = arec["gen_logprobs"]
+                a_span = content_span(g, arec["completion_raw"], "action:", ["action_confidence:"])
+                arec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
+                             "call_kind": "action", "spans": {"thought": None, "action": a_span}})
+                _log(arec)
             _log({"kind": "step", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                   "action_parsed": action, "obs": obs, "obs_changed": obs != prev_obs,
                   "admissible": cmds, "in_admissible": in_adm, "loop_flag": loop_flag,

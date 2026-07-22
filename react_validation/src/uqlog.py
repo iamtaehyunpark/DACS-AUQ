@@ -90,6 +90,27 @@ def char_to_token_span(gen, start_char, end_char):
     return [tok_start if tok_start is not None else len(gen), tok_end]
 
 
+def content_span(gen, raw, start_label, end_labels):
+    """Token span of the CONTENT between `start_label` and the earliest `end_labels` marker
+    (case-insensitive), EXCLUDING the labels themselves. Used so Phase-1 stage entropy covers
+    only the reasoning/action tokens, never the trailing confidence label+number now emitted in
+    the same generation. `start_label=""` means from char 0. Returns None if the range is empty.
+    Note: 'action:' never matches inside 'action_confidence:' (no ':' right after ACTION there)."""
+    low = raw.lower()
+    start = 0
+    if start_label:
+        i = low.find(start_label.lower())
+        if i >= 0:
+            start = i + len(start_label)
+    ends = [low.find(l.lower()) for l in end_labels]
+    ends = [e for e in ends if e >= start]
+    end = min(ends) if ends else len(raw)
+    if end <= start:
+        return None
+    span = char_to_token_span(gen, start, end)
+    return span if span[1] > span[0] else None
+
+
 def action_span_char(completion_raw):
     """Char index where the action-regarding context begins (first 'ACTION:' label,
     case-insensitive). Returns len(completion) if no ACTION: label is present (whole thing

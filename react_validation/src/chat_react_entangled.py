@@ -34,7 +34,7 @@ _SEED_BASE = int(os.environ.get("REACT_SEED_BASE", "1000"))
 _RUN_ID = os.environ.get("REACT_RUN_ID", "entangled")
 _SB = {"top_k": _TOP_K, "min_p": _MIN_P, "repetition_penalty": _REP_PEN}
 if _UQLOG:
-    from uqlog import instrumented_chat, char_to_token_span
+    from uqlog import instrumented_chat, content_span
 
 PROMPT = """You are an AI agent solving a task in an interactive environment.
 TASK DESCRIPTION:
@@ -152,13 +152,11 @@ def run_episode(task_index):
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG and rec is not None:
             g, raw = rec["gen_logprobs"], rec["completion_raw"]
-            low = raw.lower()
-            ac = low.find("action:")                    # ACTION: only ('action:' not in 'action_confidence:')
-            acf = low.find("action_confidence:")
-            a_start = ac if ac >= 0 else len(raw)
-            a_end = acf if acf >= 0 else len(raw)
-            thought_span = char_to_token_span(g, 0, a_start)
-            action_span = char_to_token_span(g, a_start, a_end) if a_start < a_end else None
+            # stage entropy spans EXCLUDE the labels and the trailing confidence numbers:
+            # thought = THOUGHT: content up to THOUGHT_CONFIDENCE: (or ACTION: if conf omitted);
+            # action = ACTION: content up to ACTION_CONFIDENCE:.
+            thought_span = content_span(g, raw, "thought:", ["thought_confidence:", "action:"])
+            action_span = content_span(g, raw, "action:", ["action_confidence:"])
             rec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                         "call_kind": "joint", "spans": {"thought": thought_span, "action": action_span}})
             _log(rec)
