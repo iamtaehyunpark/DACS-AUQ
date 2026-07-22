@@ -83,9 +83,14 @@ if arm == "decoupled":
             cmd_trailing += 1
     B(tag_in_thought == 0, "no tag text inside thought span (%d found)" % tag_in_thought)
     B(cmd_trailing == 0, "thought_clean has no trailing admissible-command line (%d found)" % cmd_trailing)
-    # 7. strip-before-pass: no tag text in the action call's prompt (THOUGHTS)
-    tag_in_action_prompt = sum(1 for c in calls if c["call_kind"] == "action" and TAG.search(c.get("prompt_templated", "")))
-    B(tag_in_action_prompt == 0, "no tag text in downstream action prompt (%d found)" % tag_in_action_prompt)
+    # 7. strip-before-pass: no tag text in the PASSED THOUGHT (the "YOUR CURRENT REASONING:"
+    # section of the action prompt) — the template's own <confidence> instruction is expected.
+    def _reasoning_section(p):
+        seg = p.split("YOUR CURRENT REASONING:", 1)[-1]
+        return seg.split("AVAILABLE COMMANDS:", 1)[0]
+    tag_in_passed = sum(1 for c in calls if c["call_kind"] == "action"
+                        and TAG.search(_reasoning_section(c.get("prompt_templated", ""))))
+    B(tag_in_passed == 0, "no tag text in the passed thought (action prompt reasoning) (%d found)" % tag_in_passed)
 else:  # entangled
     miss = [s for s in steps if s.get("U_T_verbalized") is None and "confidence_parse_failed" not in (s.get("skip_reasons") or [])]
     B(not miss, "AUQ <confidence> parsed or skip logged, every step (%d unaccounted)" % len(miss))
