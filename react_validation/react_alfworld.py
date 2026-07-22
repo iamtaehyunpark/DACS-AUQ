@@ -80,8 +80,20 @@ prompt_file = os.environ.get('REACT_PROMPTS', 'alfworld_3prompts.json')
 with open(folder + prompt_file, 'r') as f:
     d = json.load(f)
 
-# ===== cell 3 (verbatim): the ReAct loop =====
+# ===== cell 3 (verbatim, + gated reactive option): the ReAct loop =====
 import sys
+
+# Gated (default OFF, so the loop is byte-for-byte upstream): when REACT_ADMISSIBLE is set,
+# a "Nothing happens." reply is augmented with the env's OWN info['admissible_commands']
+# list — ALFWorld's official valid-command output, nothing invented — so an invalid action
+# becomes a recoverable signal instead of a blank dead-end.
+_SHOW_ADMISSIBLE = bool(os.environ.get('REACT_ADMISSIBLE'))
+
+def _admissible(info):
+    a = info.get('admissible_commands')
+    if not a:
+        return []
+    return a[0] if isinstance(a[0], (list, tuple)) else a
 
 def alfworld_run(prompt, to_print=True, ob=''):
     init_prompt = prompt + ob + '\n>'
@@ -95,6 +107,8 @@ def alfworld_run(prompt, to_print=True, ob=''):
         observation, reward, done = process_ob(observation[0]), info['won'][0], done[0]
         if action.startswith('think:'):
             observation = 'OK.'
+        elif _SHOW_ADMISSIBLE and observation == 'Nothing happens.':
+            observation = 'Nothing happens. Admissible commands: ' + ' | '.join(_admissible(info))
         if to_print:
             print(f'Act {i}: {action}\nObs {i}: {observation}')
             sys.stdout.flush()
