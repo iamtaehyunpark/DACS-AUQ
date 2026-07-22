@@ -7,8 +7,7 @@ YOUR CURRENT REASONING:
 {THOUGHTS}
 AVAILABLE COMMANDS:
 {COMMANDS}
-OUTPUT RULES:
-- First line: EXACTLY one of the AVAILABLE COMMANDS, and nothing else.
-- Second line: exactly one tag <confidence>a number from 0.00 to 1.00 that this command will achieve the effect you intend in your reasoning</confidence>
-- Output only those two lines.
+Respond in EXACTLY this format, each label on its own line:
+ACTION: exactly one of the AVAILABLE COMMANDS, and nothing else
+ACTION_CONFIDENCE: a number from 0.00 to 1.00 that this command achieves the effect you intend in your reasoning
 Now output your chosen action and its confidence:

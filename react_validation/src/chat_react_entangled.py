@@ -1,11 +1,17 @@
-"""Entangled chat-harness ALFWorld agent — one joint call/step, AUQ System-1 (v4, A9/A12/A13).
+"""Entangled chat-harness ALFWorld agent — one joint call/step, format-native confidence (v4).
 
-A9.2 AUQ verbatim: the joint prompt carries AUQ's A.6.2 elicitation suffix; the model emits
-     THOUGHT/ACTION then <confidence>/<explanation>. c-hat -> U_T_verbalized = 1 - c-hat
-     (uncertainty; primary). explanation logged. Confidence is NOT stripped (AUQ propagates it).
-A9.3 entangled history carries prior THOUGHTS and confidences (full Thought/Action/Conf/Obs
-     transcript, AUQ System-1). Decoupled stays thought-free; the asymmetry is intentional.
-A11 continuation-repair on <confidence> parse failure (same-context tail, <=3x); tag_retries.
+The joint call emits, in one generation and in this exact order, four plain labels:
+    THOUGHT: <reasoning>
+    THOUGHT_CONFIDENCE: <0.00-1.00>
+    ACTION: <exactly one AVAILABLE COMMAND>
+    ACTION_CONFIDENCE: <0.00-1.00>
+Confidence is parsed leniently and NEVER blocks; recorded as U = 1 - c (0 certain, 1 uncertain),
+unified with the decoupled harness as U_T_verbalized / U_A_verbalized. No XML tags, no
+continuation-repair, no <explanation> (the tag-contract fragility the PI left the src/agent build
+to escape; enable_thinking=False already precludes </think> leakage).
+
+History persists the full Thought/ThoughtConf/Action/ActionConf/Obs transcript (AUQ System-1
+propagation); decoupled stays thought-free — the asymmetry is intentional.
 A12 tau:{I,W,R,C} per step from action_parsed.  A13 seed = 1000 + task*100000 + step*100.
 """
 import os, re, json, sys, time, hashlib
@@ -30,22 +36,24 @@ _SB = {"top_k": _TOP_K, "min_p": _MIN_P, "repetition_penalty": _REP_PEN}
 if _UQLOG:
     from uqlog import instrumented_chat, char_to_token_span
 
-BASE_PROMPT = """You are an AI agent solving a task in an interactive environment.
+PROMPT = """You are an AI agent solving a task in an interactive environment.
 TASK DESCRIPTION:
 {DESCRIPTION}
 ENVIRONMENT HISTORY:
 {HISTORY}
 AVAILABLE COMMANDS:
 {COMMANDS}
-Think about the current situation, then choose your next action. Respond in EXACTLY this format:
-THOUGHT: <your step-by-step reasoning about what to do next>
-ACTION: <exactly one line, which must be EXACTLY one of the AVAILABLE COMMANDS>
+Think about the current situation, then choose your next action. Respond in EXACTLY this format, each label on its own line:
+THOUGHT: your step-by-step reasoning about what to do next
+THOUGHT_CONFIDENCE: a number from 0.00 to 1.00 — your confidence in that reasoning
+ACTION: exactly one line, which must be EXACTLY one of the AVAILABLE COMMANDS
+ACTION_CONFIDENCE: a number from 0.00 to 1.00 — your confidence that this action achieves your intended effect
 """
-AUQ_SUFFIX = open("prompts/entangled_auq_suffix.txt").read().split("# ---")[0].strip()
-PROMPT = BASE_PROMPT + AUQ_SUFFIX
 
-_CONF_RE = re.compile(r"<confidence>\s*([0-9]*\.?[0-9]+)\s*</confidence>", re.IGNORECASE | re.DOTALL)
-_EXPL_RE = re.compile(r"<explanation>(.*?)</explanation>", re.IGNORECASE | re.DOTALL)
+_THOUGHT_RE = re.compile(r"THOUGHT:\s*(.*?)(?=\n\s*(?:THOUGHT_CONFIDENCE:|ACTION:)|$)",
+                         re.IGNORECASE | re.DOTALL)
+_TCONF_RE = re.compile(r"THOUGHT_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
+_ACONF_RE = re.compile(r"ACTION_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
 
 
 def _log(rec):
@@ -57,47 +65,47 @@ def strip_think(t):
     return t.split("</think>", 1)[-1] if "</think>" in t else t
 
 
-def parse_ta(text):
+def _clip(c):
+    return c if (c is not None and 0.0 <= c <= 1.0) else None
+
+
+def _conf(regex, text):
+    m = regex.search(text or "")
+    return _clip(float(m.group(1))) if m else None
+
+
+def _fmt(c):
+    return "%.2f" % c if c is not None else "n/a"
+
+
+def parse_all(text):
+    """THOUGHT / THOUGHT_CONFIDENCE / ACTION / ACTION_CONFIDENCE, lenient. 'ACTION:' never
+    matches inside 'ACTION_CONFIDENCE:' (no ':' immediately after ACTION there)."""
     t = strip_think(text)
-    tm = re.search(r"THOUGHT:\s*(.*?)(?=\n\s*ACTION:|$)", t, re.IGNORECASE | re.DOTALL)
+    tm = _THOUGHT_RE.search(t)
     thought = tm.group(1).strip() if tm else ""
+    tconf = _conf(_TCONF_RE, t)
     acts = re.findall(r"ACTION:\s*(.+)", t, re.IGNORECASE)
     action = acts[-1].strip() if acts else ""
     action = action.splitlines()[0].strip().strip("`").strip() if action else ""
-    # action must stop before any tag if the model runs them together
-    action = re.split(r"<confidence>|<explanation>", action, flags=re.IGNORECASE)[0].strip()
-    return thought, action
+    action = re.split(r"ACTION_CONFIDENCE:", action, flags=re.IGNORECASE)[0].strip()
+    aconf = _conf(_ACONF_RE, t)
+    return thought, tconf, action, aconf
 
 
-def _continue(prefix, max_tokens, seed):
-    r = client.completions.create(model="qwen", prompt=prefix, max_tokens=max_tokens,
-                                  temperature=_TEMP, top_p=_TOP_P, presence_penalty=_PRES_PEN,
-                                  seed=seed, extra_body=_SB, stop=["</confidence>"])
-    return r.choices[0].text
-
-
-def gen_joint(prompt, task_id, step_idx, seed):
+def gen_joint(prompt, seed):
     if not _UQLOG:
         r = client.chat.completions.create(model="qwen", messages=[{"role": "user", "content": prompt}],
                                            temperature=_TEMP, top_p=_TOP_P, max_tokens=1024,
                                            presence_penalty=_PRES_PEN,
                                            extra_body={"chat_template_kwargs": {"enable_thinking": False}, **_SB})
-        return (r.choices[0].message.content or ""), None, 0
+        return (r.choices[0].message.content or ""), None
     content, rec = instrumented_chat(client, [{"role": "user", "content": prompt}], model="qwen",
                                      tokenizer_path=_TOK_PATH, temperature=_TEMP, top_p=_TOP_P,
                                      top_k=_TOP_K, min_p=_MIN_P, presence_penalty=_PRES_PEN,
                                      repetition_penalty=_REP_PEN, max_tokens=1024, seed=seed,
                                      enable_thinking=False)
-    content = strip_think(content)
-    # A11 continuation-repair for <confidence>
-    retries = 0
-    full = content
-    while _CONF_RE.search(full) is None and retries < 3:
-        body = full.split("<confidence>")[0].rstrip()
-        tail = _continue(rec["prompt_templated"] + body + "\n<confidence>", 24, seed + 500 + retries)
-        full = body + "\n<confidence>" + tail + ("" if tail.rstrip().endswith(">") else "</confidence>")
-        retries += 1
-    return full, rec, retries
+    return strip_think(content), rec
 
 
 config = yaml.safe_load(open("base_config.yaml"))
@@ -125,47 +133,45 @@ def run_episode(task_index):
     for i in range(1, 50):
         cmds = admissible(info); skips = []
         prompt = PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history).replace("{COMMANDS}", "\n".join(cmds))
-        full, rec, tr = gen_joint(prompt, name, i, base + i * 100)
-        thought, action = parse_ta(full)
-        c = _CONF_RE.search(full)
-        conf = float(c.group(1)) if c else None
-        if conf is None:
-            skips.append("confidence_parse_failed")
-        U_T_verbalized = None if conf is None else round(1.0 - conf, 4)
-        expl_m = _EXPL_RE.search(full)
-        explanation = expl_m.group(1).strip() if expl_m else None
+        full, rec = gen_joint(prompt, base + i * 100)
+        thought, c_t, action, c_a = parse_all(full)
+        if c_t is None:
+            skips.append("thought_confidence_parse_failed")
+        if c_a is None:
+            skips.append("action_confidence_parse_failed")
+        U_T_verbalized = None if c_t is None else round(1.0 - c_t, 4)
+        U_A_verbalized = None if c_a is None else round(1.0 - c_a, 4)
         obs, reward, done, info = env.step([action])
         obs = obs[0]; won = bool(info["won"][0]); done = bool(done[0])
         in_adm = action in cmds
         tau = tau_dict(action)
         if tau is None and action:
             skips.append("tau_unrecognized_action")
-        print("[step %d] THOUGHT: %s\n         ACTION: %r U_T=%s adm=%s | OBS: %s"
-              % (i, thought[:130], action, U_T_verbalized, in_adm, obs)); sys.stdout.flush()
+        print("[step %d] THOUGHT: %s\n         ACTION: %r U_T=%s U_A=%s adm=%s | OBS: %s"
+              % (i, thought[:130], action, U_T_verbalized, U_A_verbalized, in_adm, obs)); sys.stdout.flush()
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG and rec is not None:
             g, raw = rec["gen_logprobs"], rec["completion_raw"]
             low = raw.lower()
-            ac = low.find("action:")
-            cf = low.find("<confidence>")
+            ac = low.find("action:")                    # ACTION: only ('action:' not in 'action_confidence:')
+            acf = low.find("action_confidence:")
             a_start = ac if ac >= 0 else len(raw)
-            a_end = cf if cf >= 0 else len(raw)
+            a_end = acf if acf >= 0 else len(raw)
             thought_span = char_to_token_span(g, 0, a_start)
             action_span = char_to_token_span(g, a_start, a_end) if a_start < a_end else None
             rec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
-                        "call_kind": "joint", "spans": {"thought": thought_span, "action": action_span},
-                        "tag_retries": tr, "elicited_full": (full if tr else None)})
+                        "call_kind": "joint", "spans": {"thought": thought_span, "action": action_span}})
             _log(rec)
             _log({"kind": "step", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                   "action_parsed": action, "obs": obs, "obs_changed": obs != prev_obs,
                   "admissible": cmds, "in_admissible": in_adm, "loop_flag": loop_flag,
                   "state_hash": hashlib.sha1(obs.encode()).hexdigest()[:16], "tau": tau,
                   "thought_text": thought, "U_T_verbalized": U_T_verbalized,
-                  "explanation": explanation, "skip_reasons": skips})
+                  "U_A_verbalized": U_A_verbalized, "skip_reasons": skips})
         prev_obs = obs
-        # A9.3: AUQ System-1 history — thought + action + confidence + observation persist
-        history += "\n> THOUGHT: %s\n> ACTION: %s\n> CONFIDENCE: %s\n%s" % (
-            thought, action, "%.2f" % conf if conf is not None else "n/a", obs)
+        # AUQ System-1 history — thought + both confidences + action + observation persist
+        history += "\n> THOUGHT: %s\n> THOUGHT_CONFIDENCE: %s\n> ACTION: %s\n> ACTION_CONFIDENCE: %s\n%s" % (
+            thought, _fmt(c_t), action, _fmt(c_a), obs)
         if done:
             if _UQLOG:
                 _log({"kind": "episode", "run_id": _RUN_ID, "task_id": name, "success": won,

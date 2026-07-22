@@ -1,13 +1,16 @@
 """Decoupled chat-harness ALFWorld agent (ReDAct-style, two calls/step) — v4 (A8-A13).
 
+Format-native confidence (no XML): the model emits confidence as a plain trailing label in the
+same style as the rest of the turn, parsed leniently and NEVER blocking. The thought call ends
+with `THOUGHT_CONFIDENCE:`; the action call emits `ACTION:` + `ACTION_CONFIDENCE:`. Confidence is
+recorded as U = 1 - c (0 certain, 1 uncertain), unified across both harnesses as U_T/U_A_verbalized.
+(Rationale: keep the validation harness free of the tag-contract fragility the PI left the
+src/agent build to escape; enable_thinking=False already precludes </think> leakage.)
+
 A8  thought contract has NO action vocabulary; the thought span is defensively trimmed of any
     trailing line equal to an admissible command (thought_trimmed logged).
-A9/A10 in-generation elicited class: the thought ends with <target>/<confidence>, the action
-    line 2 is <confidence>. Both are STRIPPED before pass-through (strip-before-pass invariant):
-    the action call sees the tag-free thought; env.step sees the bare command; post-hoc probes
-    see the trimmed, tag-free thought. Confidence is recorded as U = 1 - c (0 certain, 1 uncertain).
-A11 on tag-parse failure -> continuation-repair (re-sample the SAME context's tail, <=3x), not a
-    separate evaluator call; tag_retries logged.
+A9/A10 strip-before-pass invariant preserved: the action call sees the confidence-free thought;
+    env.step sees the bare command; post-hoc probes see the trimmed thought_clean.
 A12 every step record carries tau:{I,W,R,C} from action_parsed (tau_map, unit-tested).
 A13 seed = 1000 + task_index*100000 + step_idx*100 + call_offset; probe/skip reasons logged.
 
@@ -38,8 +41,11 @@ if _UQLOG:
 THOUGHT_PROMPT = open("prompts/decoupled_thought_v4.txt").read()
 ACTION_PROMPT = open("prompts/decoupled_action_v4.txt").read()
 
-_TARGET_RE = re.compile(r"<target>(.*?)</target>", re.IGNORECASE | re.DOTALL)
-_CONF_RE = re.compile(r"<confidence>\s*([0-9]*\.?[0-9]+)\s*</confidence>", re.IGNORECASE | re.DOTALL)
+# format-native confidence labels (no XML) — parsed leniently, never blocking.
+_TCONF_RE = re.compile(r"THOUGHT_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
+_ACONF_RE = re.compile(r"ACTION_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
+_TCONF_SPLIT = re.compile(r"\n?[ \t>]*THOUGHT_CONFIDENCE:", re.IGNORECASE)
+_ACONF_SPLIT = re.compile(r"\n?[ \t>]*ACTION_CONFIDENCE:", re.IGNORECASE)
 
 
 def _log(rec):
@@ -66,14 +72,14 @@ def trim_trailing_commands(text, cmds):
     return "\n".join(lines).rstrip(), trimmed
 
 
-def parse_conf(text):
-    m = _CONF_RE.search(text)
-    return float(m.group(1)) if m else None
+def _clip(c):
+    """Clamp a parsed confidence into [0,1]; drop nonsense (e.g. a stray 100)."""
+    return c if (c is not None and 0.0 <= c <= 1.0) else None
 
 
-def parse_target(text):
-    m = _TARGET_RE.search(text)
-    return m.group(1).strip() if m else None
+def parse_conf(text, regex):
+    m = regex.search(text or "")
+    return _clip(float(m.group(1))) if m else None
 
 
 def _chat_call(prompt, max_tokens, seed):
@@ -89,36 +95,6 @@ def _chat_call(prompt, max_tokens, seed):
                                        presence_penalty=_PRES_PEN,
                                        extra_body={"chat_template_kwargs": {"enable_thinking": False}, **_SB})
     return (r.choices[0].message.content or ""), None
-
-
-def _continue(templated_prefix, max_tokens, seed):
-    """A11 continuation-repair: continue the SAME context (templated prompt + partial completion)
-    via /v1/completions, so the conditional distribution is preserved. Returns text."""
-    r = client.completions.create(model="qwen", prompt=templated_prefix, max_tokens=max_tokens,
-                                  temperature=_TEMP, top_p=_TOP_P, presence_penalty=_PRES_PEN,
-                                  seed=seed, extra_body=_SB, stop=["</confidence>"])
-    return r.choices[0].text
-
-
-def elicit_tags(content, rec, seed, need_target):
-    """Ensure a parseable <confidence> (and <target> if need_target) via continuation-repair.
-    Returns (full_content, conf, target, tag_retries)."""
-    retries = 0
-    full = content
-    while retries < 3:
-        conf = parse_conf(full)
-        target = parse_target(full) if need_target else "n/a"
-        if conf is not None and (target is not None):
-            return full, conf, (None if target == "n/a" else target), retries
-        if rec is None:
-            break  # no templated prompt available (non-logging path) — accept failure
-        # build the continuation prefix: templated prompt + reasoning so far + forced tag open
-        prefix_body = full.split("<target>")[0].split("<confidence>")[0].rstrip()
-        forced = "\n<target>" if need_target else "\n<confidence>"
-        tail = _continue(rec["prompt_templated"] + prefix_body + forced, 64, seed + 500 + retries)
-        full = prefix_body + forced + tail + ("" if tail.rstrip().endswith(">") else "</confidence>")
-        retries += 1
-    return full, parse_conf(full), (parse_target(full) if need_target else None), retries
 
 
 config = yaml.safe_load(open("base_config.yaml"))
@@ -146,45 +122,44 @@ def run_episode(task_index):
     for i in range(1, 50):
         cmds = admissible(info); cmd_block = "\n".join(cmds)
         skips = []
-        # ---- THOUGHT call (no action vocab) ----
+        # ---- THOUGHT call (no action vocab; ends with plain THOUGHT_CONFIDENCE:) ----
         tp = THOUGHT_PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history)
         content, trec = _chat_call(tp, 512, base + i * 100 + 0)
         content = strip_think(content)
-        full_t, c_t, q_t, tr_t = elicit_tags(content, trec, base + i * 100 + 0, need_target=True)
+        c_t = parse_conf(content, _TCONF_RE)               # lenient; None if absent/out-of-range
         if c_t is None:
             skips.append("thought_confidence_parse_failed")
-        U_T_targeted_ingen = None if c_t is None else round(1.0 - c_t, 4)
-        # strip tags -> clean reasoning; then trim trailing admissible commands (defensive)
-        reasoning = full_t.split("<target>")[0].split("<confidence>")[0].rstrip()
+        U_T_verbalized = None if c_t is None else round(1.0 - c_t, 4)
+        # clean reasoning = everything before the THOUGHT_CONFIDENCE: line; then trim trailing commands
+        reasoning = _TCONF_SPLIT.split(content, maxsplit=1)[0].rstrip()
         thought_clean, thought_trimmed = trim_trailing_commands(reasoning, cmds)
-        # ---- ACTION call (sees tag-free, trimmed thought) ----
+        # ---- ACTION call (sees tag-free, trimmed thought; ends with ACTION_CONFIDENCE:) ----
         ap = (ACTION_PROMPT.replace("{DESCRIPTION}", task).replace("{HISTORY}", history)
               .replace("{THOUGHTS}", thought_clean).replace("{COMMANDS}", cmd_block))
         acontent, arec = _chat_call(ap, 96, base + i * 100 + 1)
         acontent = strip_think(acontent)
-        full_a, c_a, _, tr_a = elicit_tags(acontent, arec, base + i * 100 + 1, need_target=False)
+        c_a = parse_conf(acontent, _ACONF_RE)
         if c_a is None:
             skips.append("action_confidence_parse_failed")
-        U_A_targeted_ingen = None if c_a is None else round(1.0 - c_a, 4)
-        # action = first non-empty line before the <confidence> tag; stripped before env
-        pre = full_a.split("<confidence>")[0]
+        U_A_verbalized = None if c_a is None else round(1.0 - c_a, 4)
+        # action = first non-empty line before the ACTION_CONFIDENCE: line, stripped of an ACTION: label
+        pre = _ACONF_SPLIT.split(acontent, maxsplit=1)[0]
         action = next((ln.strip() for ln in pre.splitlines() if ln.strip()), "")
+        action = re.sub(r"^ACTION:\s*", "", action, flags=re.IGNORECASE).strip().strip("`").strip()
         obs, reward, done, info = env.step([action])
         obs = obs[0]; won = bool(info["won"][0]); done = bool(done[0])
         in_adm = action in cmds
         tau = tau_dict(action)
         if tau is None and action:
             skips.append("tau_unrecognized_action")
-        print("[step %d] THOUGHT(%s): %s\n         q_t=%r U_T=%s | ACTION: %r U_A=%s adm=%s\n         OBS: %s"
-              % (i, "trim" if thought_trimmed else "-", thought_clean[:140], q_t, U_T_targeted_ingen,
-                 action, U_A_targeted_ingen, in_adm, obs)); sys.stdout.flush()
+        print("[step %d] THOUGHT(%s): %s\n         U_T=%s | ACTION: %r U_A=%s adm=%s\n         OBS: %s"
+              % (i, "trim" if thought_trimmed else "-", thought_clean[:140], U_T_verbalized,
+                 action, U_A_verbalized, in_adm, obs)); sys.stdout.flush()
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG:
-            # per-call ground truth. completion_raw stays the INITIAL generation (what gen_logprobs
-            # covers, so spans reconstruct); the tag-elicited full text + retries are logged too.
-            # thought span = trimmed tag-free reasoning; action span = the command line.
-            for rec, ck, full, span_text, tr in ((trec, "thought", full_t, thought_clean, tr_t),
-                                                 (arec, "action", full_a, action, tr_a)):
+            # completion_raw stays the INITIAL generation (what gen_logprobs covers, so spans
+            # reconstruct). thought span = trimmed reasoning (pre-confidence); action span = command.
+            for rec, ck, span_text in ((trec, "thought", thought_clean), (arec, "action", action)):
                 if rec is None:
                     continue
                 g = rec["gen_logprobs"]
@@ -192,16 +167,15 @@ def run_episode(task_index):
                 rec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                             "call_kind": ck,
                             "spans": {"thought": [0, end] if ck == "thought" else None,
-                                      "action": [0, end] if ck == "action" else None},
-                            "tag_retries": tr, "elicited_full": (full if tr else None)})
+                                      "action": [0, end] if ck == "action" else None}})
                 _log(rec)
             _log({"kind": "step", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                   "action_parsed": action, "obs": obs, "obs_changed": obs != prev_obs,
                   "admissible": cmds, "in_admissible": in_adm, "loop_flag": loop_flag,
                   "state_hash": hashlib.sha1(obs.encode()).hexdigest()[:16], "tau": tau,
                   "thought_clean": thought_clean, "thought_trimmed": thought_trimmed,
-                  "q_t_text": q_t, "U_T_targeted_ingen": U_T_targeted_ingen,
-                  "U_A_targeted_ingen": U_A_targeted_ingen, "skip_reasons": skips})
+                  "U_T_verbalized": U_T_verbalized, "U_A_verbalized": U_A_verbalized,
+                  "skip_reasons": skips})
         prev_obs = obs
         history += "\n> %s\n%s" % (action, obs)
         if done:
