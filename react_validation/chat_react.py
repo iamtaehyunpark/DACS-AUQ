@@ -18,8 +18,13 @@ import yaml, alfworld, alfworld.agents.environment
 
 import time, hashlib
 client = OpenAI(api_key="EMPTY", base_url="http://localhost:8000/v1")
+# Qwen3.6 official non-thinking (instruct) sampling recommendation.
 _TEMP = float(os.environ.get("REACT_TEMPERATURE", "0.7"))
-_TOP_P = float(os.environ.get("REACT_TOP_P", "0.95"))
+_TOP_P = float(os.environ.get("REACT_TOP_P", "0.80"))
+_TOP_K = int(os.environ.get("REACT_TOP_K", "20"))
+_MIN_P = float(os.environ.get("REACT_MIN_P", "0.0"))
+_PRES_PEN = float(os.environ.get("REACT_PRESENCE_PENALTY", "1.5"))
+_REP_PEN = float(os.environ.get("REACT_REPETITION_PENALTY", "1.0"))
 _N = int(os.environ.get("REACT_N_EPISODES", "10"))
 _CAP = os.environ.get("REACT_CAPTURE")
 
@@ -30,7 +35,7 @@ _TOK_PATH = os.environ.get("REACT_TOKENIZER", "Qwen/Qwen3.6-35B-A3B")
 _SEED_BASE = int(os.environ.get("REACT_SEED_BASE", "1000"))
 _RUN_ID = os.environ.get("REACT_RUN_ID", "decoupled")
 if _UQLOG:
-    from uqlog import instrumented_chat
+    from uqlog import instrumented_chat, char_to_token_span
 
 
 def _log(rec):
@@ -67,8 +72,9 @@ def chat(prompt, max_tokens):
     r = client.chat.completions.create(
         model="qwen",
         messages=[{"role": "user", "content": prompt}],
-        temperature=_TEMP, top_p=_TOP_P, max_tokens=max_tokens,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        temperature=_TEMP, top_p=_TOP_P, max_tokens=max_tokens, presence_penalty=_PRES_PEN,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False},
+                    "top_k": _TOP_K, "min_p": _MIN_P, "repetition_penalty": _REP_PEN},
     )
     return r.choices[0].message.content or ""
 
@@ -83,13 +89,16 @@ def gen(prompt, max_tokens, call_kind, task_id, step_idx):
     seed = _SEED_BASE + step_idx * 100 + (0 if call_kind == "thought" else 1)
     content, rec = instrumented_chat(
         client, [{"role": "user", "content": prompt}], model="qwen",
-        tokenizer_path=_TOK_PATH, temperature=_TEMP, top_p=_TOP_P,
+        tokenizer_path=_TOK_PATH, temperature=_TEMP, top_p=_TOP_P, top_k=_TOP_K, min_p=_MIN_P,
+        presence_penalty=_PRES_PEN, repetition_penalty=_REP_PEN,
         max_tokens=max_tokens, seed=seed, enable_thinking=False)
-    n = len(rec["gen_logprobs"])
+    # content span = tokens covering completion_raw, excluding any trailing special token
+    # (e.g. <|im_end|>) that vLLM includes in the logprobs but content strips.
+    end = char_to_token_span(rec["gen_logprobs"], 0, len(rec["completion_raw"]))[1]
     rec.update({"kind": "call", "run_id": _RUN_ID, "task_id": task_id, "step_idx": step_idx,
                 "call_kind": call_kind,
-                "spans": {"thought": [0, n], "action": None} if call_kind == "thought"
-                else {"thought": None, "action": [0, n]}})
+                "spans": {"thought": [0, end], "action": None} if call_kind == "thought"
+                else {"thought": None, "action": [0, end]}})
     _log(rec)
     return content
 

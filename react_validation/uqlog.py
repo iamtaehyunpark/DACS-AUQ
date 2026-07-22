@@ -23,7 +23,8 @@ def _tokenizer(path):
 
 
 def instrumented_chat(client, messages, *, model, tokenizer_path, temperature, top_p,
-                      max_tokens, seed, enable_thinking=False):
+                      max_tokens, seed, top_k=20, min_p=0.0, presence_penalty=1.5,
+                      repetition_penalty=1.0, enable_thinking=False):
     """Return (content, record). record holds the full ground truth for this call."""
     tok = _tokenizer(tokenizer_path)
     templated = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
@@ -33,8 +34,10 @@ def instrumented_chat(client, messages, *, model, tokenizer_path, temperature, t
     t0 = time.monotonic()
     r = client.chat.completions.create(
         model=model, messages=messages, temperature=temperature, top_p=top_p,
-        max_tokens=max_tokens, seed=seed, logprobs=True, top_logprobs=20,
-        extra_body={"chat_template_kwargs": {"enable_thinking": enable_thinking}},
+        max_tokens=max_tokens, seed=seed, presence_penalty=presence_penalty,
+        logprobs=True, top_logprobs=20,
+        extra_body={"chat_template_kwargs": {"enable_thinking": enable_thinking},
+                    "top_k": top_k, "min_p": min_p, "repetition_penalty": repetition_penalty},
     )
     latency_ms = (time.monotonic() - t0) * 1000.0
 
@@ -58,7 +61,9 @@ def instrumented_chat(client, messages, *, model, tokenizer_path, temperature, t
         "finish_reason": ch.finish_reason,
         "gen_logprobs": gen,
         "config": {"model": model, "temperature": temperature, "top_p": top_p,
-                   "max_tokens": max_tokens, "seed": seed, "enable_thinking": enable_thinking},
+                   "top_k": top_k, "min_p": min_p, "presence_penalty": presence_penalty,
+                   "repetition_penalty": repetition_penalty, "max_tokens": max_tokens,
+                   "seed": seed, "enable_thinking": enable_thinking},
         "latency_ms": round(latency_ms, 1),
     }
     return content, rec
