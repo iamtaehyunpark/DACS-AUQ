@@ -55,12 +55,9 @@ def parse_thought_action(text):
     thought = tm.group(1).strip() if tm else ""
     acts = re.findall(r"ACTION:\s*(.+)", t, re.IGNORECASE)          # last ACTION: wins
     action = acts[-1].strip() if acts else ""
-    if action:
-        action = action.splitlines()[0].strip().strip("`").strip()  # one line, de-noise
-    else:
-        # fallback: last non-empty line (model ignored the format)
-        lines = [l.strip() for l in t.splitlines() if l.strip()]
-        action = lines[-1] if lines else ""
+    # one line, de-noise. If no ACTION: label was emitted (e.g. a rambling THOUGHT ran out
+    # of tokens before ACTION), return "" — do NOT grab the truncated thought as the action.
+    action = action.splitlines()[0].strip().strip("`").strip() if action else ""
     return thought, action
 
 
@@ -86,7 +83,7 @@ def run_episode():
     print("\n==== %s ====\nTASK: %s" % (name, task)); sys.stdout.flush()
     for i in range(1, 50):
         cmds = admissible(info)
-        raw = chat(PROMPT.format(DESCRIPTION=task, HISTORY=history, COMMANDS="\n".join(cmds)), 512)
+        raw = chat(PROMPT.format(DESCRIPTION=task, HISTORY=history, COMMANDS="\n".join(cmds)), 1024)
         thought, action = parse_thought_action(raw)
         obs, reward, done, info = env.step([action])
         obs = obs[0]; won = bool(info["won"][0]); done = bool(done[0])
