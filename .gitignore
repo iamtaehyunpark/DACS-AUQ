@@ -27,9 +27,12 @@ react_validation/ReAct/
 node_modules/
 
 # pilot run artifacts (raw thread dumps / logs) — not committed
-react_validation/thread_all.*
-react_validation/*.log
-react_validation/run*.log
 
 # manual probe scratch prompt
-react_validation/_prompt.txt
+
+# react_validation reorganized layout — data/logs/generated-viz are gitignored, code is tracked
+react_validation/data/
+react_validation/runs/
+react_validation/viz/*.html
+react_validation/**/__pycache__/
+react_validation/**/_prompt.txt

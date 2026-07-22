@@ -3,7 +3,7 @@
 # Same pure-Python loop as run_validation.sh, capped at 10 episodes via REACT_N_EPISODES.
 # Requires: vLLM server up (serve.sh), openai, alfworld + its data (ALFWORLD_DATA set).
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../src"
 
 curl -s http://localhost:8000/v1/models || { echo "no vLLM server at :8000 — run serve.sh first"; exit 1; }
 
