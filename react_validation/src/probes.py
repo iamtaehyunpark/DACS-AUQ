@@ -47,7 +47,10 @@ PROBE_SCHEMA_VERSION = "2.0.0"
 # Per-probe deterministic seed offsets (added to base + step_idx*_SEED_STRIDE). Distinct per
 # (probe, stage) so no two probe calls on a step share an RNG stream; wide gaps leave room.
 _SEED_STRIDE = 1000
-_STAGE_OFFSET = {"thought": 0, "action": 100}
+# "response" = the WHOLE step (reasoning + action as one unit), the no-discrimination reading
+# for the undiscriminated accumulation column. Offset 200 keeps its RNG streams disjoint from
+# thought (0) and action (100) for every probe.
+_STAGE_OFFSET = {"thought": 0, "action": 100, "response": 200}
 _PROBE_OFFSET = {"ptrue": 0, "sep_verbalized": 10, "posthoc_numeric": 20,
                  "targeted": 30, "qt_extract": 40}
 
@@ -228,6 +231,34 @@ def prompt_posthoc_action(task, history, commands, thought, action):
             "next action? Reply with a single integer.")
 
 
+# whole-response (no-discrimination) -- the WHOLE step as one unit, no stage attribution -------
+# For the undiscriminated accumulation column: a single reading over reasoning+action together
+# (distinct from the action-stage probe, which asks specifically about the ACTION). U_R_* fields.
+def prompt_ptrue_response(task, history, commands, thought, action):
+    return (_PREAMBLE + _ctx_block(task, history, commands) +
+            "AGENT RESPONSE (its reasoning and the action it chose):\n"
+            "REASONING:\n%s\nACTION:\n%s\n\n" % (thought, action) +
+            "Taken as a whole, is the agent's response above — its reasoning together with the "
+            "chosen action — correct and appropriate for this task?\n"
+            "Answer with a single word: Yes or No.")
+
+
+def prompt_sepverb_response(task, history, commands, thought, action):
+    return (_PREAMBLE + _ctx_block(task, history, commands) +
+            "AGENT RESPONSE (its reasoning and the action it chose):\n"
+            "REASONING:\n%s\nACTION:\n%s\n\n" % (thought, action) +
+            "How confident are you that this response as a whole (the reasoning and the action "
+            "together) is correct for this task? State your confidence as a single number from "
+            "0.00 to 1.00. Output only that number.")
+
+
+def prompt_posthoc_response(task, history, commands, thought, action):
+    return (_PREAMBLE + _ctx_block(task, history, commands) +
+            "AGENT RESPONSE:\nREASONING:\n%s\nACTION:\n%s\n\n" % (thought, action) +
+            "On a scale of 0-100, how confident are you that the agent's response above (its "
+            "reasoning and action together) is correct for this task? Reply with a single integer.")
+
+
 # targeted u(q_t) ----------------------------------------------------------------------------
 def prompt_qt_extract(task, history, commands, thought):
     return (_PREAMBLE + _ctx_block(task, history, commands) +
@@ -255,8 +286,11 @@ _PROMPT_VERSION = {
 }
 _METRIC_FIELD = {
     ("ptrue", "thought"): "U_T_ptrue", ("ptrue", "action"): "U_A_ptrue",
+    ("ptrue", "response"): "U_R_ptrue",
     ("sep_verbalized", "thought"): "U_T_verbalized_sep", ("sep_verbalized", "action"): "U_A_verbalized_sep",
+    ("sep_verbalized", "response"): "U_R_verbalized_sep",
     ("posthoc_numeric", "thought"): "U_T_posthoc_numeric", ("posthoc_numeric", "action"): "U_A_posthoc_numeric",
+    ("posthoc_numeric", "response"): "U_R_posthoc_numeric",
     ("targeted", "thought"): "U_T_targeted_posthoc",
 }
 
@@ -331,6 +365,9 @@ def probe_ptrue(client, cfg, step, stage):
     if stage == "thought":
         prompt = prompt_ptrue_thought(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
         target = ctx["thought"]
+    elif stage == "response":
+        prompt = prompt_ptrue_response(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"])
+        target = ctx["thought"] + "\n" + ctx["action"]
     else:
         prompt = prompt_ptrue_action(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"])
         target = ctx["action"]
@@ -355,6 +392,9 @@ def probe_sepverb(client, cfg, step, stage):
     if stage == "thought":
         prompt = prompt_sepverb_thought(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
         target = ctx["thought"]
+    elif stage == "response":
+        prompt = prompt_sepverb_response(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"])
+        target = ctx["thought"] + "\n" + ctx["action"]
     else:
         prompt = prompt_sepverb_action(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"])
         target = ctx["action"]
@@ -371,6 +411,9 @@ def probe_posthoc_numeric(client, cfg, step, stage):
     if stage == "thought":
         prompt = prompt_posthoc_thought(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
         target = ctx["thought"]
+    elif stage == "response":
+        prompt = prompt_posthoc_response(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"])
+        target = ctx["thought"] + "\n" + ctx["action"]
     else:
         prompt = prompt_posthoc_action(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"])
         target = ctx["action"]
@@ -457,7 +500,7 @@ def run_step_probes(client, cfg, step, *, kinds, stages):
         if fn is None:
             continue
         for stage in stages:
-            if stage == "action" and not step["ctx"]["action"]:
+            if stage in ("action", "response") and not step["ctx"]["action"]:
                 continue                       # no action text to probe (e.g. empty action)
             out.append(fn(client, cfg, step, stage))
     return out

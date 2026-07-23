@@ -22,7 +22,11 @@ Config (env):
   PROBE_BASE_URL       (http://localhost:8000/v1)
   PROBE_TOKENIZER      (Qwen/Qwen3.6-35B-A3B)
   PROBE_KINDS          (ptrue,sep_verbalized,posthoc_numeric,targeted)
-  PROBE_STAGES         (thought,action)
+  PROBE_STAGES         (thought,action)  also supports 'response' = the WHOLE step (reasoning +
+                       action as one unit), the no-discrimination reading (U_R_*); 'targeted' has
+                       no response form (thought-only q_t). To add just the whole-response pass to
+                       an existing corpus: PROBE_KINDS=ptrue,sep_verbalized,posthoc_numeric
+                       PROBE_STAGES=response, output to a separate *_response.jsonl.
   PROBE_QT_MODE        (llm | heuristic)          q_t extraction for the targeted probe
   PROBE_MAX_STEPS      (unset -> all)             cap total steps probed (keep tests SMALL)
   PROBE_TEMPERATURE (0.7) PROBE_TOP_P (0.80) PROBE_TOP_K (20) PROBE_MIN_P (0.0)
@@ -138,11 +142,18 @@ def main():
     )
     client = OpenAI(api_key="EMPTY", base_url=cfg.base_url)
 
+    # Optional stride sharding for parallel runs (disjoint step subsets, union = all steps):
+    # PROBE_NUM_WORKERS workers, this one is PROBE_WORKER_ID; each takes every NW-th grouped step.
+    nw = int(os.environ.get("PROBE_NUM_WORKERS", "1"))
+    wid = int(os.environ.get("PROBE_WORKER_ID", "0"))
+
     records = _load(inp)
     n_steps = n_probes = 0
     parse_ok = parse_tot = 0
     with open(out, "a") as fo:
-        for step in group_steps(records):
+        for gi, step in enumerate(group_steps(records)):
+            if gi % nw != wid:                 # not this worker's shard
+                continue
             if max_steps is not None and n_steps >= max_steps:
                 break
             n_steps += 1
