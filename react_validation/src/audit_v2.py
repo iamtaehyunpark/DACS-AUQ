@@ -109,13 +109,15 @@ if arm == "decoupled":
     label_in_passed = sum(1 for c in calls if c["call_kind"] == "action"
                           and CONF_LABEL.search(_reasoning_section(c.get("prompt_templated", ""))))
     B(label_in_passed == 0, "no confidence label in the passed thought (action prompt reasoning) (%d found)" % label_in_passed)
-else:  # entangled
-    miss = [s for s in steps if s.get("U_T_verbalized") is None
-            and "thought_confidence_parse_failed" not in (s.get("skip_reasons") or [])]
-    B(not miss, "THOUGHT_CONFIDENCE parsed or skip logged, every step (%d unaccounted)" % len(miss))
-    fmt_ok = all(("THOUGHT_CONFIDENCE:" in c.get("prompt_templated", "")
-                  and "ACTION_CONFIDENCE:" in c.get("prompt_templated", "")) for c in calls)
-    B(fmt_ok, "4-label format (THOUGHT/THOUGHT_CONFIDENCE/ACTION/ACTION_CONFIDENCE) in every joint prompt")
+else:  # entangled — ONE in-gen ĉ (AUQ, joint); no thought-side in-gen confidence by design
+    miss = [s for s in steps if s.get("U_verbalized") is None
+            and "confidence_parse_failed" not in (s.get("skip_reasons") or [])]
+    B(not miss, "CONFIDENCE (single AUQ ĉ) parsed or skip logged, every step (%d unaccounted)" % len(miss))
+    fmt_ok = all(("THOUGHT:" in c.get("prompt_templated", "") and "ACTION:" in c.get("prompt_templated", "")
+                  and "CONFIDENCE:" in c.get("prompt_templated", "")) for c in calls)
+    B(fmt_ok, "3-label format (THOUGHT/ACTION/CONFIDENCE) in every joint prompt")
+    B(not any("THOUGHT_CONFIDENCE:" in c.get("prompt_templated", "") for c in calls),
+      "no THOUGHT_CONFIDENCE in entangled prompt (single-ĉ design)")
     midcalls = [c for c in calls if c["step_idx"] >= 2]
     def _hist(c):
         return c.get("prompt_templated", "").split("ENVIRONMENT HISTORY:")[-1].split("AVAILABLE COMMANDS")[0]

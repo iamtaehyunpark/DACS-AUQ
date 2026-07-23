@@ -1,18 +1,18 @@
 """Entangled chat-harness ALFWorld agent — one joint call/step, format-native confidence (v4).
 
-The joint call emits, in one generation and in this exact order, four plain labels:
+The joint call emits, in one generation and in this exact order, three plain labels:
     THOUGHT: <reasoning>
-    THOUGHT_CONFIDENCE: <0.00-1.00>
     ACTION: <exactly one AVAILABLE COMMAND>
-    ACTION_CONFIDENCE: <0.00-1.00>
-Confidence is parsed leniently and NEVER blocks; recorded as U = 1 - c (0 certain, 1 uncertain),
-unified with the decoupled harness as U_T_verbalized / U_A_verbalized. No XML tags, no
-continuation-repair, no <explanation> (the tag-contract fragility the PI left the src/agent build
-to escape; enable_thinking=False already precludes </think> leakage).
+    CONFIDENCE: <0.00-1.00>
+ONE in-gen confidence — the AUQ ĉ, after the action (roster #5, joint; stored U_verbalized = 1 - ĉ).
+A joint generation has no separable pre-action epistemic locus, so there is deliberately NO
+thought-side in-gen confidence (that, and per-stage granularity, come from the post-hoc probes on
+both stages, plus token-intrinsic entropy over each span). Decoupled, by contrast, has a separable
+thought stage and carries the targeted u(q_t). Parsed leniently, never blocks. No XML.
 
 History retention: ACTION + OBSERVATION only, matching the decoupled arm (both arms symmetric).
-AUQ full-retention (thought + both confidences persisted into history, AUQ System-1 propagation)
-is shelved behind REACT_HISTORY_MODE=full, for a later comparison run only if needed.
+AUQ full-retention (thought + ĉ persisted into history, AUQ System-1 propagation) is shelved
+behind REACT_HISTORY_MODE=full, for a later comparison run only if needed.
 A12 tau:{I,W,R,C} per step from action_parsed.  A13 seed = 1000 + task*100000 + step*100.
 """
 import os, re, json, sys, time, hashlib
@@ -47,15 +47,15 @@ AVAILABLE COMMANDS:
 {COMMANDS}
 Think about the current situation, then choose your next action. Respond in EXACTLY this format, each label on its own line:
 THOUGHT: your step-by-step reasoning about what to do next
-THOUGHT_CONFIDENCE: a number from 0.00 to 1.00 — your confidence in that reasoning
 ACTION: exactly one line, which must be EXACTLY one of the AVAILABLE COMMANDS
-ACTION_CONFIDENCE: a number from 0.00 to 1.00 — your confidence that this action achieves your intended effect
+CONFIDENCE: a number from 0.00 to 1.00 — your confidence that the action you chose is correct
 """
 
-_THOUGHT_RE = re.compile(r"THOUGHT:\s*(.*?)(?=\n\s*(?:THOUGHT_CONFIDENCE:|ACTION:)|$)",
-                         re.IGNORECASE | re.DOTALL)
-_TCONF_RE = re.compile(r"THOUGHT_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
-_ACONF_RE = re.compile(r"ACTION_CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)
+# Entangled emits ONE in-gen confidence (the AUQ ĉ, after the action; roster #5, joint). A joint
+# generation has no separable pre-action epistemic locus, so there is NO thought-side in-gen
+# confidence — that (and per-stage granularity) comes from the post-hoc probes on both stages.
+_THOUGHT_RE = re.compile(r"THOUGHT:\s*(.*?)(?=\n\s*ACTION:|$)", re.IGNORECASE | re.DOTALL)
+_CONF_RE = re.compile(r"CONFIDENCE:\s*([0-9]*\.?[0-9]+)", re.IGNORECASE)  # any *CONFIDENCE:; take last
 
 
 def _log(rec):
@@ -81,18 +81,18 @@ def _fmt(c):
 
 
 def parse_all(text):
-    """THOUGHT / THOUGHT_CONFIDENCE / ACTION / ACTION_CONFIDENCE, lenient. 'ACTION:' never
-    matches inside 'ACTION_CONFIDENCE:' (no ':' immediately after ACTION there)."""
+    """THOUGHT / ACTION / CONFIDENCE (single AUQ ĉ), lenient. The action is the ACTION: line;
+    the confidence is the LAST *CONFIDENCE: number (the post-action ĉ)."""
     t = strip_think(text)
     tm = _THOUGHT_RE.search(t)
     thought = tm.group(1).strip() if tm else ""
-    tconf = _conf(_TCONF_RE, t)
     acts = re.findall(r"ACTION:\s*(.+)", t, re.IGNORECASE)
     action = acts[-1].strip() if acts else ""
     action = action.splitlines()[0].strip().strip("`").strip() if action else ""
-    action = re.split(r"ACTION_CONFIDENCE:", action, flags=re.IGNORECASE)[0].strip()
-    aconf = _conf(_ACONF_RE, t)
-    return thought, tconf, action, aconf
+    action = re.split(r"CONFIDENCE:", action, flags=re.IGNORECASE)[0].strip()
+    nums = _CONF_RE.findall(t)
+    conf = _clip(float(nums[-1])) if nums else None
+    return thought, action, conf
 
 
 def gen_joint(prompt, seed):
@@ -147,29 +147,25 @@ def run_episode(task_index):
                       "terminal_reason": "context_overflow", "n_steps": i - 1,
                       "loop_collapse_fraction": round(loops / max(1, i - 1), 3)})
             return 0
-        thought, c_t, action, c_a = parse_all(full)
-        if c_t is None:
-            skips.append("thought_confidence_parse_failed")
-        if c_a is None:
-            skips.append("action_confidence_parse_failed")
-        U_T_verbalized = None if c_t is None else round(1.0 - c_t, 4)
-        U_A_verbalized = None if c_a is None else round(1.0 - c_a, 4)
+        thought, action, conf = parse_all(full)
+        if conf is None:
+            skips.append("confidence_parse_failed")
+        U_verbalized = None if conf is None else round(1.0 - conf, 4)   # single AUQ ĉ (roster #5, joint)
         obs, reward, done, info = env.step([action])
         obs = obs[0]; won = bool(info["won"][0]); done = bool(done[0])
         in_adm = action in cmds
         tau = tau_dict(action)
         if tau is None and action:
             skips.append("tau_unrecognized_action")
-        print("[step %d] THOUGHT: %s\n         ACTION: %r U_T=%s U_A=%s adm=%s | OBS: %s"
-              % (i, thought[:130], action, U_T_verbalized, U_A_verbalized, in_adm, obs)); sys.stdout.flush()
+        print("[step %d] THOUGHT: %s\n         ACTION: %r U=%s adm=%s | OBS: %s"
+              % (i, thought[:130], action, U_verbalized, in_adm, obs)); sys.stdout.flush()
         pair = (action, obs); loop_flag = pair in seen; loops += loop_flag; seen.add(pair)
         if _UQLOG and rec is not None:
             g, raw = rec["gen_logprobs"], rec["completion_raw"]
-            # stage entropy spans EXCLUDE the labels and the trailing confidence numbers:
-            # thought = THOUGHT: content up to THOUGHT_CONFIDENCE: (or ACTION: if conf omitted);
-            # action = ACTION: content up to ACTION_CONFIDENCE:.
-            thought_span = content_span(g, raw, "thought:", ["thought_confidence:", "action:"])
-            action_span = content_span(g, raw, "action:", ["action_confidence:"])
+            # stage entropy spans exclude labels + the trailing ĉ number: thought = THOUGHT: content
+            # up to ACTION:; action = ACTION: content up to the trailing CONFIDENCE:.
+            thought_span = content_span(g, raw, "thought:", ["action:"])
+            action_span = content_span(g, raw, "action:", ["confidence:"])
             rec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                         "call_kind": "joint", "spans": {"thought": thought_span, "action": action_span}})
             _log(rec)
@@ -177,14 +173,13 @@ def run_episode(task_index):
                   "action_parsed": action, "obs": obs, "obs_changed": obs != prev_obs,
                   "admissible": cmds, "in_admissible": in_adm, "loop_flag": loop_flag,
                   "state_hash": hashlib.sha1(obs.encode()).hexdigest()[:16], "tau": tau,
-                  "thought_text": thought, "U_T_verbalized": U_T_verbalized,
-                  "U_A_verbalized": U_A_verbalized, "skip_reasons": skips})
+                  "thought_text": thought, "U_verbalized": U_verbalized, "skip_reasons": skips})
         prev_obs = obs
         # Retain action + observation only (default), same as the decoupled arm. REACT_HISTORY_MODE=full
-        # restores AUQ System-1 propagation (thought + both confidences persisted) for a later comparison.
+        # restores AUQ System-1 propagation (thought + the single ĉ persisted) for a later comparison.
         if _HIST_MODE == "full":
-            history += "\n> THOUGHT: %s\n> THOUGHT_CONFIDENCE: %s\n> ACTION: %s\n> ACTION_CONFIDENCE: %s\n%s" % (
-                thought, _fmt(c_t), action, _fmt(c_a), obs)
+            history += "\n> THOUGHT: %s\n> ACTION: %s\n> CONFIDENCE: %s\n%s" % (
+                thought, action, _fmt(conf), obs)
         else:
             history += "\n> %s\n%s" % (action, obs)
         if done:
