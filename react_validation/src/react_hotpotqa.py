@@ -222,11 +222,35 @@ N_EPISODES = int(os.environ.get("REACT_N_EPISODES", "500"))
 
 rs = []
 infos = []
+n_overflow = 0   # episodes ended early by context-length overflow (counted as fails)
+n_errored = 0    # episodes ended by any other transient error (counted as fails)
 old_time = time.time()
+
+def _is_overflow(e):
+    s = str(e).lower()
+    return "context length" in s or "context_length" in s or "maximum context" in s
+
 for i in idxs[:N_EPISODES]:
-    r, info = webthink(i, to_print=True)
-    rs.append(info['em'])
-    infos.append(info)
+    # Driver-level resilience for the long unattended full run (webthink + parser untouched):
+    # a per-episode context-overflow or transient network hiccup is logged and counted as a
+    # fail, never aborting the remaining episodes. All skips are tallied in the final summary.
+    try:
+        r, info = webthink(i, to_print=True)
+        em = info['em']
+        infos.append(info)
+    except Exception as e:
+        if _is_overflow(e):
+            n_overflow += 1
+            print('[episode idx %d] CONTEXT OVERFLOW — counting as fail, continuing' % i)
+        else:
+            n_errored += 1
+            print('[episode idx %d] EPISODE ERROR (%s) — counting as fail, continuing' % (i, repr(e)[:200]))
+        sys.stdout.flush()
+        em = 0
+    rs.append(em)
     print(sum(rs), len(rs), sum(rs) / len(rs), (time.time() - old_time) / len(rs))
     print('-----------')
     print()
+
+print('FINAL: EM %d/%d = %.4f | overflow-skipped %d | error-skipped %d'
+      % (sum(rs), len(rs), sum(rs) / len(rs), n_overflow, n_errored))
