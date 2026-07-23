@@ -1,6 +1,51 @@
 # react_validation — clean start, step 1: pure ReAct setup validation
 
-Isolated from the old `src/`. No project code, no configs, no serve scripts. Just the
+## HotpotQA UQ data acquisition (decoupled + entangled)
+
+The HotpotQA experiment harness now mirrors the completed ALFWorld acquisition system:
+
+- `src/chat_react_hotpot.py` — decoupled two-call ReAct arm. It logs targeted
+  `THOUGHT_TARGET`/`THOUGHT_CONFIDENCE`, action confidence, raw completions,
+  post-template prompts, per-token logprobs with top-20 alternatives, thought/action
+  spans, deterministic seeds, step bookkeeping, Hotpot τ, and EM/F1 episode outcomes.
+- `src/chat_react_hotpot_entangled.py` — entangled one-call
+  `THOUGHT`/`ACTION`/`CONFIDENCE` arm with the same environment, sampled questions,
+  action/observation-only history, model settings, logging contract, and outcome records.
+- `src/run_probes.py` — detects `domain=hotpotqa` and uses Hotpot-specific
+  evidence/retrieval prompts. It retains the ALFWorld stage probes and adds exactly one
+  whole-response P(True) record per step: `stage="response"`,
+  `metric_field="U_R_ptrue"` (AGG-true).
+- `src/judge_hotpot.py` — the same whole-trajectory three-judge acquisition protocol,
+  using the Hotpot question and action/observation trajectory.
+
+Run all six raw acquisition outputs in a fresh directory:
+
+```bash
+bash scripts/run_hotpot_acquisition.sh runs/hotpot_run_01 100
+```
+
+On the experiment server the runner sources
+`/home/user/.config/azure_judge.env` (kept outside git, chmod 600), which must
+export `AZURE_JUDGE_ENDPOINT` and `AZURE_JUDGE_KEY`. Override only the path with
+`AZURE_JUDGE_ENV_FILE` when running on a differently configured host; credential
+values are never copied into repository artifacts or logs.
+
+The six JSONL artifacts are:
+
+```text
+uq_hotpot_decoupled.jsonl       probes_hotpot_decoupled.jsonl       judge_hotpot_decoupled.jsonl
+uq_hotpot_entangled.jsonl       probes_hotpot_entangled.jsonl       judge_hotpot_entangled.jsonl
+```
+
+Both arms use the same shuffled question sample (`REACT_SEED`, default 233) and
+task-derived per-call seeds. The pipeline refuses to append to existing artifacts and
+runs `audit_hotpot.py` before any probe calls. HotpotQA still requires outbound access
+to live Wikipedia.
+
+The pure/not-instrumented migration described below remains as a historical baseline
+validation track; it is not the UQ acquisition harness.
+
+The original baseline track was isolated from the old `src/`: just the
 **original** ReAct ALFWorld loop (ysymyth/ReAct, MIT) run against a Qwen model served the
 **standard** vLLM way, with exactly one substitution: the `llm()` backend (davinci-002 is
 retired). The loop, prompts, exemplars, `think:` convention, split, and 134-episode driver

@@ -1,0 +1,13 @@
+You are solving a multi-hop HotpotQA question by interacting with Wikipedia.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+AVAILABLE COMMANDS:
+{COMMANDS}
+Search and Lookup arguments are free text inside the brackets. Use Finish only when its answer is supported by the retrieved evidence.
+Think about the evidence and missing factual link, then choose exactly one command.
+Respond in EXACTLY this format:
+THOUGHT: your step-by-step reasoning about the evidence and what to do next
+ACTION: one valid Search[...], Lookup[...], or Finish[...] command
+CONFIDENCE: a number from 0.00 to 1.00 — your confidence that the chosen action is the correct next action

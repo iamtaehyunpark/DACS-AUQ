@@ -1,0 +1,12 @@
+You are solving a multi-hop HotpotQA question by interacting with Wikipedia.
+TASK DESCRIPTION:
+{DESCRIPTION}
+ENVIRONMENT HISTORY:
+{HISTORY}
+CURRENT STEP INSTRUCTIONS:
+Reason step by step about the evidence already retrieved, the missing factual link, and what must be established next. Do NOT name or choose a Wikipedia command.
+After the reasoning, end with exactly these two lines:
+THOUGHT_TARGET: one short declarative factual claim that the next decision most depends on
+THOUGHT_CONFIDENCE: a number from 0.00 to 1.00 — your confidence that the THOUGHT_TARGET claim is true given the evidence so far
+Your reasoning:
+

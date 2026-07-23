@@ -27,6 +27,10 @@ Config (env):
                        no response form (thought-only q_t). To add just the whole-response pass to
                        an existing corpus: PROBE_KINDS=ptrue,sep_verbalized,posthoc_numeric
                        PROBE_STAGES=response, output to a separate *_response.jsonl.
+  PROBE_RESPONSE_KINDS (auto) For HotpotQA logs, defaults to ptrue and adds exactly one
+                       whole-response P(True) record per step (`stage=response`, `U_R_ptrue`)
+                       without adding whole-response versions of the other probes. Empty for
+                       ALFWorld, preserving its existing acquisition behavior.
   PROBE_QT_MODE        (llm | heuristic)          q_t extraction for the targeted probe
   PROBE_MAX_STEPS      (unset -> all)             cap total steps probed (keep tests SMALL)
   PROBE_TEMPERATURE (0.7) PROBE_TOP_P (0.80) PROBE_TOP_K (20) PROBE_MIN_P (0.0)
@@ -77,6 +81,9 @@ def group_steps(records):
         step = g["step"]
         admissible = (step or {}).get("admissible") or []
         commands = "\n".join(admissible)
+        domain = (step or {}).get("domain") or next(
+            (c.get("domain") for c in g["calls"] if c.get("domain")), None
+        )
 
         if "joint" in calls:                                  # entangled
             jc = calls["joint"]
@@ -101,6 +108,8 @@ def group_steps(records):
             sys.stderr.write("skip %s/%s step %s: no thought/joint call\n" % (run_id, task_id, step_idx))
             continue
 
+        if not task:
+            task = (step or {}).get("question") or str(task_id)
         if not thought:
             sys.stderr.write("skip %s/%s step %s: empty thought\n" % (run_id, task_id, step_idx))
             continue
@@ -108,7 +117,7 @@ def group_steps(records):
         yield {
             "run_id": run_id, "task_id": task_id, "step_idx": step_idx,
             "source_call_kind": source_call_kind,
-            "ctx": {"task": task, "history": history, "commands": commands,
+            "ctx": {"domain": domain, "task": task, "history": history, "commands": commands,
                     "thought": thought, "action": action},
         }
 
@@ -121,9 +130,18 @@ def main():
     if os.path.abspath(inp) == os.path.abspath(out):
         sys.exit("PROBE_OUTPUT must differ from PROBE_INPUT")
 
+    records = _load(inp)
+    is_hotpot = any(r.get("domain") == "hotpotqa" for r in records)
+
     kinds = [k.strip() for k in os.environ.get(
         "PROBE_KINDS", "ptrue,sep_verbalized,posthoc_numeric,targeted").split(",") if k.strip()]
     stages = [s.strip() for s in os.environ.get("PROBE_STAGES", "thought,action").split(",") if s.strip()]
+    response_default = "ptrue" if is_hotpot else ""
+    response_kinds = [
+        k.strip()
+        for k in os.environ.get("PROBE_RESPONSE_KINDS", response_default).split(",")
+        if k.strip()
+    ]
     max_steps = os.environ.get("PROBE_MAX_STEPS")
     max_steps = int(max_steps) if max_steps else None
 
@@ -147,7 +165,6 @@ def main():
     nw = int(os.environ.get("PROBE_NUM_WORKERS", "1"))
     wid = int(os.environ.get("PROBE_WORKER_ID", "0"))
 
-    records = _load(inp)
     n_steps = n_probes = 0
     parse_ok = parse_tot = 0
     with open(out, "a") as fo:
@@ -158,7 +175,14 @@ def main():
                 break
             n_steps += 1
             try:
-                probe_recs = probes.run_step_probes(client, cfg, step, kinds=kinds, stages=stages)
+                probe_recs = probes.run_step_probes(
+                    client,
+                    cfg,
+                    step,
+                    kinds=kinds,
+                    stages=stages,
+                    response_kinds=response_kinds,
+                )
             except Exception as e:                     # never let one step kill a sweep
                 sys.stderr.write("ERROR step %s/%s/%s: %r\n" % (
                     step["run_id"], step["task_id"], step["step_idx"], e))

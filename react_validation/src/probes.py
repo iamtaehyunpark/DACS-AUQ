@@ -151,7 +151,10 @@ def _first_nonws_top(gen_logprobs):
 
 _TASK_RE = re.compile(r"TASK DESCRIPTION:\s*\n(.*?)\n(?:ENVIRONMENT HISTORY:)", re.DOTALL)
 _HIST_RE = re.compile(
-    r"ENVIRONMENT HISTORY:\s*\n(.*?)\n(?:YOUR CURRENT REASONING:|AVAILABLE COMMANDS:)", re.DOTALL)
+    r"ENVIRONMENT HISTORY:\s*\n(.*?)\n(?:YOUR CURRENT REASONING:|AVAILABLE COMMANDS:|"
+    r"CURRENT STEP INSTRUCTIONS:)",
+    re.DOTALL,
+)
 
 
 def parse_task_history(prompt_templated):
@@ -184,6 +187,114 @@ def _ctx_block(task, history, commands):
 
 
 _PREAMBLE = "You are evaluating an AI agent that is solving a task in an interactive environment.\n"
+
+
+def _is_hotpot(ctx):
+    return (ctx or {}).get("domain") == "hotpotqa"
+
+
+def _hotpot_ctx_block(question, history, commands):
+    return (
+        "HOTPOTQA QUESTION:\n%s\n"
+        "WIKIPEDIA ACTION/OBSERVATION HISTORY:\n%s\n"
+        "VALID ACTION GRAMMAR:\n%s\n"
+    ) % (question, history, commands)
+
+
+_HOTPOT_PREAMBLE = (
+    "You are evaluating an AI agent answering a multi-hop HotpotQA question by "
+    "searching and looking up evidence on Wikipedia.\n"
+)
+
+
+def prompt_hotpot_ptrue_thought(question, history, commands, thought):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "PROPOSED REASONING:\n%s\n\n" % thought
+        + "Is the proposed reasoning factually supported by the evidence so far and appropriate "
+        "for deciding the next Wikipedia action?\nAnswer with a single word: Yes or No."
+    )
+
+
+def prompt_hotpot_ptrue_action(question, history, commands, thought, action):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "AGENT REASONING:\n%s\nPROPOSED ACTION:\n%s\n\n" % (thought, action)
+        + "Is the proposed action the correct and appropriate next Wikipedia action for answering "
+        "the question?\nAnswer with a single word: Yes or No."
+    )
+
+
+def prompt_hotpot_ptrue_response(question, history, commands, thought, action):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "AGENT RESPONSE:\nREASONING:\n%s\nACTION:\n%s\n\n" % (thought, action)
+        + "Taken as a whole, is this reasoning together with this action correct and appropriate "
+        "for answering the question?\nAnswer with a single word: Yes or No."
+    )
+
+
+def prompt_hotpot_sepverb_thought(question, history, commands, thought):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "PROPOSED REASONING:\n%s\n\n" % thought
+        + "How confident are you that this reasoning is factually supported and sufficient to "
+        "choose the next Wikipedia action? Output only one number from 0.00 to 1.00."
+    )
+
+
+def prompt_hotpot_sepverb_action(question, history, commands, thought, action):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "AGENT REASONING:\n%s\nPROPOSED ACTION:\n%s\n\n" % (thought, action)
+        + "How confident are you that this is the correct next Wikipedia action? "
+        "Output only one number from 0.00 to 1.00."
+    )
+
+
+def prompt_hotpot_posthoc_thought(question, history, commands, thought):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "REASONING:\n%s\n\n" % thought
+        + "On a scale of 0-100, how confident are you that this reasoning is factually correct "
+        "and sufficient to choose the next Wikipedia action? Reply with one integer."
+    )
+
+
+def prompt_hotpot_posthoc_action(question, history, commands, thought, action):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "REASONING:\n%s\nACTION:\n%s\n\n" % (thought, action)
+        + "On a scale of 0-100, how confident are you that this is the correct next Wikipedia "
+        "action? Reply with one integer."
+    )
+
+
+def prompt_hotpot_qt_extract(question, history, commands, thought):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + "AGENT REASONING:\n%s\n\n" % thought
+        + "State the ONE key factual claim about the question or retrieved evidence that this "
+        "reasoning commits to. Output one short declarative sentence and nothing else."
+    )
+
+
+def prompt_hotpot_targeted(question, history, commands, claim):
+    return (
+        _HOTPOT_PREAMBLE
+        + _hotpot_ctx_block(question, history, commands)
+        + 'Consider this factual claim:\n"%s"\n\n' % claim
+        + "How confident are you that this claim is true given the question and retrieved evidence? "
+        "Output only one number from 0.00 to 1.00."
+    )
 
 # ptrue (P(True), Kadavath et al.) -----------------------------------------------------------
 def prompt_ptrue_thought(task, history, commands, thought):
@@ -344,10 +455,15 @@ def _base_record(step, probe_kind, stage, target_text, prompt, rec, seed):
     """Common probe-log record envelope. `rec` is the full instrumented_chat ground-truth."""
     return {
         "kind": "probe",
+        "domain": step.get("ctx", {}).get("domain"),
         "probe_schema_version": PROBE_SCHEMA_VERSION,
         "probe_kind": probe_kind,
         "stage": stage,
-        "prompt_version_id": _PROMPT_VERSION[probe_kind],
+        "prompt_version_id": (
+            "hotpot_" + _PROMPT_VERSION[probe_kind]
+            if _is_hotpot(step.get("ctx"))
+            else _PROMPT_VERSION[probe_kind]
+        ),
         "metric_field": _METRIC_FIELD.get((probe_kind, stage)),
         "run_id": step["run_id"],
         "task_id": step["task_id"],
@@ -362,7 +478,22 @@ def _base_record(step, probe_kind, stage, target_text, prompt, rec, seed):
 
 def probe_ptrue(client, cfg, step, stage):
     ctx = step["ctx"]
-    if stage == "thought":
+    if _is_hotpot(ctx) and stage == "thought":
+        prompt = prompt_hotpot_ptrue_thought(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"]
+        )
+        target = ctx["thought"]
+    elif _is_hotpot(ctx) and stage == "response":
+        prompt = prompt_hotpot_ptrue_response(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"]
+        )
+        target = ctx["thought"] + "\n" + ctx["action"]
+    elif _is_hotpot(ctx):
+        prompt = prompt_hotpot_ptrue_action(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"]
+        )
+        target = ctx["action"]
+    elif stage == "thought":
         prompt = prompt_ptrue_thought(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
         target = ctx["thought"]
     elif stage == "response":
@@ -389,7 +520,17 @@ def probe_ptrue(client, cfg, step, stage):
 
 def probe_sepverb(client, cfg, step, stage):
     ctx = step["ctx"]
-    if stage == "thought":
+    if _is_hotpot(ctx) and stage == "thought":
+        prompt = prompt_hotpot_sepverb_thought(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"]
+        )
+        target = ctx["thought"]
+    elif _is_hotpot(ctx) and stage == "action":
+        prompt = prompt_hotpot_sepverb_action(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"]
+        )
+        target = ctx["action"]
+    elif stage == "thought":
         prompt = prompt_sepverb_thought(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
         target = ctx["thought"]
     elif stage == "response":
@@ -408,7 +549,17 @@ def probe_sepverb(client, cfg, step, stage):
 
 def probe_posthoc_numeric(client, cfg, step, stage):
     ctx = step["ctx"]
-    if stage == "thought":
+    if _is_hotpot(ctx) and stage == "thought":
+        prompt = prompt_hotpot_posthoc_thought(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"]
+        )
+        target = ctx["thought"]
+    elif _is_hotpot(ctx) and stage == "action":
+        prompt = prompt_hotpot_posthoc_action(
+            ctx["task"], ctx["history"], ctx["commands"], ctx["thought"], ctx["action"]
+        )
+        target = ctx["action"]
+    elif stage == "thought":
         prompt = prompt_posthoc_thought(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
         target = ctx["thought"]
     elif stage == "response":
@@ -439,7 +590,14 @@ def probe_targeted(client, cfg, step):
         qt_ok = bool(qt)
         qt_rec_env = None
     else:
-        prompt_x = prompt_qt_extract(ctx["task"], ctx["history"], ctx["commands"], ctx["thought"])
+        if _is_hotpot(ctx):
+            prompt_x = prompt_hotpot_qt_extract(
+                ctx["task"], ctx["history"], ctx["commands"], ctx["thought"]
+            )
+        else:
+            prompt_x = prompt_qt_extract(
+                ctx["task"], ctx["history"], ctx["commands"], ctx["thought"]
+            )
         content_x, rec_x = _call(client, cfg, prompt_x, max_tokens=cfg.max_tokens_qt, seed=qt_seed)
         qt = _first_content_line(content_x).strip().strip('"').strip()
         qt_ok = bool(qt)
@@ -451,8 +609,14 @@ def probe_targeted(client, cfg, step):
     seed = _seed(cfg, step["step_idx"], "targeted", "thought")
     if not qt_ok:
         stub = {
-            "kind": "probe", "probe_schema_version": PROBE_SCHEMA_VERSION, "probe_kind": "targeted",
-            "stage": "thought", "prompt_version_id": _PROMPT_VERSION["targeted"],
+            "kind": "probe", "domain": ctx.get("domain"),
+            "probe_schema_version": PROBE_SCHEMA_VERSION, "probe_kind": "targeted",
+            "stage": "thought",
+            "prompt_version_id": (
+                "hotpot_" + _PROMPT_VERSION["targeted"]
+                if _is_hotpot(ctx)
+                else _PROMPT_VERSION["targeted"]
+            ),
             "metric_field": _METRIC_FIELD[("targeted", "thought")], "run_id": step["run_id"],
             "task_id": step["task_id"], "step_idx": step["step_idx"],
             "source_call_kind": step["source_call_kind"], "target_text": ctx["thought"],
@@ -462,7 +626,10 @@ def probe_targeted(client, cfg, step):
         }
         records.append(stub)
         return records
-    prompt = prompt_targeted(ctx["task"], ctx["history"], ctx["commands"], qt)
+    if _is_hotpot(ctx):
+        prompt = prompt_hotpot_targeted(ctx["task"], ctx["history"], ctx["commands"], qt)
+    else:
+        prompt = prompt_targeted(ctx["task"], ctx["history"], ctx["commands"], qt)
     content, rec = _call(client, cfg, prompt, max_tokens=cfg.max_tokens_conf, seed=seed)
     conf, U, ok = parse_unit_confidence(_first_content_line(content))
     out = _base_record(step, "targeted", "thought", ctx["thought"], prompt, rec, seed)
@@ -487,7 +654,7 @@ _PROBE_FN = {
 }
 
 
-def run_step_probes(client, cfg, step, *, kinds, stages):
+def run_step_probes(client, cfg, step, *, kinds, stages, response_kinds=()):
     """Run the requested probes for one reconstructed step bundle. Returns a list of probe-log
     records. `targeted` is thought-only and handled specially (it also emits a qt_extract record)."""
     out = []
@@ -503,4 +670,9 @@ def run_step_probes(client, cfg, step, *, kinds, stages):
             if stage in ("action", "response") and not step["ctx"]["action"]:
                 continue                       # no action text to probe (e.g. empty action)
             out.append(fn(client, cfg, step, stage))
+    if step["ctx"]["action"] and "response" not in stages:
+        for kind in response_kinds:
+            fn = _PROBE_FN.get(kind)
+            if fn is not None:
+                out.append(fn(client, cfg, step, "response"))
     return out
