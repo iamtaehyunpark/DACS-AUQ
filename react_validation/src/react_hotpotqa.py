@@ -2,8 +2,8 @@
 
 Provenance: ysymyth/ReAct (MIT), hotpotqa.ipynb, HEAD 6bdb3a1. The notebook's code cells
 (llm, WikiEnv/wrappers setup + retrying step(), webthink() loop, the 500-episode driver) are
-reproduced VERBATIM except for two unavoidable migrations, each semantically identical to the
-original:
+reproduced VERBATIM except for three unavoidable current-timeline migrations, each
+semantically identical to the original:
   1. the llm() backend: davinci-002 (retired) -> Qwen served the standard vLLM way, queried
      with the standard OpenAI client. Same sampling params (greedy, max_tokens 100). The
      per-call `stop` sequences the webthink loop passes are untouched.
@@ -11,6 +11,9 @@ original:
      requests.exceptions.Timeout but the notebook never imports requests in a code cell (it is
      a transitive import of wikienv only), so upstream would NameError on the first timeout.
      The added import is a no-op on the happy path and only makes the existing retry work.
+  3. a default User-Agent is installed on wikienv's requests.get (see cell 2). Wikipedia now
+     returns HTTP 403 to header-less requests, which the pristine loop sends, so it would 403
+     on the first search[]. The fetched page is exactly what upstream intended.
 No probes, no retries beyond upstream's own, no project code. The ReAct control loop is untouched.
 
 wikienv.py, wrappers.py, prompts/prompts_naive.json and data/hotpot_dev_v1_simplified.json are
@@ -68,6 +71,25 @@ def llm(prompt, stop=["\n"]):
 
 # ===== cell 2 (verbatim): WikiEnv + wrappers, and the retrying step() =====
 import wikienv, wrappers
+
+# Migration fix #3 (current-timeline adaptation, semantically identical to upstream): since
+# upstream was written (2022) Wikipedia tightened its policy and now returns HTTP 403 to any
+# request with no User-Agent. wikienv.search_step() does `requests.get(url).text` with no
+# header, so the pristine loop 403s on the FIRST search[]. We install a default descriptive
+# User-Agent on wikienv's requests.get — the page fetched is exactly what upstream intended.
+# Vendored wikienv.py stays byte-identical; the adaptation lives only here, like the llm swap.
+# Override via REACT_WIKI_UA.
+_WIKI_UA = os.environ.get(
+    "REACT_WIKI_UA",
+    "ReAct-validation/1.0 (research reproduction; https://github.com/ysymyth/ReAct)",
+)
+_orig_requests_get = wikienv.requests.get
+def _requests_get_with_ua(url, **kwargs):
+    headers = dict(kwargs.pop("headers", None) or {})
+    headers.setdefault("User-Agent", _WIKI_UA)
+    return _orig_requests_get(url, headers=headers, **kwargs)
+wikienv.requests.get = _requests_get_with_ua
+
 # Split is selectable via REACT_SPLIT (default = upstream's "dev"); the pure replication is
 # unchanged. (Only non-upstream token in this cell besides the env lookup.)
 _SPLIT = os.environ.get("REACT_SPLIT", "dev")
