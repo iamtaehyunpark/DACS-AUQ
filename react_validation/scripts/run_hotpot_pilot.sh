@@ -8,5 +8,6 @@ cd "$(dirname "$0")/../src"
 
 curl -s http://localhost:8000/v1/models || { echo "no vLLM server at :8000 — run serve.sh first"; exit 1; }
 
-REACT_N_EPISODES=10 python3 react_hotpotqa.py 2>&1 | tee run_hotpot_pilot.log
+# REACT_NO_STOP=1 -> our modified react (unrestricted generation; harness parses the Action label).
+REACT_NO_STOP=1 REACT_N_EPISODES=10 python3 react_hotpotqa.py 2>&1 | tee run_hotpot_pilot.log
 echo "done -> $(pwd)/run_hotpot_pilot.log"

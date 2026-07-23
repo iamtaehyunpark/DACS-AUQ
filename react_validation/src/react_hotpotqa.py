@@ -16,6 +16,14 @@ semantically identical to the original:
      on the first search[]. The fetched page is exactly what upstream intended.
 No probes, no retries beyond upstream's own, no project code. The ReAct control loop is untouched.
 
+Generation mode (REACT_NO_STOP): the loop has two paths. Default OFF reproduces upstream's
+stop-regulated webthink byte-for-byte (fidelity fallback). REACT_NO_STOP=1 is "our modified
+react" — the mode this project actually runs, matching chat_react.py's philosophy: generation is
+UNRESTRICTED (no stop; the model may emit <think>...</think> and anything else) and the harness's
+only job is to parse the labeled `Action i:` out of the whole turn. This is the same treatment as
+react_alfworld.py's REACT_NO_STOP. Upstream's stop=["\n"] is never used in this mode; it also
+removes the latent empty-action IndexError (an empty action becomes a graceful no-op).
+
 wikienv.py, wrappers.py, prompts/prompts_naive.json and data/hotpot_dev_v1_simplified.json are
 vendored byte-identical from upstream (the code + data the loop reads).
 
@@ -40,7 +48,17 @@ _client = OpenAI(api_key="EMPTY", base_url="http://localhost:8000/v1")
 # top_p=1). REACT_TEMPERATURE / REACT_TOP_P override it.
 _TEMP = float(os.environ.get("REACT_TEMPERATURE", "0"))
 _TOP_P = float(os.environ.get("REACT_TOP_P", "1"))
-_MAXTOK = int(os.environ.get("REACT_MAX_TOKENS", "100"))
+
+# Modified-react generation (gated, like react_alfworld.py's REACT_NO_STOP): when set, the loop
+# passes NO stop sequence, so the model emits its WHOLE free-form turn with no regulation —
+# including any <think>...</think> block and extra text — and the action is parsed OFFLINE by the
+# harness (see webthink). This is "our modified react": generation is unrestricted; the harness's
+# only rule is to locate the labeled `Action i:` (</think> is peeled first as a wrapper, not a
+# restriction). It is the intended run mode — original ReAct's stop=["\n"] is a fidelity-only
+# fallback (default OFF) that this project does not use. max_tokens is raised so the whole turn
+# (reasoning + the Action line) isn't truncated before the label appears.
+_NO_STOP = bool(os.environ.get("REACT_NO_STOP"))
+_MAXTOK = int(os.environ.get("REACT_MAX_TOKENS", "512" if _NO_STOP else "100"))
 
 def llm(prompt, stop=["\n"]):
     completion = _client.completions.create(
@@ -105,9 +123,28 @@ def step(env, action):
         except requests.exceptions.Timeout:
             attempts += 1
 
-# ===== cell 4 (verbatim): load prompts + the webthink() loop =====
+# ===== cell 4 (verbatim upstream, + gated modified-react parse): prompts + the webthink() loop =====
 import json
+import re
 import sys
+
+def strip_think(t):
+    """Peel a leading <think>...</think> wrapper (a wrapper to remove, NOT a content restriction).
+    Same helper as chat_react.py / react_alfworld.py's _parse_action."""
+    return t.split("</think>", 1)[-1] if "</think>" in t else t
+
+def _parse_thought_action(raw, i):
+    """Modified-react parse (REACT_NO_STOP): the model may emit ANYTHING — a <think>...</think>
+    block, extra prose, even a hallucinated Observation/next-Thought continuation. The harness's
+    ONLY rule is to locate the labeled `Action {i}:` and take its line; the thought is whatever
+    precedes it. Returns (thought, action, found_label). action='' if the label is absent."""
+    t = strip_think(raw)
+    m = re.search(r"(?:^|\n)Action %d:[ \t]*" % i, t)
+    if m:
+        thought = t[:m.start()].strip()
+        action = t[m.end():].lstrip().split("\n", 1)[0].strip()
+        return thought, action, True
+    return t.strip(), "", False
 
 folder = './prompts/'
 prompt_file = 'prompts_naive.json'
@@ -131,16 +168,34 @@ def webthink(idx=None, prompt=webthink_prompt, to_print=True):
     n_calls, n_badcalls = 0, 0
     for i in range(1, 8):
         n_calls += 1
-        thought_action = llm(prompt + f"Thought {i}:", stop=[f"\nObservation {i}:"])
-        try:
-            thought, action = thought_action.strip().split(f"\nAction {i}: ")
-        except:
-            print('ohh...', thought_action)
-            n_badcalls += 1
-            n_calls += 1
-            thought = thought_action.strip().split('\n')[0]
-            action = llm(prompt + f"Thought {i}: {thought}\nAction {i}:", stop=[f"\n"]).strip()
-        obs, r, done, info = step(env, action[0].lower() + action[1:])
+        if _NO_STOP:
+            # modified react: NO stop — the model emits its whole free-form turn (incl <think>...
+            # </think> and any continuation); the harness parses the labeled Action offline.
+            raw = llm(prompt + f"Thought {i}:", stop=None)
+            thought, action, found = _parse_thought_action(raw, i)
+            if not found:
+                # no `Action i:` label surfaced within the turn — one recovery call, still no stop.
+                print('ohh...', raw)
+                n_badcalls += 1
+                n_calls += 1
+                thought = thought.split('\n')[0] if thought else thought
+                raw2 = llm(prompt + f"Thought {i}: {thought}\nAction {i}:", stop=None)
+                action = strip_think(raw2).lstrip().split('\n', 1)[0].strip()
+        else:
+            # original ReAct (fidelity-only fallback, uses stop=["\n"]) — byte-for-byte upstream.
+            thought_action = llm(prompt + f"Thought {i}:", stop=[f"\nObservation {i}:"])
+            try:
+                thought, action = thought_action.strip().split(f"\nAction {i}: ")
+            except:
+                print('ohh...', thought_action)
+                n_badcalls += 1
+                n_calls += 1
+                thought = thought_action.strip().split('\n')[0]
+                action = llm(prompt + f"Thought {i}: {thought}\nAction {i}:", stop=[f"\n"]).strip()
+        # guard the empty action so the modified harness never crashes on action[0] (upstream's
+        # latent IndexError); an empty action becomes a no-op the env reports as "Invalid action:".
+        env_action = (action[0].lower() + action[1:]) if action else action
+        obs, r, done, info = step(env, env_action)
         obs = obs.replace('\\n', '')
         step_str = f"Thought {i}: {thought}\nAction {i}: {action}\nObservation {i}: {obs}\n"
         prompt += step_str
