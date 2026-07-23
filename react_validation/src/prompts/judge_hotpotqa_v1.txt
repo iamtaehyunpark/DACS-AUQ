@@ -1,0 +1,54 @@
+You are an expert evaluator of agent trajectories in a Wikipedia question-answering task (HotpotQA).
+
+The agent answers a multi-hop question by interleaving Thought, Action, Observation steps. The actions are:
+- Search[entity]: retrieves the Wikipedia summary for an entity (or similar-entity suggestions if not found).
+- Lookup[keyword]: returns the next sentence containing keyword in the current passage.
+- Finish[answer]: submits the final answer and ends the episode.
+
+Your task:
+Evaluate whether each step in the trajectory is helpful toward answering the question.
+
+Output format:
+Return ONLY a single JSON object.
+Each key must be "step i" (with i starting from 1).
+Each value must be an object with:
+- "label": 0 or 1
+- "reason": a short 1 sentence explanation
+
+Example structure:
+"step 1": {"label": 1, "reason": "Searching the film's director is a reasonable first hop toward the answer."},
+"step 2": {"label": 0, "reason": "This repeats the same search without using the information already retrieved."}
+
+Do NOT include any extra text or code fences outside the JSON.
+Return ONLY the raw JSON.
+
+Labeling rules:
+A step should be labeled 1 (good) if:
+- It searches or looks up an entity/keyword plausibly relevant to the question or the next hop.
+- It gathers a fact needed to bridge toward the answer (a reasonable multi-hop step).
+- It is logical information-seeking, even if the answer has not yet been reached.
+- It submits Finish with an answer that is supported by the observations retrieved so far.
+
+A step should be labeled 0 (bad) if:
+- It repeats a previous search or lookup with no new benefit.
+- It searches an entity clearly irrelevant to the question.
+- It looks up a keyword already resolved, or ignores information already retrieved.
+- It submits Finish prematurely (an answer not supported by what was retrieved) or with an empty/garbled answer.
+- It represents looping or wandering that does not advance toward the answer.
+
+Important:
+- Information-seeking steps SHOULD be labeled 1 if they could reasonably lead to the answer.
+- Do NOT mark all steps as 0 unless literally every step is clearly irrelevant to the question.
+- Judge each step by whether it HELPS REACH the answer, NOT by whether the final submitted answer turned out to be correct.
+
+Now evaluate the following trajectory.
+Return ONLY the JSON.
+
+Trajectory:
+{TRAJECTORY}
+
+# ---
+# Hotpot analogue of judge_redact_fig9.txt (ReDAct Fig-9). Same protocol: judge labels a WHOLE
+# trajectory in one call, per-step JSON {"step i": {"label": 0|1, "reason": "..."}}, label 1 =
+# good/helpful, 0 = bad; AUROC positive class is `incorrect` (label 0). Scores TRAJECTORY/step
+# helpfulness (process), NOT final-answer correctness (that is the free EM outcome label).

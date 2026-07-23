@@ -146,6 +146,19 @@ def _parse_thought_action(raw, i):
         return thought, action, True
     return t.strip(), "", False
 
+# Gated structured step/episode logging (default OFF; byte-for-byte unchanged when unset). When
+# REACT_STEPLOG=<path> is set, each step and episode is appended as a JSONL record — the
+# judge-ready input for judge_hotpot.py (kind:"step" with action_parsed/obs/question) plus a
+# machine-readable per-episode record (question, gold, em, f1). run_id via REACT_RUN_ID.
+_STEPLOG = os.environ.get("REACT_STEPLOG")
+_STEP_RUN_ID = os.environ.get("REACT_RUN_ID", "hotpot")
+
+def _steplog(rec):
+    if not _STEPLOG:
+        return
+    with open(_STEPLOG, "a") as _f:
+        _f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
 folder = './prompts/'
 prompt_file = 'prompts_naive.json'
 with open(folder + prompt_file, 'r') as f:
@@ -162,6 +175,7 @@ webthink_prompt = instruction + webthink_examples
 
 def webthink(idx=None, prompt=webthink_prompt, to_print=True):
     question = env.reset(idx=idx)
+    q_clean = question.split("Question:", 1)[-1].strip() if "Question:" in question else question
     if to_print:
         print(idx, question)
     prompt += question + "\n"
@@ -199,6 +213,8 @@ def webthink(idx=None, prompt=webthink_prompt, to_print=True):
         obs = obs.replace('\\n', '')
         step_str = f"Thought {i}: {thought}\nAction {i}: {action}\nObservation {i}: {obs}\n"
         prompt += step_str
+        _steplog({"kind": "step", "run_id": _STEP_RUN_ID, "task_id": idx, "step_idx": i,
+                  "action_parsed": action, "obs": obs, "thought": thought, "question": q_clean})
         if to_print:
             print(step_str)
         if done:
@@ -208,6 +224,9 @@ def webthink(idx=None, prompt=webthink_prompt, to_print=True):
     if to_print:
         print(info, '\n')
     info.update({'n_calls': n_calls, 'n_badcalls': n_badcalls, 'traj': prompt})
+    _steplog({"kind": "episode", "run_id": _STEP_RUN_ID, "task_id": idx, "question": q_clean,
+              "gold_answer": info.get("gt_answer"), "em": bool(info.get("em", 0)),
+              "f1": float(info.get("f1", 0) or 0), "n_steps": i, "n_badcalls": n_badcalls})
     return r, info
 
 # ===== cell 5 (verbatim upstream + gated sampling/sharding knobs): the episode driver =====
