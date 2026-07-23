@@ -47,3 +47,35 @@ Requires: `vllm`, `openai`, and `alfworld` with its data (`ALFWORLD_DATA` set). 
 - plain grep tallies over `run.log`: empty-action count, "Nothing happens." count.
 
 Stop after the report. No fixes — if it degenerates, that raw result is the finding.
+
+---
+
+## HotpotQA track (same discipline, second task)
+
+`src/react_hotpotqa.py` is the pure-Python migration of upstream `hotpotqa.ipynb` (HEAD
+6bdb3a1), done the **same way** as the ALFWorld one: cells reproduced VERBATIM, with only the
+`llm()` backend swapped to the served Qwen (standard vLLM OpenAI client, same sampling) plus
+one unavoidable fix (`import requests`, which the notebook's retry `step()` needs but never
+imports). The `step()` retry helper, the `webthink()` loop, and the 500-episode driver are
+byte-for-byte upstream (verified). Prompt strings match upstream to the byte.
+
+Vendored byte-identical from upstream (the code + data the loop reads):
+- `src/wikienv.py`, `src/wrappers.py` — the WikiEnv + HotPotQA/Logging wrappers.
+- `src/prompts/prompts_naive.json` — the `webthink_simple6` exemplars.
+- `src/data/hotpot_dev_v1_simplified.json` — the dev split (7405 questions; driver default).
+
+```bash
+bash scripts/serve.sh                 # same server as ALFWorld
+bash scripts/run_hotpot_pilot.sh      # REACT_N_EPISODES=10 smoke test -> run_hotpot_pilot.log
+bash scripts/run_hotpot_validation.sh # full run (500 episodes) -> run_hotpot.log
+```
+
+Knobs mirror the ALFWorld file (`REACT_TEMPERATURE`, `REACT_TOP_P`, `REACT_MAX_TOKENS`,
+`REACT_N_EPISODES`, `REACT_SPLIT` default `dev`, `REACT_CAPTURE` wire-capture) — all default
+to the upstream behavior, so the bare run is the pure replication.
+
+**Important operational difference from ALFWorld:** HotpotQA's env hits **live Wikipedia**
+(`en.wikipedia.org`) on every `search[]`. This run needs outbound internet in addition to the
+served model, and requires `gym`, `beautifulsoup4`, `numpy`, `requests`. The published ReAct
+HotpotQA number is EM ≈ 0.27–0.30 (davinci, dev); as with ALFWorld the question is sane
+behavior with Qwen, not matching that.
