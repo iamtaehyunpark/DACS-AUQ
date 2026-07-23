@@ -210,15 +210,29 @@ def webthink(idx=None, prompt=webthink_prompt, to_print=True):
     info.update({'n_calls': n_calls, 'n_badcalls': n_badcalls, 'traj': prompt})
     return r, info
 
-# ===== cell 5 (verbatim): 500-episode driver =====
+# ===== cell 5 (verbatim upstream + gated sampling/sharding knobs): the episode driver =====
 import random
 import time
-idxs = list(range(7405))
-random.Random(233).shuffle(idxs)
 
-# Episode count: upstream default 500; a pilot sets REACT_N_EPISODES (e.g. 10) to smoke-test
-# the structure. (Only non-upstream line; the loop body below is verbatim.)
+# Sampling: upstream shuffles range(7405) with a FIXED seed (233) and takes the first N. Both are
+# gated env knobs that DEFAULT to the exact upstream values, so the bare run is byte-for-byte:
+#   REACT_SEED       — shuffle seed. 233 reproduces upstream; a fresh/random seed draws a random
+#                      subset of the dataset instead of the same fixed one.
+#   REACT_N_EPISODES — sample size (upstream 500; a pilot uses 10).
+# Parallelism: REACT_NUM_WORKERS / REACT_WORKER_ID stride-shard the SAME drawn sample across
+# processes (disjoint shards whose union is the full sample), so N workers hit the shared vLLM
+# server concurrently for an ~Nx speedup. Defaults (1 worker, id 0) => the whole sample, in order.
+_SEED = int(os.environ.get("REACT_SEED", "233"))
 N_EPISODES = int(os.environ.get("REACT_N_EPISODES", "500"))
+_NW = int(os.environ.get("REACT_NUM_WORKERS", "1"))
+_WID = int(os.environ.get("REACT_WORKER_ID", "0"))
+
+idxs = list(range(7405))
+random.Random(_SEED).shuffle(idxs)
+sample = idxs[:N_EPISODES]
+run_idxs = sample[_WID::_NW]   # this worker's disjoint shard (strided)
+print("WORKER %d/%d | seed=%d | sample=%d | this_shard=%d episodes" % (_WID, _NW, _SEED, len(sample), len(run_idxs)))
+sys.stdout.flush()
 
 rs = []
 infos = []
@@ -230,7 +244,7 @@ def _is_overflow(e):
     s = str(e).lower()
     return "context length" in s or "context_length" in s or "maximum context" in s
 
-for i in idxs[:N_EPISODES]:
+for i in run_idxs:
     # Driver-level resilience for the long unattended full run (webthink + parser untouched):
     # a per-episode context-overflow or transient network hiccup is logged and counted as a
     # fail, never aborting the remaining episodes. All skips are tallied in the final summary.
@@ -252,5 +266,5 @@ for i in idxs[:N_EPISODES]:
     print('-----------')
     print()
 
-print('FINAL: EM %d/%d = %.4f | overflow-skipped %d | error-skipped %d'
-      % (sum(rs), len(rs), sum(rs) / len(rs), n_overflow, n_errored))
+print('FINAL[w%d/%d seed=%d]: EM %d/%d = %.4f | overflow-skipped %d | error-skipped %d'
+      % (_WID, _NW, _SEED, sum(rs), len(rs), (sum(rs) / len(rs)) if rs else 0.0, n_overflow, n_errored))
