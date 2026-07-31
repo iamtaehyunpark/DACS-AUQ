@@ -150,9 +150,17 @@ def _first_nonws_top(gen_logprobs):
 # --------------------------------------------------------------------------- context reconstruction
 
 _TASK_RE = re.compile(r"TASK DESCRIPTION:\s*\n(.*?)\n(?:ENVIRONMENT HISTORY:)", re.DOTALL)
+# Terminators are the harness's OWN literal lines that immediately follow {HISTORY} in each
+# Phase-1 template (chat_react*.py / prompts/*.txt):
+#   entangled ALFWorld/hotpot ...... "AVAILABLE COMMANDS:"
+#   hotpot decoupled thought ........ "CURRENT STEP INSTRUCTIONS:"
+#   ALFWorld decoupled thought ...... "Think step by step about the current situation:"
+# The ALFWorld decoupled-thought terminator was missing, so decoupled runs (whose history is
+# always reconstructed from the THOUGHT call, run_probes.py) matched no terminator and the whole
+# regex failed -> empty history silently injected into every P(True)/verbalized/post-hoc probe.
 _HIST_RE = re.compile(
     r"ENVIRONMENT HISTORY:\s*\n(.*?)\n(?:YOUR CURRENT REASONING:|AVAILABLE COMMANDS:|"
-    r"CURRENT STEP INSTRUCTIONS:)",
+    r"CURRENT STEP INSTRUCTIONS:|Think step by step about the current situation)",
     re.DOTALL,
 )
 

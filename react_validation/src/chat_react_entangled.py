@@ -21,7 +21,11 @@ from openai import OpenAI
 import yaml, alfworld, alfworld.agents.environment
 from tau_map import tau_dict
 
-client = OpenAI(api_key="EMPTY", base_url="http://localhost:8000/v1")
+client = OpenAI(api_key=os.environ.get("REACT_API_KEY", "EMPTY"),
+                base_url=os.environ.get("REACT_BASE_URL", "http://localhost:8000/v1"))
+_MODEL = os.environ.get("REACT_MODEL", "qwen")
+_ET = os.environ.get("REACT_ENABLE_THINKING", "false").strip().lower()
+_ENABLE_THINKING = None if _ET in ("none", "omit", "") else (_ET in ("1", "true", "yes"))
 _TEMP = float(os.environ.get("REACT_TEMPERATURE", "0.7"))
 _TOP_P = float(os.environ.get("REACT_TOP_P", "0.80"))
 _TOP_K = int(os.environ.get("REACT_TOP_K", "20"))
@@ -33,6 +37,9 @@ _UQLOG = os.environ.get("REACT_UQLOG")
 _TOK_PATH = os.environ.get("REACT_TOKENIZER", "Qwen/Qwen3.6-35B-A3B")
 _SEED_BASE = int(os.environ.get("REACT_SEED_BASE", "1000"))
 _RUN_ID = os.environ.get("REACT_RUN_ID", "entangled")
+# Parallelism: REACT_NUM_WORKERS / REACT_WORKER_ID stride-shard the task list across processes.
+_NW = int(os.environ.get("REACT_NUM_WORKERS", "1"))
+_WID = int(os.environ.get("REACT_WORKER_ID", "0"))
 _HIST_MODE = os.environ.get("REACT_HISTORY_MODE", "action_obs")  # "action_obs" (default) | "full" (AUQ retention)
 _SB = {"top_k": _TOP_K, "min_p": _MIN_P, "repetition_penalty": _REP_PEN}
 if _UQLOG:
@@ -97,16 +104,17 @@ def parse_all(text):
 
 def gen_joint(prompt, seed):
     if not _UQLOG:
-        r = client.chat.completions.create(model="qwen", messages=[{"role": "user", "content": prompt}],
+        _ctk = {} if _ENABLE_THINKING is None else {"enable_thinking": _ENABLE_THINKING}
+        r = client.chat.completions.create(model=_MODEL, messages=[{"role": "user", "content": prompt}],
                                            temperature=_TEMP, top_p=_TOP_P, max_tokens=1024,
                                            presence_penalty=_PRES_PEN,
-                                           extra_body={"chat_template_kwargs": {"enable_thinking": False}, **_SB})
+                                           extra_body={"chat_template_kwargs": _ctk, **_SB})
         return (r.choices[0].message.content or ""), None
-    content, rec = instrumented_chat(client, [{"role": "user", "content": prompt}], model="qwen",
+    content, rec = instrumented_chat(client, [{"role": "user", "content": prompt}], model=_MODEL,
                                      tokenizer_path=_TOK_PATH, temperature=_TEMP, top_p=_TOP_P,
                                      top_k=_TOP_K, min_p=_MIN_P, presence_penalty=_PRES_PEN,
                                      repetition_penalty=_REP_PEN, max_tokens=1024, seed=seed,
-                                     enable_thinking=False)
+                                     enable_thinking=_ENABLE_THINKING)
     return strip_think(content), rec
 
 
@@ -122,8 +130,10 @@ def admissible(info):
     return a[0] if isinstance(a[0], (list, tuple)) else a
 
 
-def run_episode(task_index):
-    ob, info = env.reset()
+def run_episode(task_index, generate=True):
+    ob, info = env.reset()          # always advance the env so shard indexing stays aligned
+    if not generate:
+        return None                 # not this worker's shard — skip generation
     ob = "\n".join(ob[0].split("\n\n")[1:])
     m = re.search(r"Your task is to:\s*(.*)", ob)
     task = m.group(1).strip() if m else ob
@@ -194,10 +204,15 @@ def run_episode(task_index):
     return 0
 
 
-succ = 0
+succ = 0; done = 0
 for e in range(1, _N + 1):
-    r = run_episode(e - 1)
+    mine = ((e - 1) % _NW == _WID)
+    r = run_episode(e - 1, generate=mine)
+    if not mine:
+        continue
+    done += 1
     succ += r
-    print("EPISODE %d: %s | running success %d/%d = %.3f" % (e, "SUCCESS" if r else "fail", succ, e, succ / e))
+    print("EPISODE %d (worker %d/%d): %s | running success %d/%d = %.3f"
+          % (e, _WID, _NW, "SUCCESS" if r else "fail", succ, done, succ / done))
     sys.stdout.flush()
-print("\nFINAL: %d/%d = %.3f" % (succ, _N, succ / _N))
+print("\nFINAL: worker %d/%d %d/%d = %.3f" % (_WID, _NW, succ, done, succ / max(1, done)))

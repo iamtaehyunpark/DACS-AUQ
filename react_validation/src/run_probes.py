@@ -158,7 +158,7 @@ def main():
         seed_base=int(os.environ.get("PROBE_SEED_BASE", "7000")),
         qt_mode=os.environ.get("PROBE_QT_MODE", "llm"),
     )
-    client = OpenAI(api_key="EMPTY", base_url=cfg.base_url)
+    client = OpenAI(api_key=os.environ.get("PROBE_API_KEY", "EMPTY"), base_url=cfg.base_url)
 
     # Optional stride sharding for parallel runs (disjoint step subsets, union = all steps):
     # PROBE_NUM_WORKERS workers, this one is PROBE_WORKER_ID; each takes every NW-th grouped step.
