@@ -121,7 +121,7 @@ while :; do
   : > /tmp/horizon_ann_serve.log
   CUDA_VISIBLE_DEVICES=$GPU setsid nohup $V serve "$SNAP" --served-model-name qwen \
     --tensor-parallel-size 1 --max-model-len 16384 \
-    --gpu-memory-utilization 0.90 --max-num-seqs 128 \
+    --gpu-memory-utilization 0.90 --max-num-seqs 64 \
     --port $PORT >> /tmp/horizon_ann_serve.log 2>&1 &
   SRV=$!
   ready=0
