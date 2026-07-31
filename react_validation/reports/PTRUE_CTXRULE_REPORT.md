@@ -112,7 +112,7 @@ incorrect), which unlike Δ is immune to the scale shifts between contexts; 95% 
 
 ### 2.1 Discrimination by condition
 
-![AUROC with CIs and paired differences](figures/ctxrule/fig6_auroc.png)
+![AUROC with CIs and paired differences](../figures/ctxrule/fig6_auroc.png)
 
 | condition | what changed | mean U inc | mean U cor | Δ | **AUROC [95% CI]** |
 |---|---|---|---|---|---|
@@ -148,9 +148,9 @@ correct ordering. Any Δ comparison across conditions is partly a comparison of 
 
 ### 2.2 Separation, and where it comes from
 
-![separation by condition](figures/ctxrule/fig1_separation.png)
+![separation by condition](../figures/ctxrule/fig1_separation.png)
 
-![dumbbell](figures/ctxrule/fig2_dumbbell.png)
+![dumbbell](../figures/ctxrule/fig2_dumbbell.png)
 
 A Δ grows either because the probe becomes more suspicious of **errors** (useful) or of
 **everything** (costly in false positives). C5 moves errors +0.193 and correct only +0.045. C6
@@ -162,7 +162,7 @@ meaningless in another.**
 
 ### 2.3 The context ladder
 
-![heatmap](figures/ctxrule/fig3_heatmap.png)
+![heatmap](../figures/ctxrule/fig3_heatmap.png)
 
 - **C0 = 0.512, indistinguishable from chance.** The action string alone carries no signal. (23 of
   3300 prompts are byte-identical duplicates, all C0: two steps in one episode that took the same
@@ -175,7 +175,7 @@ meaningless in another.**
 
 ### 2.4 Pre-hindsight
 
-![hindsight slopes](figures/ctxrule/fig4_hindsight.png)
+![hindsight slopes](../figures/ctxrule/fig4_hindsight.png)
 
 Both pre-hindsight conditions beat the production prompt significantly. **C6 − C5 is +0.033
 [−0.025, +0.093] — not significant**, so on this evidence the environment's response is what
@@ -187,7 +187,7 @@ undo). Where they are not, read them as a ceiling on what P(True) could know.
 
 ### 2.5 Rule injection
 
-![rule by stratum](figures/ctxrule/fig5_rule_stratum.png)
+![rule by stratum](../figures/ctxrule/fig5_rule_stratum.png)
 
 **Test 1 — detection or compliance? Passes.** The same rule with no history to apply it to moves
 nothing: C0/R2 − C0/R0 = −0.024 overall, −0.027 on loop steps (26/78 up, i.e. below half). In the
