@@ -234,7 +234,8 @@ def run_episode(task_index):
             # the action call now carries an ACTION: label, so span the command via content_span.
             if trec is not None:
                 g = trec["gen_logprobs"]
-                t_end = char_to_token_span(g, 0, min(len(thought_clean), len(trec["completion_raw"])))[1]
+                t_end = char_to_token_span(g, 0, min(len(thought_clean), len(trec["completion_raw"])),
+                                           trec["completion_raw"])[1]
                 trec.update({"kind": "call", "run_id": _RUN_ID, "task_id": name, "step_idx": i,
                              "call_kind": "thought",
                              "spans": {"thought": [0, t_end] if thought_clean else None, "action": None}})

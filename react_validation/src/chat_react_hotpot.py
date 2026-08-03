@@ -176,6 +176,7 @@ def run_episode(env, runtime: Runtime, task_id: int) -> int:
                             thought_start_char + len(thought),
                             len(raw_completion),
                         ),
+                        raw_completion,
                     )
                     thought_record.update(
                         {

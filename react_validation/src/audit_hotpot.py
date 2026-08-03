@@ -4,7 +4,7 @@ Usage: python audit_hotpot.py <uq_log.jsonl> <decoupled|entangled>
 """
 from __future__ import annotations
 
-import json
+import collections, json
 import os
 import sys
 
@@ -93,6 +93,7 @@ def main() -> int:
     fail_if(bad_seeds > 0, "%d calls violate the deterministic seed formula" % bad_seeds, failures)
 
     reconstruction_failures = 0
+    span_structure_failures = collections.Counter()
     for call in calls:
         generated = call.get("gen_logprobs") or []
         raw = call.get("completion_raw") or ""
@@ -102,13 +103,33 @@ def main() -> int:
             if not span:
                 continue
             text = "".join(token["token"] for token in generated[span[0] : span[1]])
-            if text not in raw and not raw.startswith(text):
+            # Whitespace-insensitive: SentencePiece tokenizers (Mistral) return token
+            # strings with the space marker stripped, and the trailing EOS token is in
+            # the span but not in completion_raw. Neither means the span is wrong.
+            squash = lambda t: "".join(t.split())
+            body = text
+            for eos in ("</s>", "<|endoftext|>", "<|eot_id|>", "<end_of_turn>"):
+                body = body.replace(eos, "")
+            if squash(body) not in squash(raw):
                 reconstruction_failures += 1
+            # Containment alone is too weak to catch misalignment: a span holding
+            # ":0.95" is trivially a substring while pointing at the confidence
+            # number instead of the action. These structural checks name the real
+            # defect. Mistral fails BOTH on every call in both environments while
+            # phi4mini and gemma4b are clean, so this is model-specific span
+            # extraction, not a tokenizer artifact.
+            flat = squash(body)
+            if stage == "thought" and "ACTION" in flat:
+                span_structure_failures["thought_swallows_action"] += 1
+            if stage == "action" and ("CONFIDENCE" in flat or flat.startswith(":0.")):
+                span_structure_failures["action_is_confidence"] += 1
     fail_if(
         reconstruction_failures > 0,
         "%d logged spans do not reconstruct into completion_raw" % reconstruction_failures,
         failures,
     )
+    for kind, count in sorted(span_structure_failures.items()):
+        fail_if(count > 0, "span misalignment: %s on %d spans" % (kind, count), failures)
 
     tau_mismatches = [
         step

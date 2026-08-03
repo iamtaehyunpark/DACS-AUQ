@@ -176,22 +176,48 @@ def instrumented_chat(client, messages, *, model, tokenizer_path, temperature, t
     return content, rec
 
 
-def char_to_token_span(gen, start_char, end_char):
+_SPECIAL_TOKENS = ("</s>", "<s>", "<|endoftext|>", "<|eot_id|>", "<end_of_turn>", "<|im_end|>")
+
+
+def _visible_len(token):
+    """Non-whitespace character count of a token, ignoring special markers."""
+    for marker in _SPECIAL_TOKENS:
+        token = token.replace(marker, "")
+    return len("".join(token.split()))
+
+
+def char_to_token_span(gen, start_char, end_char, raw=None):
     """Map a [start,end) char range in the completion to a [i,j) token-index range in gen.
 
-    The tokens in `gen` concatenate to the completion text, so cumulative token char-lengths
-    give each token's char extent. Returns the smallest token range covering [start,end).
+    Counts NON-WHITESPACE characters on both sides. The obvious implementation assumes
+    the tokens concatenate back into the completion text, so that cumulative len(token)
+    gives each token's char extent — but SentencePiece tokenizers (Mistral) return token
+    strings with the space marker already stripped. len(token) then undercounts, the
+    running position lags the real text, and every boundary lands too far right. Observed
+    on Mistral: the thought span ran past `ACTION:` on 100% of calls in both environments,
+    and 46% of action spans pointed at the trailing confidence number instead of the
+    action. phi4mini and gemma4b, whose tokens carry their spaces, were unaffected.
+
+    Comparing in whitespace-free space makes both conventions agree. `raw` is required
+    for that; without it the legacy char-count behaviour is kept so old callers still work.
     """
     if not gen:
         return [0, 0]
+    if raw is None:
+        widths = [len(g["token"]) for g in gen]
+        lo_bound, hi_bound = start_char, end_char
+    else:
+        widths = [_visible_len(g["token"]) for g in gen]
+        nws = lambda s: len("".join(s.split()))
+        lo_bound, hi_bound = nws(raw[:start_char]), nws(raw[:end_char])
     pos = 0
     tok_start = None
     tok_end = 0
-    for idx, g in enumerate(gen):
-        lo, hi = pos, pos + len(g["token"])
-        if tok_start is None and hi > start_char:
+    for idx, width in enumerate(widths):
+        lo, hi = pos, pos + width
+        if tok_start is None and hi > lo_bound:
             tok_start = idx
-        if lo < end_char:
+        if lo < hi_bound:
             tok_end = idx + 1
         pos = hi
     return [tok_start if tok_start is not None else len(gen), tok_end]
@@ -214,7 +240,7 @@ def content_span(gen, raw, start_label, end_labels):
     end = min(ends) if ends else len(raw)
     if end <= start:
         return None
-    span = char_to_token_span(gen, start, end)
+    span = char_to_token_span(gen, start, end, raw)
     return span if span[1] > span[0] else None
 
 
