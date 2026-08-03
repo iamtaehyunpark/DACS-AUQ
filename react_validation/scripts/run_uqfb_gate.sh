@@ -12,14 +12,14 @@ RD=/data5/kje/MULTIAGENT/DACS-AUQ/react_validation
 PY=/opt/anaconda3/envs/Jagent/bin/python
 V=/opt/anaconda3/envs/yllm/bin/vllm
 SNAP=/data5/user/hf_cache/hub/models--Qwen--Qwen3.6-35B-A3B/snapshots/995ad96eacd98c81ed38be0c5b274b04031597b0
-OUT=$RD/result/uqfb
+OUT=${UQFB_OUT:-$RD/result/uqfb}
 PORT=8044
 GPU=
 NEED_MIB=78000
 POLL=60
 MAX_WAIT_H=48
 MAX_ATTEMPTS=12
-NWORK=5                    # stride-shard each ALFWorld arm across this many processes
+NWORK=${UQFB_NWORK:-5}                    # stride-shard each ALFWorld arm across this many processes
 # GPU0 served NaN logits for every request on 2026-07-31 (model loaded and captured CUDA graphs
 # cleanly, then produced garbage; the box also logs RmInitAdapter failures for a 6th, dead card).
 # Skip it by default, and — more importantly — CANARY every server before trusting it.
@@ -32,8 +32,8 @@ mkdir -p $OUT
 export REACT_MODEL=qwen REACT_TOKENIZER=$SNAP REACT_BASE_URL=http://localhost:$PORT/v1
 export PROBE_MODEL=qwen PROBE_TOKENIZER=$SNAP PROBE_BASE_URL=http://localhost:$PORT/v1
 
-ALF_TASKS=$RD/result/ctxrule/uqfb_tasks_alfworld.txt
-HOT_TASKS=$RD/result/ctxrule/uqfb_tasks_hotpot.txt
+ALF_TASKS=${UQFB_ALF_TASKS:-$RD/result/ctxrule/uqfb_tasks_alfworld.txt}
+HOT_TASKS=${UQFB_HOT_TASKS:-$RD/result/ctxrule/uqfb_tasks_hotpot.txt}
 for f in $ALF_TASKS $HOT_TASKS; do
   [ -s "$f" ] || { echo "MISSING_TASKS $f"; exit 1; }
 done
@@ -88,7 +88,7 @@ while :; do
   : > /tmp/uqfb_serve.log
   CUDA_VISIBLE_DEVICES=$GPU setsid nohup $V serve "$SNAP" --served-model-name qwen \
     --tensor-parallel-size 1 --max-model-len 16384 \
-    --gpu-memory-utilization 0.90 --max-num-seqs 128 \
+    --gpu-memory-utilization 0.90 --max-num-seqs 64 \
     --port $PORT >> /tmp/uqfb_serve.log 2>&1 &
   SRV=$!
   ready=0
@@ -166,7 +166,7 @@ for arm in control prod c5; do
   for w in $(seq 0 $((NWORK-1))); do
     UQFB_ARM=$arm UQFB_TASKS=$ALF_TASKS UQFB_LOG=$OUT/uqfb_alfworld_${arm}.w${w}.jsonl \
     UQFB_NUM_WORKERS=$NWORK UQFB_WORKER_ID=$w UQFB_SEED_BASE=2000 \
-    REACT_SPLIT=eval_in_distribution REACT_MAX_STEPS=50 \
+    REACT_SPLIT=eval_in_distribution REACT_MAX_STEPS=${UQFB_MAX_STEPS:-50} \
       $PY -u src/uq_feedback_alfworld.py > $OUT/alfworld_${arm}_w${w}.log 2>&1 &
     pids+=($!)
   done
