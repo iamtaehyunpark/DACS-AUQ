@@ -102,21 +102,33 @@ pending() {
   done
 }
 
-# Run a phase's pending shards, at most CONC at a time. $1=prefix, rest=command
-# template where {W} is replaced by the shard id. The .done marker is written only
-# if the shard's process exits 0.
+n_alive() {
+  local c=0 p
+  for p in "$@"; do kill -0 "$p" 2>/dev/null && c=$((c+1)); done
+  echo "$c"
+}
+
+# Run a phase's pending shards, at most CONC at a time. $1=prefix, rest is the
+# command, which receives the shard id as its last argument. The .done marker is
+# written only if that command exits 0.
+#
+# Concurrency is throttled against OUR shard pids explicitly. A bare `wait` (or
+# `wait -n`) would also block on the vLLM server, which is a background child of
+# this same shell and never exits — that deadlocks the script after the last
+# shard finishes, with every shard complete and nothing left to do.
 run_shards() {
   local prefix=$1; shift
-  local todo running=0 rc=0
+  local todo rc=0 w p
   todo=$(pending "$prefix")
   [ -z "$todo" ] && { echo "  all $SHARDS shards already done"; return 0; }
   echo "  pending shards: $(echo "$todo" | tr '\n' ' ')"
+  local pids=()
   for w in $todo; do
+    while [ "$(n_alive ${pids[@]+"${pids[@]}"})" -ge "$CONC" ]; do sleep 2; done
     ( "$@" "$w" && touch "$SH/$prefix.w$w.done" ) &
-    running=$((running+1))
-    if [ "$running" -ge "$CONC" ]; then wait -n || rc=1; running=$((running-1)); fi
+    pids+=($!)
   done
-  wait || rc=1
+  for p in ${pids[@]+"${pids[@]}"}; do wait "$p" || rc=1; done
   return $rc
 }
 
