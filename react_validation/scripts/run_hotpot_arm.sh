@@ -120,11 +120,20 @@ run_shards() {
   return $rc
 }
 
-# --- pick GPUs with room ------------------------------------------------------
-mapfile -t FREE < <(nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader,nounits \
-  | awk -F', ' -v need="$NEED_MIB" '($3-$2) >= need {print $1}')
-[ "${#FREE[@]}" -ge "$TP" ] || { echo "need $TP GPU(s) with ${NEED_MIB}MiB free; have ${#FREE[@]}" >&2; exit 1; }
-GPU=$(IFS=,; echo "${FREE[*]:0:$TP}")
+# --- pick GPUs ----------------------------------------------------------------
+# HOTPOT_GPU pins the cards explicitly (comma-separated, e.g. "4" or "3,4") and
+# skips the free-memory scan. Use it to stay off cards other users are on, or when
+# you want a specific pair for TP.
+if [ -n "${HOTPOT_GPU:-}" ]; then
+  GPU=$HOTPOT_GPU
+  n=$(echo "$GPU" | tr ',' '\n' | grep -c .)
+  [ "$n" -eq "$TP" ] || { echo "HOTPOT_GPU lists $n GPU(s) but $KEY needs TP=$TP" >&2; exit 1; }
+else
+  mapfile -t FREE < <(nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader,nounits \
+    | awk -F', ' -v need="$NEED_MIB" '($3-$2) >= need {print $1}')
+  [ "${#FREE[@]}" -ge "$TP" ] || { echo "need $TP GPU(s) with ${NEED_MIB}MiB free; have ${#FREE[@]}" >&2; exit 1; }
+  GPU=$(IFS=,; echo "${FREE[*]:0:$TP}")
+fi
 echo "gpus=$GPU"
 
 # --- serve --------------------------------------------------------------------
@@ -192,6 +201,10 @@ $PY audit_hotpot.py "$ENT_UQ" entangled | tee "$OUT/audit_hotpot_entangled.log" 
 echo "phase 2/2: post-hoc probes"
 run_shards probes probe_shard || { echo "probing incomplete — re-run to resume" >&2; exit 1; }
 cat "$SH"/probes.w*.jsonl > "$ENT_PROBES"
+
+# Completion marker, so a chain can skip a finished arm without paying to load
+# weights just to discover every shard is already done.
+date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/ARM_COMPLETE"
 
 echo "DONE $KEY"
 echo "  $ENT_UQ      ($(wc -l < "$ENT_UQ") records)"
