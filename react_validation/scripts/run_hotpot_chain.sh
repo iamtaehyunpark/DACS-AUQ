@@ -83,6 +83,23 @@ for KEY in $ARMS; do
   else
     GPUS=$(gpu_for "$KEY")
     case "$KEY" in llama70b|qwen35b) NEED=78000 ;; *) NEED=28000 ;; esac
+
+    # Reap a server left behind by a previous arm. run_hotpot_arm.sh tears its own
+    # server down via an EXIT trap, but SIGKILL bypasses traps — so a hard-killed
+    # arm leaves vLLM holding the card, and without this every LATER arm would
+    # fail the free-memory check. That is the one way a single failed model can
+    # poison the rest of the chain.
+    # Matched on OUR port range only: port 8002 is another user's server.
+    for prt in 8071 8072 8073 8074 8075 8076; do
+      if pgrep -f "vllm serve.*--port $prt" >/dev/null 2>&1; then
+        echo "reaping stale server on port $prt"
+        pkill -f "vllm serve.*--port $prt" || true
+      fi
+    done
+    if pgrep -f "vllm serve.*--port 807" >/dev/null 2>&1; then
+      sleep 15   # let the GPU memory actually come back before we measure it
+    fi
+
     echo "gpus=$GPUS (need ${NEED}MiB each)"
     if ! gpus_free "$GPUS" "$NEED"; then
       echo "$KEY: SKIPPED — pinned GPUs are busy; re-run when they free up" >&2
