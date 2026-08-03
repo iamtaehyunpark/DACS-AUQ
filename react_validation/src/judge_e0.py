@@ -27,6 +27,11 @@ MODELS = [m.strip() for m in os.environ.get("JUDGE_MODELS", "grok-4.3,DeepSeek-V
 RESPONSES_API = {"gpt-5.6-sol"}
 WORKERS = int(os.environ.get("JUDGE_WORKERS", "8"))
 PROMPT_VERSION = "redact_fig9_v1text"
+# See judge_hotpot.py for the measurement behind this default. Same panel, same
+# task shape: the Responses-API judge spends most of its output on hidden
+# reasoning tokens that this labelling task does not need.
+EFFORT = os.environ.get("JUDGE_EFFORT", "none")
+MAX_OUT = int(os.environ.get("JUDGE_MAX_OUTPUT_TOKENS", "1500"))
 RUBRIC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts", "judge_redact_fig9.txt")).read().split("# ---")[0]
 client = OpenAI(base_url=ENDPOINT, api_key=KEY)
 
@@ -66,7 +71,11 @@ def parse_judge_json(text):
 
 def ask(model, prompt, temperature):
     if model in RESPONSES_API:
-        r = client.responses.create(model=model, input=prompt)
+        kw = {}
+        if EFFORT != "default":
+            kw["reasoning"] = {"effort": EFFORT}
+            kw["max_output_tokens"] = MAX_OUT
+        r = client.responses.create(model=model, input=prompt, **kw)
         return getattr(r, "output_text", None) or _extract_responses_text(r)
     r = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}],
                                        temperature=temperature, max_tokens=2048)

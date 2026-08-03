@@ -28,6 +28,23 @@ MODELS = [m.strip() for m in os.environ.get("JUDGE_MODELS", "grok-4.3,DeepSeek-V
 RESPONSES_API = {"gpt-5.6-sol"}
 WORKERS = int(os.environ.get("JUDGE_WORKERS", "8"))
 PROMPT_VERSION = "hotpotqa_v1"
+# Reasoning effort for the Responses-API judge. Default "none".
+#
+# This judge dominates the panel's output-token usage, and 56% of its output was
+# hidden reasoning tokens (293 of 527 measured). For a task that reads a
+# trajectory and emits per-step JSON that is not earning its keep — the stored
+# `reason` is truncated to 80 chars regardless. effort="none" cuts its output
+# 527 -> 204 tokens with zero parse failures.
+#
+# Measured trade-off: 92.7% per-step label agreement against default effort over
+# 233 steps (40 trajectories), i.e. ~7% of ONE judge's votes move. "low" is the
+# worst point on the curve — 95.7% agreement for only ~12% fewer output tokens —
+# so the real choice is none vs default.
+#
+# Supported: none | low | medium | high | xhigh ("minimal" is rejected by the
+# 2026-07-09 build). Set JUDGE_EFFORT=default to restore the original behaviour.
+EFFORT = os.environ.get("JUDGE_EFFORT", "none")
+MAX_OUT = int(os.environ.get("JUDGE_MAX_OUTPUT_TOKENS", "1500"))  # guardrail; max observed 728
 _RUBRIC_PATH = os.environ.get(
     "JUDGE_RUBRIC", os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts", "judge_hotpotqa_v1.txt"))
 RUBRIC = open(_RUBRIC_PATH).read().split("# ---")[0]
@@ -80,7 +97,11 @@ def _extract_responses_text(r):
 
 def ask(model, prompt, temperature):
     if model in RESPONSES_API:
-        r = client.responses.create(model=model, input=prompt)
+        kw = {}
+        if EFFORT != "default":
+            kw["reasoning"] = {"effort": EFFORT}
+            kw["max_output_tokens"] = MAX_OUT
+        r = client.responses.create(model=model, input=prompt, **kw)
         return getattr(r, "output_text", None) or _extract_responses_text(r)
     r = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}],
                                        temperature=temperature, max_tokens=2048)
