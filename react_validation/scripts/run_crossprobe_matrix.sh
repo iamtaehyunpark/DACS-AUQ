@@ -86,6 +86,27 @@ for ASSESSOR in $ASSESSORS; do
     echo; echo "=== $ASSESSOR: all cells complete, skipping ==="; continue
   fi
 
+  # Llama-70B is ~132GB of weights. At TP=2 that is ~66GB/card, which does not fit when
+  # another user holds ~16GB of an 80GB card. Spread wider instead of failing: TP=4 puts
+  # ~33GB on each card. Chosen from live free memory, not assumed.
+  if [ "$ASSESSOR" = "Llama-3.3-70B-Instruct" ] && [ -z "${XP_GPU_BIG:-}" ]; then
+    mapfile -t FREEG < <(nvidia-smi --query-gpu=index,memory.used,memory.total \
+      --format=csv,noheader,nounits | awk -F', ' '{print $1" "($3-$2)}' | sort -k2 -nr)
+    twofree=$(printf '%s\n' "${FREEG[@]}" | awk '$2>=70000' | wc -l)
+    if [ "$twofree" -ge 2 ]; then
+      GPU=$(printf '%s\n' "${FREEG[@]}" | awk '$2>=70000{print $1}' | head -2 | paste -sd, -)
+      TP=2; UTIL=0.90
+    else
+      GPU=$(printf '%s\n' "${FREEG[@]}" | awk '$2>=40000{print $1}' | head -4 | paste -sd, -)
+      n=$(echo "$GPU" | tr ',' '\n' | grep -c .)
+      if [ "$n" -lt 4 ]; then
+        echo "$ASSESSOR: need 4 GPUs with 40GB free (have $n) — skipping" >&2
+        continue
+      fi
+      TP=4; UTIL=0.55
+    fi
+  fi
+
   echo; echo "================ assessor: $ASSESSOR (tp=$TP gpu=$GPU) ================"
   for prt in 8090 8091 8092 8093; do pgrep -f "vllm serve.*--port $prt" >/dev/null 2>&1 && pkill -f "vllm serve.*--port $prt"; done
   sleep 10
@@ -93,7 +114,14 @@ for ASSESSOR in $ASSESSORS; do
   SERVE_LOG=/tmp/xp_serve_${ASSESSOR}.log
   : > "$SERVE_LOG"
   EXTRA=""
-  [ "$ASSESSOR" = "Qwen3.6-35B-A3B" ] && export HF_HOME=/data5/user/hf_cache
+  # Qwen lives in a different cache. HF_HUB_CACHE takes precedence over HF_HOME, so
+  # setting HF_HOME alone leaves the resolver looking in /data3 and it fails with
+  # LocalEntryNotFoundError under HF_HUB_OFFLINE. Point BOTH at the right place.
+  if [ "$ASSESSOR" = "Qwen3.6-35B-A3B" ]; then
+    export HF_HOME=/data5/user/hf_cache HF_HUB_CACHE=/data5/user/hf_cache/hub
+  else
+    export HF_HUB_CACHE=$HUB
+  fi
   if [ "$TP" -gt 1 ]; then
     export NCCL_NET_PLUGIN=none NCCL_IB_DISABLE=1 NCCL_SOCKET_IFNAME=lo VLLM_HOST_IP=127.0.0.1
   fi
