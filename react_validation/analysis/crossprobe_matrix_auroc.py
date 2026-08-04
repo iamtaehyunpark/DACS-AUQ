@@ -98,8 +98,11 @@ def scoped(vals, scope):
 SCOPES = ["SPLIT-thought", "SPLIT-action", "AGG-mean", "AGG-true"]
 
 
-def cell_auroc(probes, labels):
-    """AUROC per scope for one (assessor, target) cell, plus the joined n."""
+def cell_auroc(probes, labels, keep=None):
+    """AUROC per scope for one (assessor, target) cell, plus the joined n.
+
+    keep is an optional dict that receives the per-step rows the bootstrap needs:
+    task_id (the resampling unit) and the value of every scope for that step."""
     res = {}
     for scope in SCOPES:
         v, c = [], []
@@ -112,7 +115,68 @@ def cell_auroc(probes, labels):
             v.append(u)
             c.append(labels[key])
         res[scope] = {"auroc": soft_auroc(v, c) if v else None, "n": len(v)}
+    if keep is not None:
+        rows = []
+        for key, vals in probes.items():
+            if key not in labels:
+                continue
+            rows.append((key[0], labels[key], {s: scoped(vals, s) for s in SCOPES}))
+        keep["rows"] = rows
     return res
+
+
+def invariance_delta(rows, fixed_scope, boot=1000, seed=17):
+    """Cost of using ONE fixed scope instead of this target's best, with a CI.
+
+    This is the gate-2' quantity. Reporting the argmax alone is not enough: where AUROC
+    sits near chance the winner is noise, and a bare argmax manufactures "the recipe
+    flipped" out of nothing. What matters is whether fixing the recipe COSTS anything,
+    so the delta is what gets a confidence interval.
+
+    Resampling is by episode (task_id), not by step: steps within a trajectory are
+    strongly dependent, and resampling them independently would understate the interval.
+    """
+    import random
+    by_task = collections.defaultdict(list)
+    for task_id, c, vals in rows:
+        by_task[task_id].append((c, vals))
+    tasks = list(by_task)
+    if len(tasks) < 3:
+        return None
+
+    def auroc_for(sample_tasks, scope):
+        v, c = [], []
+        for t in sample_tasks:
+            for cc, vals in by_task[t]:
+                u = vals.get(scope)
+                if u is not None:
+                    v.append(u)
+                    c.append(cc)
+        return soft_auroc(v, c) if v else None
+
+    def delta_for(sample_tasks):
+        scores = {s: auroc_for(sample_tasks, s) for s in SCOPES}
+        avail = {s: a for s, a in scores.items() if a is not None}
+        if not avail or fixed_scope not in avail:
+            return None
+        return max(avail.values()) - avail[fixed_scope]
+
+    point = delta_for(tasks)
+    if point is None:
+        return None
+    rng = random.Random(seed)
+    draws = []
+    for _ in range(boot):
+        sample = [tasks[rng.randrange(len(tasks))] for _ in range(len(tasks))]
+        d = delta_for(sample)
+        if d is not None:
+            draws.append(d)
+    if not draws:
+        return {"delta": point, "lo": None, "hi": None}
+    draws.sort()
+    return {"delta": point,
+            "lo": draws[int(0.025 * len(draws))],
+            "hi": draws[min(len(draws) - 1, int(0.975 * len(draws)))]}
 
 
 def main():
@@ -120,10 +184,12 @@ def main():
     ap.add_argument("--pivot", default="result/pivot")
     ap.add_argument("--out", default="reports/tables/crossprobe_matrix.md")
     ap.add_argument("--json", default="reports/tables/crossprobe_matrix.json")
+    ap.add_argument("--boot", type=int, default=1000)
     a = ap.parse_args()
 
     xp_root = os.path.join(a.pivot, "crossprobe")
     results = {}
+    steprows = {}
 
     for dataset in sorted(d for d in os.listdir(a.pivot)
                           if os.path.isdir(os.path.join(a.pivot, d)) and d != "crossprobe"):
@@ -139,7 +205,9 @@ def main():
             # diagonal: the arm's own probes, produced at generation time
             self_probes = load_ptrue([os.path.join(tdir, "probes.jsonl")])
             if self_probes:
-                results[(dataset, target, target)] = cell_auroc(self_probes, labels)
+                keep = {}
+                results[(dataset, target, target)] = cell_auroc(self_probes, labels, keep)
+                steprows[(dataset, target, target)] = keep.get("rows", [])
 
             # off-diagonal
             xdir = os.path.join(xp_root, dataset, target)
@@ -153,7 +221,9 @@ def main():
                          for p in ("stages", "response")]
                 probes = load_ptrue(paths)
                 if probes:
-                    results[(dataset, target, assessor)] = cell_auroc(probes, labels)
+                    keep = {}
+                    results[(dataset, target, assessor)] = cell_auroc(probes, labels, keep)
+                    steprows[(dataset, target, assessor)] = keep.get("rows", [])
 
     datasets = sorted({k[0] for k in results})
     lines = ["# Cross-probe matrix — step-level AUROC (soft, 3-judge labels)", ""]
@@ -200,6 +270,39 @@ def main():
                     wins.append("%s:%s" % (target.split("-")[0], max(avail, key=lambda x: x[1])[0]))
             if wins:
                 lines.append("| %s | %s | %s |" % (dataset, assessor, ", ".join(wins)))
+
+    # ---- gate 2' : does FIXING the recipe cost anything, per target? ----
+    lines.append("")
+    lines.append("## Invariance: cost of a single fixed scope vs the per-target best")
+    lines.append("")
+    lines.append("For each assessor the fixed scope is the one with the best MEAN AUROC")
+    lines.append("across its targets. delta = (per-target best) - (fixed), so delta >= 0 and")
+    lines.append("SMALL means fixing the recipe is cheap. CI is a 95% episode-clustered")
+    lines.append("bootstrap on the delta itself - an argmax alone manufactures 'the recipe")
+    lines.append("flipped' wherever AUROC sits near chance.")
+    lines.append("")
+    lines.append("| dataset | assessor | fixed scope | target | delta | 95% CI |")
+    lines.append("|---|---|---|---|---|---|")
+    for dataset in datasets:
+        for assessor in sorted({k[2] for k in results if k[0] == dataset}):
+            cells = {k[1]: v for k, v in results.items()
+                     if k[0] == dataset and k[2] == assessor}
+            means = {}
+            for scope in SCOPES:
+                vals = [c[scope]["auroc"] for c in cells.values() if c[scope]["auroc"] is not None]
+                if vals:
+                    means[scope] = sum(vals) / len(vals)
+            if not means:
+                continue
+            fixed = max(means, key=means.get)
+            for target in sorted(cells):
+                rows = steprows.get((dataset, target, assessor)) or []
+                d = invariance_delta(rows, fixed, boot=a.boot) if rows else None
+                if not d:
+                    continue
+                ci = ("[%.3f, %.3f]" % (d["lo"], d["hi"])) if d["lo"] is not None else "-"
+                lines.append("| %s | %s | %s | %s | %.3f | %s |"
+                             % (dataset, assessor, fixed, target, d["delta"], ci))
 
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     with open(a.out, "w") as fo:
