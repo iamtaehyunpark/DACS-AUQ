@@ -30,6 +30,12 @@ V=${XP_VLLM:-/opt/anaconda3/envs/yllm/bin/vllm}
 PORT=${XP_PORT:-8092}
 SHARDS=${1:-8}
 CONC=${2:-8}
+# Client-side concurrency is the real throughput limit, not the server: at SHARDS=8 the
+# engine reported "Running: 4-5 reqs" against a 64-seq capacity, i.e. coasting. More
+# shards = more in-flight requests. NOTE shard count is baked into the .done marker
+# names, so changing it orphans existing markers and re-probes finished cells — only
+# change it for an assessor with no completed cells.
+MAX_NUM_SEQS=${XP_MAX_NUM_SEQS:-64}
 PIVOT=$RD/result/pivot
 OUTROOT=$PIVOT/crossprobe
 
@@ -60,7 +66,7 @@ n_alive() { local c=0 p; for p in "$@"; do kill -0 "$p" 2>/dev/null && c=$((c+1)
 
 echo "crossprobe matrix start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "assessors: $ASSESSORS"
-echo "datasets:  $DATASETS   shards=$SHARDS concurrency=$CONC"
+echo "datasets:  $DATASETS   shards=$SHARDS concurrency=$CONC max_num_seqs=$MAX_NUM_SEQS"
 
 for ASSESSOR in $ASSESSORS; do
   SNAP=$(snap_for "$ASSESSOR"); TP=$(tp_for "$ASSESSOR")
@@ -127,7 +133,7 @@ for ASSESSOR in $ASSESSORS; do
   fi
   CUDA_VISIBLE_DEVICES=$GPU setsid nohup $V serve "$SNAP" --served-model-name qwen \
     --tensor-parallel-size "$TP" --max-model-len 16384 \
-    --gpu-memory-utilization "$UTIL" --max-num-seqs 64 \
+    --gpu-memory-utilization "$UTIL" --max-num-seqs "$MAX_NUM_SEQS" \
     --port "$PORT" >> "$SERVE_LOG" 2>&1 &
   SRV=$!
   echo -n "serving"
