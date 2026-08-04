@@ -82,6 +82,10 @@ for ASSESSOR in $ASSESSORS; do
       [ "$TARGET" = "$ASSESSOR" ] && continue
       [ -s "$TDIR/uq.jsonl" ] || continue
       for PASS in stages response; do
+        # A MERGED output means the cell is finished, whatever shard count produced it.
+        # Shard markers are a work-splitting detail; treating them as the completion
+        # record makes a change of SHARDS look like "not done" and re-probes good data.
+        [ -s "$OUTROOT/$DS/$TARGET/ptrue.$ASSESSOR.$PASS.jsonl" ] && continue
         for w in $(seq 0 $((SHARDS-1))); do
           [ -e "$OUTROOT/$DS/$TARGET/.$PASS.$ASSESSOR.w$w.done" ] || todo_any=1
         done
@@ -114,8 +118,15 @@ for ASSESSOR in $ASSESSORS; do
   fi
 
   echo; echo "================ assessor: $ASSESSOR (tp=$TP gpu=$GPU) ================"
-  for prt in 8090 8091 8092 8093; do pgrep -f "vllm serve.*--port $prt" >/dev/null 2>&1 && pkill -f "vllm serve.*--port $prt"; done
-  sleep 10
+  # Reap ONLY our own port. Killing a range takes down a concurrently running assessor
+  # from another job that happens to share it — which is exactly what happened when the
+  # Llama launcher fired while Qwen was mid-sweep on 8092 and killed its server.
+  # Run concurrent assessors with distinct XP_PORT.
+  if pgrep -f "vllm serve.*--port $PORT" >/dev/null 2>&1; then
+    echo "reaping stale server on our port $PORT"
+    pkill -f "vllm serve.*--port $PORT"
+    sleep 10
+  fi
 
   SERVE_LOG=/tmp/xp_serve_${ASSESSOR}.log
   : > "$SERVE_LOG"
@@ -171,6 +182,10 @@ for ASSESSOR in $ASSESSORS; do
           stages)   STAGE_ARG="thought,action"; RESP_ARG="" ;;
           response) STAGE_ARG="";               RESP_ARG="ptrue" ;;
         esac
+        if [ -s "$OUT/ptrue.$ASSESSOR.$PASS.jsonl" ]; then
+          echo "  $DS/$TARGET [$PASS] already merged ($(wc -l < "$OUT/ptrue.$ASSESSOR.$PASS.jsonl") records) — skip"
+          continue
+        fi
         pend=()
         for w in $(seq 0 $((SHARDS-1))); do
           [ -e "$OUT/.$PASS.$ASSESSOR.w$w.done" ] && continue
