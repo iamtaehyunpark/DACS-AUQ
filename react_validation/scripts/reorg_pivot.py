@@ -25,7 +25,7 @@ import json
 import os
 import sys
 
-RD = "/data5/kje/MULTIAGENT/DACS-AUQ/react_validation"
+RD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root, not hardcoded
 
 # (dataset, exact model name, source dir, arm tag)
 # arm tag None => whole-directory arm (the hotpot_* dirs hold one arm each)

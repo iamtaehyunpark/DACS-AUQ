@@ -15,7 +15,11 @@
 #   arm_dir contains uq_hotpot_entangled.jsonl
 set -euo pipefail
 
-RD=/data5/kje/MULTIAGENT/DACS-AUQ/react_validation
+# Repo root derived from this script's own location, not hardcoded: the tree has been
+# relocated once already (react_validation/* moved up into the parent), which silently
+# breaks every absolute path while leaving open file descriptors working — shards keep
+# writing but their .done markers cannot be created, so finished work goes unrecorded.
+RD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY=${HOTPOT_PY:-/opt/anaconda3/envs/Jagent/bin/python}
 JUDGE_ENV_FILE=${AZURE_JUDGE_ENV_FILE:-$HOME/.config/azure_judge.env}
 
@@ -23,6 +27,11 @@ JUDGE_ENV_FILE=${AZURE_JUDGE_ENV_FILE:-$HOME/.config/azure_judge.env}
 [ -r "$JUDGE_ENV_FILE" ] || { echo "unreadable judge env: $JUDGE_ENV_FILE" >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$JUDGE_ENV_FILE"
+# gpt-5.6-sol can go direct to OpenAI instead of the Azure deployment; the other two
+# judges stay on Azure. Optional — an absent file just means Azure for all three.
+OPENAI_JUDGE_ENV_FILE=${OPENAI_JUDGE_ENV_FILE:-$HOME/.config/openai_judge.env}
+# shellcheck disable=SC1090
+[ -r "$OPENAI_JUDGE_ENV_FILE" ] && source "$OPENAI_JUDGE_ENV_FILE"
 [ -n "${AZURE_JUDGE_ENDPOINT:-}" ] && [ -n "${AZURE_JUDGE_KEY:-}" ] || {
   echo "judge env must export AZURE_JUDGE_ENDPOINT and AZURE_JUDGE_KEY" >&2; exit 1; }
 

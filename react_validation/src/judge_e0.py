@@ -35,6 +35,17 @@ MAX_OUT = int(os.environ.get("JUDGE_MAX_OUTPUT_TOKENS", "1500"))
 RUBRIC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts", "judge_redact_fig9.txt")).read().split("# ---")[0]
 client = OpenAI(base_url=ENDPOINT, api_key=KEY)
 
+# The Responses-API judge (gpt-5.6-sol) can be routed to OpenAI DIRECTLY instead of
+# through the Azure deployment, while grok-4.3 and DeepSeek-V4-Pro stay on Azure.
+# Set OPENAI_JUDGE_KEY to enable; OPENAI_JUDGE_MODEL overrides the model id, since the
+# Azure deployment name and the OpenAI model id need not match.
+# Secrets belong in a chmod-600 file (e.g. ~/.config/openai_judge.env), never in git.
+OPENAI_KEY = os.environ.get("OPENAI_JUDGE_KEY") or os.environ.get("OPENAI_API_KEY", "")
+OPENAI_BASE = os.environ.get("OPENAI_JUDGE_BASE_URL", "https://api.openai.com/v1")
+OPENAI_MODEL = os.environ.get("OPENAI_JUDGE_MODEL", "gpt-5.6-sol")
+oai_client = OpenAI(base_url=OPENAI_BASE, api_key=OPENAI_KEY) if OPENAI_KEY else None
+
+
 _STEP_KEY_RE = re.compile(r"step\s*(\d+)", re.IGNORECASE)
 
 
@@ -75,7 +86,9 @@ def ask(model, prompt, temperature):
         if EFFORT != "default":
             kw["reasoning"] = {"effort": EFFORT}
             kw["max_output_tokens"] = MAX_OUT
-        r = client.responses.create(model=model, input=prompt, **kw)
+        # direct OpenAI when a key is configured, else the Azure deployment
+        cl, mid = (oai_client, OPENAI_MODEL) if oai_client else (client, model)
+        r = cl.responses.create(model=mid, input=prompt, **kw)
         return getattr(r, "output_text", None) or _extract_responses_text(r)
     r = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}],
                                        temperature=temperature, max_tokens=2048)

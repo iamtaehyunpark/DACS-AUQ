@@ -24,7 +24,11 @@
 #   XP_DATASETS="alfworld hotpotqa"      restrict datasets
 set -uo pipefail
 
-RD=/data5/kje/MULTIAGENT/DACS-AUQ/react_validation
+# Repo root derived from this script's own location, not hardcoded: the tree has been
+# relocated once already (react_validation/* moved up into the parent), which silently
+# breaks every absolute path while leaving open file descriptors working — shards keep
+# writing but their .done markers cannot be created, so finished work goes unrecorded.
+RD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY=${XP_PY:-/opt/anaconda3/envs/Jagent/bin/python}
 V=${XP_VLLM:-/opt/anaconda3/envs/yllm/bin/vllm}
 PORT=${XP_PORT:-8092}
@@ -128,6 +132,18 @@ for ASSESSOR in $ASSESSORS; do
     sleep 10
   fi
 
+  # Qwen3.6-35B-A3B is hybrid Mamba: every decode sequence needs one Mamba cache block,
+  # and the block count is allocated from free GPU memory at startup (~130 here). Asking
+  # for more sequences than blocks aborts CUDA-graph capture outright:
+  #   ValueError: max_num_seqs (256) exceeds available Mamba cache blocks (130)
+  # Clamped rather than left to the caller, because raising it is useless anyway — client
+  # concurrency (CONC shards) is the real limit and is far below this.
+  SEQS=$MAX_NUM_SEQS
+  if [ "$ASSESSOR" = "Qwen3.6-35B-A3B" ] && [ "$SEQS" -gt 128 ]; then
+    echo "clamping max-num-seqs $SEQS -> 128 (hybrid Mamba cache-block limit)"
+    SEQS=128
+  fi
+
   SERVE_LOG=/tmp/xp_serve_${ASSESSOR}.log
   : > "$SERVE_LOG"
   EXTRA=""
@@ -144,7 +160,7 @@ for ASSESSOR in $ASSESSORS; do
   fi
   CUDA_VISIBLE_DEVICES=$GPU setsid nohup $V serve "$SNAP" --served-model-name qwen \
     --tensor-parallel-size "$TP" --max-model-len 16384 \
-    --gpu-memory-utilization "$UTIL" --max-num-seqs "$MAX_NUM_SEQS" \
+    --gpu-memory-utilization "$UTIL" --max-num-seqs "$SEQS" \
     --port "$PORT" >> "$SERVE_LOG" 2>&1 &
   SRV=$!
   echo -n "serving"

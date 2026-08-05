@@ -24,7 +24,11 @@
 #   model_key: phi4mini | gemma4b | mistral7b | llama8b | llama70b | qwen35b
 set -euo pipefail
 
-RD=/data5/kje/MULTIAGENT/DACS-AUQ/react_validation
+# Repo root derived from this script's own location, not hardcoded: the tree has been
+# relocated once already (react_validation/* moved up into the parent), which silently
+# breaks every absolute path while leaving open file descriptors working — shards keep
+# writing but their .done markers cannot be created, so finished work goes unrecorded.
+RD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY=${HOTPOT_PY:-/opt/anaconda3/envs/Jagent/bin/python}
 V=${HOTPOT_VLLM:-/opt/anaconda3/envs/yllm/bin/vllm}
 PORT=${HOTPOT_PORT:-8071}

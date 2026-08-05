@@ -185,6 +185,9 @@ def main():
     ap.add_argument("--out", default="reports/tables/crossprobe_matrix.md")
     ap.add_argument("--json", default="reports/tables/crossprobe_matrix.json")
     ap.add_argument("--boot", type=int, default=1000)
+    ap.add_argument("--csv", default="reports/tables/crossprobe_matrix.csv",
+                    help="flat one-row-per-(cell,scope) table; the JSON is nested and "
+                         "awkward to sort or paste, so this is the sharable artifact")
     a = ap.parse_args()
 
     xp_root = os.path.join(a.pivot, "crossprobe")
@@ -202,8 +205,13 @@ def main():
             if not labels:
                 continue
 
-            # diagonal: the arm's own probes, produced at generation time
-            self_probes = load_ptrue([os.path.join(tdir, "probes.jsonl")])
+            # Diagonal: the arm's own probes, produced at generation time. BOTH files —
+            # HotpotQA wrote whole-response P(True) inline, ALFWorld to a separate
+            # probes.aggtrue.jsonl. Reading only probes.jsonl silently drops AGG-true
+            # from every ALFWorld self cell while leaving it present in the cross cells,
+            # which makes the self column look scope-poorer than it is.
+            self_probes = load_ptrue([os.path.join(tdir, "probes.jsonl"),
+                                      os.path.join(tdir, "probes.aggtrue.jsonl")])
             if self_probes:
                 keep = {}
                 results[(dataset, target, target)] = cell_auroc(self_probes, labels, keep)
@@ -213,9 +221,23 @@ def main():
             xdir = os.path.join(xp_root, dataset, target)
             if not os.path.isdir(xdir):
                 continue
-            assessors = sorted({f.split(".")[1] for f in os.listdir(xdir)
-                                if f.startswith("ptrue.") and f.endswith(".jsonl")
-                                and not f.endswith(".log")})
+            # Strip the known prefix/suffix instead of splitting on "." — model names
+            # contain dots (Qwen3.6-35B-A3B, Mistral-7B-Instruct-v0.3, Llama-3.3-70B),
+            # so f.split(".")[1] silently yields "Qwen3" and drops those assessors.
+            assessors = set()
+            for f in os.listdir(xdir):
+                if not f.startswith("ptrue.") or not f.endswith(".jsonl"):
+                    continue
+                stem = f[len("ptrue."):-len(".jsonl")]
+                for suf in (".stages", ".response"):
+                    if stem.endswith(suf):
+                        stem = stem[: -len(suf)]
+                        break
+                else:
+                    continue          # per-shard part file, not a merged output
+                if stem:
+                    assessors.add(stem)
+            assessors = sorted(assessors)
             for assessor in assessors:
                 paths = [os.path.join(xdir, "ptrue.%s.%s.jsonl" % (assessor, p))
                          for p in ("stages", "response")]
@@ -309,6 +331,23 @@ def main():
         fo.write("\n".join(lines) + "\n")
     with open(a.json, "w") as fo:
         json.dump({"%s|%s|%s" % k: v for k, v in results.items()}, fo, indent=2)
+
+    # Flat table: one row per (dataset, target, assessor, scope). `arm` marks whether the
+    # row is the model reading its own trajectories or someone else's — the single most
+    # common filter, and easy to get wrong by string-matching model names after the fact.
+    import csv as _csv
+    with open(a.csv, "w", newline="") as fo:
+        w = _csv.writer(fo)
+        w.writerow(["dataset", "target", "assessor", "arm", "scope", "n", "auroc"])
+        for (ds, tgt, asr) in sorted(results):
+            cell = results[(ds, tgt, asr)]
+            arm = "self" if asr == tgt else "cross"
+            for scope in SCOPES:
+                au = cell[scope]["auroc"]
+                if au is None:
+                    continue
+                w.writerow([ds, tgt, asr, arm, scope, cell[scope]["n"], "%.6f" % au])
+    print("wrote %s" % a.csv)
     print("cells: %d" % len(results))
     print("wrote %s and %s" % (a.out, a.json))
 
