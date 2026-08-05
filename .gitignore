@@ -10,7 +10,7 @@ data/trajectories/
 data/labels/
 data/analysis/
 results/
-runs/
+/runs/
 *.log
 
 # local scratch
@@ -56,3 +56,26 @@ react_validation/**/*.w[0-9].jsonl
 # pre-"expert update" safety copy of the four uncommitted src files; superseded
 # now that those edits are committed
 .server_backup_preexpert/
+
+# --- flattened layout (react_validation/* moved up into the repo root, 2026-08-05) ---
+# The old react_validation/-prefixed rules above are kept so a checkout of the previous
+# layout still ignores correctly. These are their root-level equivalents; without them
+# `git add -A` would try to commit ~76G of result/ plus data/ and runs/.
+/result/
+/data/
+/runs/
+/viz/*.html
+**/__pycache__/
+**/_prompt.txt
+/analysis/*.jsonl
+/src/*.jsonl
+/src/.last_parallel_seed
+/rerun_tasks_llama.txt
+**/*.w[0-9].jsonl
+/ReAct/
+
+# one-off operational scratch scripts, not part of the research code
+gate_and_queue.sh
+queue_new_arms.sh
+verify_models.sh
+llama_when_free.sh
