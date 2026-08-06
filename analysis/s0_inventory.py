@@ -320,7 +320,7 @@ def main():
         L.append("ABSENT — STOP condition 1.\n")
     L.append("## Capacity\n")
     if g.get("available"):
-        L.append("| gpu | name | free MiB | util %% |")
+        L.append("| gpu | name | free MiB | util pct |")
         L.append("|---|---|---|---|")
         for d in g["devices"]:
             L.append("| %d | %s | %d | %d |" % (d["index"], d["name"],

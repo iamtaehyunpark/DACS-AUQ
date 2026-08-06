@@ -31,8 +31,17 @@ node_modules/
 # HotpotQA dataset file from the repo.
 /result/
 /data/
-/runs/
 /viz/*.html
+
+# /runs/ is 1.7G of run logs, but the execution harness makes runs/manifest.json
+# its pre-registration ledger (EXECUTION_HANDOVER.md ground rule 1: every stage
+# spec's hash is recorded there). A ledger outside version control cannot serve
+# that purpose, so the two harness files are tracked and the bulk stays ignored.
+# Note git cannot re-include a file inside an excluded DIRECTORY -- hence
+# /runs/* rather than /runs/, so the negations below can take effect.
+/runs/*
+!/runs/manifest.json
+!/runs/env.txt
 /analysis/*.jsonl
 /src/*.jsonl
 *.jsonl.gz
