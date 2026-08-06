@@ -34,73 +34,97 @@ FULL_ASSESSMENTS = 77026      # S4_COST exact count
 SEED = 13
 
 
-def hindsight_prompt(rec):
-    """Online prefix + the full trajectory tail + episode outcome.
+def build_episodes(pivot, limit_arms=8):
+    """{(ds, model, task_id): [(step_idx, prompt_templated, completion_raw)]}
 
-    The point of the probe is the LENGTH, so this reconstructs a realistic hindsight
-    context from the banked record rather than a short stand-in.
+    Reads the banked uq.jsonl.  The schema is prompt_templated / completion_raw /
+    task_id / step_idx -- the earlier version of this probe guessed field names that
+    do not exist, got empty strings, and timed ~91-token prompts, which is exactly the
+    flattering measurement this probe exists to prevent.
     """
-    task = rec.get("task") or rec.get("goal") or ""
-    hist = rec.get("history") or rec.get("prefix") or ""
-    if isinstance(hist, list):
-        hist = "\n".join(str(h) for h in hist)
-    full = rec.get("full_trajectory") or rec.get("trajectory") or ""
-    if isinstance(full, list):
-        full = "\n".join(str(h) for h in full)
-    thought = rec.get("thought") or ""
-    action = rec.get("action_parsed") or rec.get("action") or ""
-    outcome = rec.get("episode_success")
-    outcome_s = ("SUCCEEDED" if outcome in (1, True, "1", "true")
-                 else "FAILED" if outcome is not None else "UNKNOWN")
-    return (
-        "You are reviewing one step of an agent trajectory, WITH HINDSIGHT.\n\n"
-        "TASK:\n%s\n\nHISTORY UP TO THIS STEP:\n%s\n\n"
-        "FULL TRAJECTORY (including everything after this step):\n%s\n\n"
-        "EPISODE OUTCOME: %s\n\n"
-        "AGENT REASONING:\n%s\nPROPOSED ACTION:\n%s\n\n"
-        "Is the proposed action above the correct and appropriate next action for "
-        "this task?\nAnswer with a single word: Yes or No."
-        % (task, hist, full, outcome_s, thought, action))
-
-
-def sample_records(n, rng):
-    """Pull n real step records from the banked uq files, across arms."""
-    recs = []
-    for ds in sorted(os.listdir(PIVOT)):
-        d = os.path.join(PIVOT, ds)
+    eps = {}
+    arms = 0
+    for ds in sorted(os.listdir(pivot)):
+        d = os.path.join(pivot, ds)
         if ds == "crossprobe" or not os.path.isdir(d):
             continue
         for m in sorted(os.listdir(d)):
             p = os.path.join(d, m, "uq.jsonl")
             if not os.path.exists(p):
                 continue
-            take = 0
+            arms += 1
+            if arms > limit_arms:
+                return eps
             with open(p) as f:
                 for line in f:
-                    if take >= max(1, n // 8):
-                        break
                     try:
                         r = json.loads(line)
                     except ValueError:
                         continue
-                    if r.get("thought") or r.get("action_parsed"):
-                        recs.append(r)
-                        take += 1
-            if len(recs) >= n * 2:
-                break
-        if len(recs) >= n * 2:
-            break
-    rng.shuffle(recs)
-    return recs[:n]
+                    if r.get("call_kind") not in (None, "joint"):
+                        continue
+                    pt = r.get("prompt_templated") or ""
+                    cr = r.get("completion_raw") or ""
+                    if not pt:
+                        continue
+                    eps.setdefault((ds, m, r.get("task_id")), []).append(
+                        (r.get("step_idx", 0), pt, cr))
+    return eps
+
+
+def hindsight_prompt(steps, i, outcome):
+    """Online prompt for step i + the FULL trajectory including everything after it +
+    the episode outcome.  Length is the quantity under test."""
+    _idx, prompt, _c = steps[i]
+    tail = "\n".join("STEP %d:\n%s" % (s[0], s[2]) for s in steps)
+    return (prompt
+            + "\n\n--- HINDSIGHT CONTEXT ---\n"
+              "FULL TRAJECTORY (including everything after this step):\n%s\n\n"
+              "EPISODE OUTCOME: %s\n\n"
+              "Is the proposed action at this step the correct and appropriate next "
+              "action for this task?\nAnswer with a single word: Yes or No."
+              % (tail, outcome))
+
+
+def episode_outcomes(labels_csv):
+    """(dataset, model, task_id) -> SUCCEEDED / FAILED / UNKNOWN."""
+    import csv as _csv
+    out = {}
+    if not os.path.exists(labels_csv):
+        return out
+    with open(labels_csv) as f:
+        for x in _csv.DictReader(f):
+            v = x.get("episode_success", "")
+            out[(x["dataset"], x["model"], x["task_id"])] = (
+                "SUCCEEDED" if v in ("1", "True", "true") else
+                "FAILED" if v in ("0", "False", "false") else "UNKNOWN")
+    return out
 
 
 def main():
     rng = random.Random(SEED)
-    recs = sample_records(N, rng)
-    if not recs:
-        sys.exit("S4 probe: no usable records under %s" % PIVOT)
-    prompts = [hindsight_prompt(r) for r in recs]
+    eps = build_episodes(PIVOT)
+    outc = episode_outcomes(os.environ.get("LABELS",
+                                           "reports/gate1/labels_gate1.csv"))
+    keys = [k for k, v in eps.items() if len(v) >= 2]
+    if not keys:
+        sys.exit("S4 probe: no usable episodes under %s" % PIVOT)
+    rng.shuffle(keys)
+    prompts = []
+    for k in keys:
+        steps = sorted(eps[k], key=lambda s: s[0])
+        i = rng.randrange(len(steps))
+        prompts.append(hindsight_prompt(steps, i, outc.get(k, "UNKNOWN")))
+        if len(prompts) >= N:
+            break
     approx_tok = [len(p) // 4 for p in prompts]     # ~4 chars/token, for reporting only
+    # A hindsight prompt is the online prompt (~330 tokens) plus the whole trajectory.
+    # If the mean comes out near the online length, the reconstruction is broken and
+    # the measured rate is meaningless -- fail loudly rather than report it.
+    if sum(approx_tok) / len(approx_tok) < 600:
+        sys.exit("S4 probe: mean prompt %d tokens — that is online length, not "
+                 "hindsight. Reconstruction is broken; refusing to report a rate."
+                 % (sum(approx_tok) / len(approx_tok)))
 
     cl = OpenAI(base_url="http://localhost:%s/v1" % PORT, api_key="x")
     t0 = time.time()
