@@ -251,7 +251,26 @@ def main():
                 except ValueError:
                     return None
 
-            V, fitted = anum("V"), anum("S_fitted")
+            fitted = anum("S_fitted")
+            V_anchor = anum("V")
+            # V MUST be recomputed on the same step set as the new arms.  Reading it
+            # from the S1d table compares arms scored on this label-matched set against
+            # a verdict scored on that gate's own set; any difference in coverage then
+            # shows up as an arm win or loss that is really a step-set artifact.
+            # top1_verdict: 0 = "Yes" (correct), 1 = "No" (incorrect) -> flag on 1.
+            vy, vv = [], []
+            for k, (u, said) in scores[(ds, asr, tgt)].items():
+                yw = lab.get((ds, tgt), {}).get(k)
+                if yw is not None and said is not None:
+                    vv.append(said); vy.append(yw[0])
+            V = None
+            if vv and len(set(vy)) > 1:
+                vv = np.asarray(vv); vy = np.asarray(vy)
+                P, N = (vy == 1), (vy == 0)
+                if P.sum() and N.sum():
+                    V = float(0.5 * (((vv == 1) & P).sum() / P.sum()
+                                     + ((vv == 0) & N).sum() / N.sum()))
+            v_parse = len(vv) / len(us) if len(us) else 0.0
 
             # ---- arm 0: h-rule (pct* ~ mean-U, fitted on the pool) ----------
             pts = []
@@ -285,7 +304,8 @@ def main():
                 "construct": construct, "dataset": ds, "assessor": asr, "target": tgt,
                 "capable": "yes" if asr in CAPABLE else "no",
                 "n": len(us), "n_pool": len(pool), "base": float((ys == 1).mean()),
-                "V": V, "S_LOTO_quantile": anum("S_LOTO_quantile"),
+                "V": V, "V_anchor_S1d": V_anchor, "V_parse_rate": v_parse,
+                "S_LOTO_quantile": anum("S_LOTO_quantile"),
                 "S_g_quantile": anum("S_g_quantile"),
                 "S_oracle_pct": anum("S_oracle_pct"), "S_fitted": fitted,
                 "arm0_h_rule": ba_h, "arm0_pct": (pct if h is not None else None),
@@ -295,7 +315,7 @@ def main():
             })
         results[construct] = rows
         cols = ["construct", "dataset", "assessor", "target", "capable", "n", "n_pool",
-                "base", "V", "S_LOTO_quantile", "S_g_quantile", "S_oracle_pct",
+                "base", "V", "V_anchor_S1d", "V_parse_rate", "S_LOTO_quantile", "S_g_quantile", "S_oracle_pct",
                 "S_fitted", "arm0_h_rule", "arm0_pct", "arm1_mixture", "arm1_status",
                 "arm1_cut", "arm2_violation", "arm2_cut"]
         p = os.path.join(a.outdir, "gate3_cells_%s.csv" % construct.replace("+", "-"))
