@@ -82,9 +82,13 @@ def load(labels_csv, construct, in_matrix_only=True):
     """-> {(dataset, model): {(task_id, step_idx): (y, w)}}
 
     task_id/step_idx are returned as the SAME types the score loader produces:
-    step_idx int, task_id left as the raw string.  The banked score files key on
-    (task_id, step_idx) from JSON, where step_idx is a number -- a str/int mismatch
-    here would silently join zero rows, so it is normalised once, here.
+    Keys are coerced to the SAME types the score loader produces.  The label CSV is
+    all text; the JSONL scores are typed, and the two datasets differ from each other:
+    ALFWorld task_id is a string ("look_at_obj_in_light-AlarmClock-.../trial_..."),
+    HotpotQA task_id is an int (1009), and step_idx is an int in both.  A str/int
+    mismatch joins ZERO rows, and a cell with zero rows simply does not appear -- which
+    is how the first S1 run lost all 25 HotpotQA cells and still printed a clean
+    31-cell table.  Coerce once, here; callers assert coverage.
     """
     if not os.path.exists(labels_csv):
         raise SystemExit("S1: labels file absent: %s" % labels_csv)
@@ -100,7 +104,9 @@ def load(labels_csv, construct, in_matrix_only=True):
                 step = int(x["step_idx"])
             except (KeyError, ValueError):
                 continue
-            out[(x["dataset"], x["model"])][(x["task_id"], step)] = (y, w)
+            t = x["task_id"]
+            tid = int(t) if t.lstrip("-").isdigit() else t
+            out[(x["dataset"], x["model"])][(tid, step)] = (y, w)
     return out
 
 

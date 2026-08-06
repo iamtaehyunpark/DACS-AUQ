@@ -187,8 +187,15 @@ def load_scores(pivot, scope, cache=None):
     return out
 
 
-def build_cells(scores, labels_by_arm):
+def build_cells(scores, labels_by_arm, construct=""):
+    """Join scores to labels, and REFUSE to return a silently empty matrix.
+
+    A key-type mismatch produces zero matched rows per cell, and a cell with zero
+    rows just does not appear -- the table then looks clean while missing a whole
+    dataset.  Any arm that has both scores and labels but joins nothing is a hard
+    error here, because there is no benign reason for it."""
     cells = {}
+    empty = []
     for (ds, asr, tgt), d in scores.items():
         lab = labels_by_arm.get((ds, tgt))
         if not lab:
@@ -199,11 +206,19 @@ def build_cells(scores, labels_by_arm):
             if yw is not None:
                 rows.append((u, yw[0], yw[1], key[0]))
         if not rows:
+            empty.append((ds, asr, tgt, len(d), len(lab)))
             continue
         c = Cell(rows)
         c.self_ = asr == tgt
         c.capable = asr in CAPABLE
         cells[(ds, asr, tgt)] = c
+    if empty:
+        msg = ["%s: %d cells have scores AND labels but joined 0 rows "
+               "(key-type mismatch?)" % (construct or "build_cells", len(empty))]
+        for ds, asr, tgt, ns, nl in empty[:10]:
+            msg.append("  %s %s -> %s : %d scored steps, %d labelled steps"
+                       % (ds, asr, tgt, ns, nl))
+        raise SystemExit("\n".join(msg))
     return cells
 
 
@@ -378,7 +393,7 @@ def main():
     for c in constructs:
         rng = np.random.default_rng(SEED)   # same draws per construct
         lab = SL.load(a.labels, c, in_matrix_only=True)
-        cells = build_cells(scores, lab)
+        cells = build_cells(scores, lab, c)
         cells_by_c[c] = cells
         rows = s1a(cells, rng)
         write_csv(os.path.join(a.outdir, "S1a_crossprobe_%s_%s.csv"
