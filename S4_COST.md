@@ -44,3 +44,56 @@ Approve up to **10 A100-hours** (the handover's own §5 ceiling) for the hindsig
 
 A30 calls this the keystone: it converts the construct taxonomy from argument into measurement, and decomposes the R3 movements into information-gap vs construct-gap. S1d raises the stakes — the construct choice now decides a gate verdict, not just a framing.
 
+
+---
+
+# MEASURED — RE-HALT (D1.2)
+
+**The 500-step probe required by D1.1 has run. Projected cost EXCEEDS the 10 A100-hour
+ceiling, so D1.2 applies and this branch re-halts with the measured number.**
+
+| quantity | value |
+|---|---|
+| measured rate | **375 assessments / 5 min / A100** |
+| inherited constant | 3,300 (8.8x optimistic) |
+| mean hindsight prompt | **6,957 tokens** |
+| max hindsight prompt | 35,448 tokens |
+| full pass | 77,026 assessments |
+| **projected** | **17.1 A100-hours** vs 10.0 ceiling |
+| probe errors | 3 / 500 |
+
+## What the probe settles
+
+S4_COST projected 1.3–3.9 A100-hours from the inherited constant; the handover's §5
+estimated 6–10. **The handover was right and this document was wrong.** The inherited
+3,300/5min was measured on the banked online prompts (~330 tokens). Real hindsight
+prompts average **6,957 tokens** — 21x longer — and throughput falls 8.8x accordingly.
+
+An earlier probe run reported 3,802/5min and PROCEED. It was invalid: its prompt
+reconstruction used field names absent from uq.jsonl, so it timed ~91-token prompts.
+Nothing from it was used. The probe now aborts rather than report a rate if mean
+prompt length comes back at online length.
+
+## Second finding, not in any spec: context overflow
+
+3 of 500 probe calls failed. Max reconstructed prompt is **35,448 tokens**
+against a 32,768 served context. Long ALFWorld episodes exceed the window. A full pass
+would silently drop those steps unless a policy is set, and the longest episodes are
+not a random subset — they are the hard ones.
+
+Options, author's call: (a) raise max-model-len (memory cost, may force lower
+max-num-seqs); (b) truncate the hindsight tail with a documented rule; (c) drop
+over-length steps and report coverage. None is obviously right and (c) changes what
+the hindsight ceiling means.
+
+## Ways back under the ceiling, if wanted
+
+- **One capable judge instead of two** → ~8.6 A100-hours, within ceiling.
+  Costs the judge-agreement contrast.
+- **Subsample steps** to ~58% of the matrix → ~10 A100-hours. Costs per-cell precision.
+- **Approve the measured 17.1 hours.** Wall clock across the 5 free A100s is
+  ~3.4 hours, which is the practical figure.
+
+Recommendation stated plainly: approving the full 17.1 A100-hours is the option
+that keeps the analyses as specced, and the wall clock is small. But D1.2 makes this
+the author's decision, not the harness's.
