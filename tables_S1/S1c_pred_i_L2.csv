@@ -1,0 +1,12 @@
+dataset,target,capable_best,noncapable_best,capable,noncapable,delta,ci_lo,ci_hi
+alfworld,Llama-3.3-70B-Instruct,Qwen3.6-35B-A3B,Mistral-7B-Instruct-v0.3,0.8973,0.6811,0.2162,0.1834,0.2493
+alfworld,Mistral-7B-Instruct-v0.3,Qwen3.6-35B-A3B,Phi-4-mini-instruct,0.8816,0.4678,0.4138,0.3893,0.4375
+alfworld,Phi-4-mini-instruct,Qwen3.6-35B-A3B,Mistral-7B-Instruct-v0.3,0.8528,0.6198,0.2330,0.2075,0.2598
+alfworld,Qwen3.6-35B-A3B,Llama-3.3-70B-Instruct,gemma-3-4b-it,0.7620,0.6065,0.1555,0.1189,0.1961
+alfworld,deepseek-v4-flash,Qwen3.6-35B-A3B,Mistral-7B-Instruct-v0.3,0.8568,0.5686,0.2882,0.2397,0.3349
+alfworld,gemma-3-4b-it,Qwen3.6-35B-A3B,Mistral-7B-Instruct-v0.3,0.9121,0.7301,0.1820,0.1508,0.2147
+hotpotqa,Llama-3.3-70B-Instruct,Qwen3.6-35B-A3B,Phi-4-mini-instruct,0.8925,0.7103,0.1823,0.1528,0.2135
+hotpotqa,Mistral-7B-Instruct-v0.3,Llama-3.3-70B-Instruct,gemma-3-4b-it,0.9132,0.6766,0.2366,0.2162,0.2573
+hotpotqa,Phi-4-mini-instruct,Qwen3.6-35B-A3B,gemma-3-4b-it,0.9435,0.7291,0.2145,0.1935,0.2364
+hotpotqa,Qwen3.6-35B-A3B,Llama-3.3-70B-Instruct,Mistral-7B-Instruct-v0.3,0.9031,0.8025,0.1006,0.0699,0.1352
+hotpotqa,gemma-3-4b-it,Qwen3.6-35B-A3B,Mistral-7B-Instruct-v0.3,0.9486,0.7273,0.2213,0.1984,0.2435

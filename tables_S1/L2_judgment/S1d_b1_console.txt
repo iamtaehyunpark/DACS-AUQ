@@ -1,0 +1,14 @@
+$ construct=judgment gate=b1 --pivot result/pivot --scope AGG-true --out tables_S1/L2_judgment/S1d_b1.csv
+
+rows: 56 -> tables_S1/L2_judgment/S1d_b1.csv
+
+scope=AGG-true   verdict = own cut (no fitting) | value_out = fitted OUT-OF-SAMPLE
+assessor                     n   verdict  value_in  value_out  optimism  gain_out
+Qwen3.6-35B-A3B             11     0.763     0.823      0.815     0.008    +0.053
+Llama-3.3-70B-Instruct      11     0.759     0.809      0.802     0.007    +0.044
+Mistral-7B-Instruct-v0.3    11     0.505     0.641      0.628     0.013    +0.123
+gemma-3-4b-it               11     0.481     0.614      0.601     0.013    +0.120
+Phi-4-mini-instruct         11     0.507     0.551      0.541     0.011    +0.034
+ALL                         56     0.604     0.688      0.678     0.010    +0.074
+
+cells where the VALUE still beats the VERDICT out-of-sample: 52/56

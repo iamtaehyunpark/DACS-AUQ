@@ -1,0 +1,12 @@
+dataset,target,gap_outcome,gap_viol_judg,dd
+alfworld,Llama-3.3-70B-Instruct,-0.0329,-0.0376,0.0048
+alfworld,Mistral-7B-Instruct-v0.3,-0.0742,-0.2476,0.1734
+alfworld,Phi-4-mini-instruct,-0.0628,-0.3903,0.3275
+alfworld,Qwen3.6-35B-A3B,0.0141,-0.0708,0.0849
+alfworld,deepseek-v4-flash,-0.0171,-0.1356,0.1185
+alfworld,gemma-3-4b-it,-0.2873,-0.4356,0.1484
+hotpotqa,Llama-3.3-70B-Instruct,-0.0920,0.0092,-0.1012
+hotpotqa,Mistral-7B-Instruct-v0.3,-0.0292,-0.2071,0.1779
+hotpotqa,Phi-4-mini-instruct,-0.0055,-0.3867,0.3812
+hotpotqa,Qwen3.6-35B-A3B,-0.0355,0.0183,-0.0537
+hotpotqa,gemma-3-4b-it,-0.1563,-0.1977,0.0413

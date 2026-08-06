@@ -1,0 +1,14 @@
+$ construct=y_env gate=b1 --pivot result/pivot --scope AGG-true --out tables_S1/L2_y_env/S1d_b1.csv
+
+rows: 56 -> tables_S1/L2_y_env/S1d_b1.csv
+
+scope=AGG-true   verdict = own cut (no fitting) | value_out = fitted OUT-OF-SAMPLE
+assessor                     n   verdict  value_in  value_out  optimism  gain_out
+Mistral-7B-Instruct-v0.3    11     0.501     0.753      0.740     0.013    +0.239
+Qwen3.6-35B-A3B             11     0.712     0.754      0.732     0.022    +0.021
+Llama-3.3-70B-Instruct      11     0.664     0.730      0.712     0.018    +0.048
+Phi-4-mini-instruct         11     0.546     0.720      0.705     0.014    +0.159
+gemma-3-4b-it               11     0.488     0.631      0.616     0.015    +0.127
+ALL                         56     0.583     0.717      0.700     0.016    +0.117
+
+cells where the VALUE still beats the VERDICT out-of-sample: 49/56

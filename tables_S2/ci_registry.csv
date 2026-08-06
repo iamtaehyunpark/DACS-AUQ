@@ -1,0 +1,8 @@
+claim_id,claim,estimate,ci_lo,ci_hi,null_value,method,n,source_table,status,note
+C-g2,S-g-quantile >= V on capable cells (P-g2),0.8182,0.6364,0.9545,0.8000,"cell bootstrap, 2000",22,figures/tables_gate2b1/gate2b1_cells_AGG-true_full.csv,soften,"null is the registered 0.80 threshold, not 0.5"
+C-cap,pooled capture ratio of the g-rule (capable),0.5552,0.0970,0.8471,0.5000,"cell bootstrap of the ratio, 2000",16,figures/tables_gate2b1/gate2b1_cells_AGG-true_full.csv,soften,null is the registered 0.5 threshold
+C-chan,mean OOS gain of value over verdict,0.0652,0.0517,0.0793,0.0000,"cell bootstrap, 2000",60,reports/tables/verdict_vs_value.csv,ok,
+C-chan-frac,fraction of cells where value beats verdict,0.9167,0.8500,0.9833,0.5000,"cell bootstrap, 2000",60,reports/tables/verdict_vs_value.csv,ok,
+C-a30i,capable external superiority (violation+judgment),0.2222,0.1802,0.2724,0.0000,paired episode bootstrap then cell bootstrap,11,tables_S1/S1abc_L2.json,ok,
+C-a30ii,self-inflation larger under outcome than violation+judgment,0.1185,0.0359,0.2054,0.0000,cell bootstrap of difference-of-differences,11,tables_S1/S1abc_L2.json,ok,
+C-tier,capable-tier assessors beat the tier below,0.2820,0.2353,0.3293,0.0000,unpaired cell bootstrap (different cell sets),45,tables_S1/S1a_crossprobe_L2_violation-judgment.csv,ok,"capable mean 0.8871 (n=18), non-capable 0.6050 (n=27)"

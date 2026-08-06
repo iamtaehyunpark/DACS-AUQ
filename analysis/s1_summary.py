@@ -14,6 +14,7 @@ import argparse
 import csv
 import json
 import os
+import re
 
 TOL = 0.001          # spec §7
 ARMS = ["V", "S_LOTO_raw", "S_LOTO_quantile", "S_g_quantile", "S_oracle_pct",
@@ -82,6 +83,41 @@ def repro_check(banked, l1, out_md):
             f.write("\n".join(lines) + "\n")
     return {"status": status, "only_banked": len(only_b), "only_l1": len(only_l),
             "beyond_tol": len(diffs)}
+
+
+GATE_RE = {
+    # re.M is load-bearing: the ALL row is mid-file, and without it ^ anchors to
+    # the start of the whole console text and never matches.
+    "b1_gain": re.compile(r"^ALL\s+(\d+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)\s+[\d.]+\s+\+?(-?[\d.]+)", re.M),
+    "b1_cells": re.compile(r"VALUE still beats the VERDICT out-of-sample: (\d+)/(\d+)"),
+    "verdict": re.compile(r"==> (G2b1?-R\d) (PASS|PARTIAL|FAIL)"),
+    "pq": re.compile(r"P-quantile:.*?in (\d+)/(\d+) cells \((\d+)%\)"),
+    "pg2": re.compile(r"P-g2:.*?in (\d+)/(\d+) \((\d+)%\)"),
+    "capq": re.compile(r"capture ratio \(mean over \d+ unsaturated\): (-?[\d.]+)"),
+    "capg": re.compile(r"capture\(S_g_quantile\s*\) pooled (-?[\d.]+)"),
+}
+
+
+def parse_gate(path, capable_only=True):
+    """Pull the registered quantities out of a gate console log.
+
+    Reads only the CAPABLE stratum block when capable_only, because that is the
+    decisive stratum declared in the A28.1 spec before results existed."""
+    if not os.path.exists(path):
+        return {}
+    txt = open(path).read()
+    if capable_only and "CAPABLE STRATUM" in txt:
+        start = txt.index("CAPABLE STRATUM")
+        end = txt.find("ALL JUDGES", start)
+        block = txt[start:end if end > 0 else len(txt)]
+    else:
+        block = txt
+    out = {}
+    for k, rx in GATE_RE.items():
+        m = rx.search(block if k not in ("b1_gain", "b1_cells") else txt)
+        if m:
+            out[k] = m.groups()
+    return out
 
 
 def main():
@@ -153,9 +189,9 @@ def main():
 
     # independence, per construct
     L.append("## S1b — independence restatement (R3 obligation)\n")
-    L.append("Best-self vs best-external per arm, paired episode-clustered CI on the "
-             "difference. Negative Δ means the external judge reads the target better "
-             "than the target reads itself.\n")
+    L.append("Best-self vs best-external per arm, paired episode-clustered CI on "
+             "Δ = AUROC(best external) − AUROC(self). **Positive Δ means the external "
+             "judge reads the target better than the target reads itself.**\n")
     for c in ["violation", "outcome", "judgment", "y_env", "violation+judgment"]:
         rows = read(os.path.join(a.tables, "S1b_independence_L2_%s.csv"
                                  % c.replace("+", "-")))
@@ -164,12 +200,35 @@ def main():
         ok = [r for r in rows if fnum(r, "delta") is not None]
         if not ok:
             continue
-        neg = sum(1 for r in ok if fnum(r, "delta") < 0)
+        ext_wins = sum(1 for r in ok if fnum(r, "delta") > 0)
         excl = sum(1 for r in ok
                    if fnum(r, "ci_lo") is not None and fnum(r, "ci_hi") is not None
                    and not (fnum(r, "ci_lo") <= 0 <= fnum(r, "ci_hi")))
         L.append("- **%s**: %d arms; external beats self in %d; %d have a CI "
-                 "excluding 0." % (c, len(ok), neg, excl))
+                 "excluding 0." % (c, len(ok), ext_wins, excl))
+    L.append("")
+    L.append("## S1d — gate verdicts, L1 vs L2 per construct (capable stratum)\n")
+    L.append("The capable stratum is the decisive one, declared in the A28.1 spec "
+             "before any result existed.\n")
+    L.append("| construct | b1 gain | b1 cells | A28 P-quantile | A28 | A28.1 P-g2 "
+             "| A28.1 capture | A28.1 |")
+    L.append("|---|---|---|---|---|---|---|---|")
+    passes = [("L1 (banked)", os.path.join(a.tables, "L1_L1"))]
+    for c in ["violation", "outcome", "judgment", "y_env", "violation+judgment"]:
+        passes.append((c, os.path.join(a.tables, "L2_%s" % c.replace("+", "-"))))
+    for name, d in passes:
+        b1 = parse_gate(os.path.join(d, "S1d_b1_console.txt"), False)
+        g28 = parse_gate(os.path.join(d, "S1d_A28_console.txt"))
+        g281 = parse_gate(os.path.join(d, "S1d_A28_1_console.txt"))
+        gain = "+%s" % b1["b1_gain"][2] if "b1_gain" in b1 else "-"
+        cells = "%s/%s" % b1["b1_cells"] if "b1_cells" in b1 else "-"
+        pq = "%s/%s (%s%%)" % g28["pq"] if "pq" in g28 else "-"
+        v28 = "**%s %s**" % g28["verdict"] if "verdict" in g28 else "-"
+        pg2 = "%s/%s (%s%%)" % g281["pg2"] if "pg2" in g281 else "-"
+        cap = g281["capg"][0] if "capg" in g281 else "-"
+        v281 = "**%s %s**" % g281["verdict"] if "verdict" in g281 else "-"
+        L.append("| %s | %s | %s | %s | %s | %s | %s | %s |"
+                 % (name, gain, cells, pq, v28, pg2, cap, v281))
     L.append("")
     L.append("## Tables\n")
     for f in sorted(os.listdir(a.tables)):
