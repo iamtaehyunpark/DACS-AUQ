@@ -25,6 +25,13 @@ snap_for() {
 }
 tp_for() { case "$1" in Llama-3.3-70B-Instruct) echo 2 ;; *) echo 1 ;; esac; }
 MODE=${MODE:-main}          # main | long
+# GPU topology matters here: 0 and 1 are interconnected, 1 and 2 are NOT. Llama-70B
+# runs TP=2 and every all-reduce crosses that link, so placing it on 1,2 forced the
+# traffic over PCIe and cost 6.5x throughput (0.154 steps/s vs Qwen's 1.01 on one
+# card). Llama must sit on a connected pair; Qwen is TP=1 and can go anywhere.
+LLAMA_GPUS=${LLAMA_GPUS:-0,1}
+QWEN_GPU=${QWEN_GPU:-2}
+JUDGES=${JUDGES:-both}      # both | llama | qwen
 
 serve_and_run () {
   local JUDGE=$1 GPU=$2 PORT=$3 CTX=$4 SEQS=$5
@@ -66,20 +73,23 @@ serve_and_run () {
 }
 
 if [ "$MODE" = "main" ]; then
-  # served window 32,768; Qwen clamped to 128 seqs (hybrid Mamba cache-block limit)
-  serve_and_run Qwen3.6-35B-A3B        0 8071 32768 128 &
-  P1=$!
-  serve_and_run Llama-3.3-70B-Instruct 1,2 8072 32768  64 &
-  P2=$!
+  CTX=32768; QSEQS=128; LSEQS=64; QPORT=8071; LPORT=8072
 else
   # long-context sub-pass: 36,864 ctx, batch 16 — KV cache scales with ctx x seqs and
   # 128 sequences at 36k does not fit in 80GB
-  serve_and_run Qwen3.6-35B-A3B        0 8073 36864 16 &
-  P1=$!
-  serve_and_run Llama-3.3-70B-Instruct 1,2 8074 36864 16 &
+  CTX=36864; QSEQS=16; LSEQS=16; QPORT=8073; LPORT=8074
+fi
+
+R1=0; R2=0
+if [ "$JUDGES" = "both" ] || [ "$JUDGES" = "llama" ]; then
+  serve_and_run Llama-3.3-70B-Instruct "$LLAMA_GPUS" "$LPORT" "$CTX" "$LSEQS" &
   P2=$!
 fi
-wait $P1; R1=$?
-wait $P2; R2=$?
+if [ "$JUDGES" = "both" ] || [ "$JUDGES" = "qwen" ]; then
+  serve_and_run Qwen3.6-35B-A3B "$QWEN_GPU" "$QPORT" "$CTX" "$QSEQS" &
+  P1=$!
+fi
+[ -n "${P2:-}" ] && { wait $P2; R2=$?; }
+[ -n "${P1:-}" ] && { wait $P1; R1=$?; }
 echo "S4 $MODE done: qwen rc=$R1 llama rc=$R2"
 exit $(( R1 || R2 ))
