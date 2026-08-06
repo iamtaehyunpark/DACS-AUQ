@@ -33,6 +33,38 @@ import statistics
 
 SCOPES = ["SPLIT-thought", "SPLIT-action", "AGG-mean", "AGG-true"]
 
+# Token sets from probes.yesno_mass, so the verdict is parsed the same way the mass is.
+_YES = {"yes", "y", "yeah", "yep", "correct", "true"}
+_NO = {"no", "n", "nope", "false", "incorrect"}
+
+
+def top1_verdict(first_token_top):
+    """The answer a TEMPERATURE-0 BLACK-BOX deployment would read: the single
+    highest-logprob first token, classified as Yes or No.
+
+    This is deliberately not `U > 0.5`. U compares summed P(Yes) against summed P(No)
+    over case and whitespace variants — a white-box quantity that needs logprob access on
+    both sides of the comparison, which begs the question when the point is whether
+    reading probabilities beats reading the answer. Top-1 is what the model would actually
+    emit at temperature 0, available from the text alone.
+
+    It also normalises across cells: the HotpotQA self-probes ran at temperature 0.7, so
+    their emitted token was SAMPLED and disagrees with the argmax on 6-9% of steps.
+    Taking top-1 gives every cell the same greedy-decoding verdict regardless of the
+    temperature the probe happened to use.
+
+    Returns 1 (says incorrect), 0 (says correct), or None (top token is neither).
+    """
+    if not first_token_top:
+        return None
+    best = max(first_token_top, key=lambda a: a["logprob"])
+    t = (best.get("token") or "").strip().lower()
+    if t in _YES:
+        return 0
+    if t in _NO:
+        return 1
+    return None
+
 
 def load_labels(path):
     out = {}
@@ -65,7 +97,11 @@ def load_ptrue(paths):
             if k is None:
                 k = {"thought": "T", "action": "A", "response": "R"}.get(r.get("stage"))
             if k:
-                out[(r.get("task_id"), r.get("step_idx"))][k] = float(u)
+                key = (r.get("task_id"), r.get("step_idx"))
+                out[key][k] = float(u)
+                v = top1_verdict(r.get("first_token_top"))
+                if v is not None:
+                    out[key]["verdict_" + k] = v
     return out
 
 
@@ -152,6 +188,10 @@ def main():
 
             for assessor, paths in sorted(sources.items()):
                 probes = load_ptrue(paths)
+                # the verdict belongs to a single probe call, so it is only defined for
+                # the single-stage scopes; AGG-mean has no one emitted answer
+                vkey = {"SPLIT-thought": "verdict_T", "SPLIT-action": "verdict_A",
+                        "AGG-true": "verdict_R"}.get(a.scope)
                 by_ep = collections.defaultdict(list)
                 for key, v in probes.items():
                     if key not in labels:
@@ -159,14 +199,27 @@ def main():
                     u = scoped(v, a.scope)
                     if u is None:
                         continue
-                    by_ep[key[0]].append((u, labels[key] < 0.5))
+                    said = v.get(vkey) if vkey else None
+                    by_ep[key[0]].append((u, labels[key] < 0.5, said))
                 allrows = [r for v in by_ep.values() for r in v]
                 if len(allrows) < a.min_n:
                     continue
+                by_ep = {e: [(u, y) for u, y, _ in rs] for e, rs in by_ep.items()}
 
-                verdict = bal_acc(allrows, 0.5000001)   # strictly U > 0.5
-                thr_in = fit_threshold(allrows)
-                value_in = bal_acc(allrows, thr_in) if thr_in is not None else None
+                # verdict = the top-1 logprob answer (temperature-0 black-box reading)
+                vr = [(sd, y) for _, y, sd in allrows if sd is not None]
+                P = sum(1 for _, y in vr if y)
+                N = len(vr) - P
+                if P == 0 or N == 0:
+                    continue
+                tp = sum(1 for sd, y in vr if y and sd == 1)
+                tn = sum(1 for sd, y in vr if not y and sd == 0)
+                verdict = 0.5 * (tp / P + tn / N)
+                n_verdict = len(vr)
+                say_inc = sum(1 for sd, _ in vr if sd == 1) / max(len(vr), 1)
+                uy = [(u, y) for u, y, _ in allrows]
+                thr_in = fit_threshold(uy)
+                value_in = bal_acc(uy, thr_in) if thr_in is not None else None
 
                 # two-fold, split by episode, both directions averaged
                 eps = sorted(by_ep)
@@ -191,12 +244,13 @@ def main():
                     dataset=dataset, target=target, assessor=assessor,
                     arm="self" if assessor == target else "cross",
                     scope=a.scope, n=len(allrows), n_ep=len(eps),
+                    n_verdict=n_verdict, say_inc=say_inc,
                     verdict=verdict, value_in=value_in, value_out=value_out,
                     optimism=value_in - value_out, gain_out=value_out - verdict))
 
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
-    cols = ["dataset", "target", "assessor", "arm", "scope", "n", "n_ep",
-            "verdict", "value_in", "value_out", "optimism", "gain_out"]
+    cols = ["dataset", "target", "assessor", "arm", "scope", "n", "n_ep", "n_verdict",
+            "say_inc", "verdict", "value_in", "value_out", "optimism", "gain_out"]
     with open(a.out, "w", newline="") as fo:
         w = csv.writer(fo)
         w.writerow(cols)

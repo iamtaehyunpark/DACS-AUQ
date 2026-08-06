@@ -1,0 +1,1121 @@
+{
+  "pivot": "/data5/kje/MULTIAGENT/DACS-AUQ/result/pivot",
+  "arms": [
+    {
+      "dataset": "alfworld",
+      "model": "Llama-3.3-70B-Instruct",
+      "path": "result/pivot/alfworld/Llama-3.3-70B-Instruct/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 4765,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 4765,
+        "step_idx": 4765,
+        "action_parsed": 4765,
+        "obs": 4765,
+        "obs_changed": 4765,
+        "admissible": 4765,
+        "in_admissible": 4765,
+        "loop_flag": 4765,
+        "state_hash": 4765,
+        "U_verbalized": 4765,
+        "skip_reasons": 4765,
+        "tau": 4765
+      },
+      "step_field_null": {},
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 4765
+      },
+      "skip_reason_cooccur_with_tierA": {},
+      "tier_a_rule": {
+        "A3_exact_repeat": 1556,
+        "A1_inadmissible": 397,
+        "A2_nothing_happens": 183
+      },
+      "tier_a_any": 1714,
+      "n_steps": 4765,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 1556
+      },
+      "meta": {
+        "skipped_lines": 4765,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "Mistral-7B-Instruct-v0.3",
+      "path": "result/pivot/alfworld/Mistral-7B-Instruct-v0.3/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 6482,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 6482,
+        "step_idx": 6482,
+        "action_parsed": 6482,
+        "obs": 6482,
+        "obs_changed": 6482,
+        "admissible": 6482,
+        "in_admissible": 6482,
+        "loop_flag": 6482,
+        "state_hash": 6482,
+        "U_verbalized": 6482,
+        "skip_reasons": 6482,
+        "tau": 6482
+      },
+      "step_field_null": {
+        "tau": 171,
+        "U_verbalized": 2
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 6310,
+        "tau_unrecognized_action": 171,
+        "confidence_parse_failed": 2
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "tau_unrecognized_action": 171,
+        "confidence_parse_failed": 2
+      },
+      "tier_a_rule": {
+        "A1_inadmissible": 3502,
+        "A2_nothing_happens": 2415,
+        "A3_exact_repeat": 3303
+      },
+      "tier_a_any": 4616,
+      "n_steps": 6482,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 3303
+      },
+      "meta": {
+        "skipped_lines": 6482,
+        "sampled_skipped_kinds": {
+          "call": 2
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "Phi-4-mini-instruct",
+      "path": "result/pivot/alfworld/Phi-4-mini-instruct/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 6611,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 6611,
+        "step_idx": 6611,
+        "action_parsed": 6611,
+        "obs": 6611,
+        "obs_changed": 6611,
+        "admissible": 6611,
+        "in_admissible": 6611,
+        "loop_flag": 6611,
+        "state_hash": 6611,
+        "U_verbalized": 6611,
+        "skip_reasons": 6611,
+        "tau": 6611
+      },
+      "step_field_null": {
+        "tau": 70
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 6548,
+        "tau_unrecognized_action": 63
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "tau_unrecognized_action": 63
+      },
+      "tier_a_rule": {
+        "A1_inadmissible": 2302,
+        "A2_nothing_happens": 1112,
+        "A3_exact_repeat": 3185
+      },
+      "tier_a_any": 4109,
+      "n_steps": 6611,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 3185,
+        "empty_action_parsed": 7,
+        "empty_action_no_skip_reason": 7
+      },
+      "meta": {
+        "skipped_lines": 6611,
+        "sampled_skipped_kinds": {
+          "call": 2
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "Qwen3.5-27B",
+      "path": "result/pivot/alfworld/Qwen3.5-27B/uq.jsonl",
+      "in_matrix": false,
+      "counts": {
+        "step": 3445,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 3445,
+        "step_idx": 3445,
+        "action_parsed": 3445,
+        "obs": 3445,
+        "obs_changed": 3445,
+        "admissible": 3445,
+        "in_admissible": 3445,
+        "loop_flag": 3445,
+        "state_hash": 3445,
+        "U_verbalized": 3445,
+        "skip_reasons": 3445,
+        "tau": 3445
+      },
+      "step_field_null": {
+        "U_verbalized": 236,
+        "tau": 218
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 3209,
+        "confidence_parse_failed": 236,
+        "tau_unrecognized_action": 14
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 236,
+        "tau_unrecognized_action": 14
+      },
+      "tier_a_rule": {
+        "A1_inadmissible": 351,
+        "A2_nothing_happens": 143,
+        "A3_exact_repeat": 797
+      },
+      "tier_a_any": 967,
+      "n_steps": 3445,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "empty_action_parsed": 204,
+        "A3_fired": 797
+      },
+      "meta": {
+        "skipped_lines": 3445,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "Qwen3.5-4B",
+      "path": "result/pivot/alfworld/Qwen3.5-4B/uq.jsonl",
+      "in_matrix": false,
+      "counts": {
+        "step": 4602,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 4602,
+        "step_idx": 4602,
+        "action_parsed": 4602,
+        "obs": 4602,
+        "obs_changed": 4602,
+        "admissible": 4602,
+        "in_admissible": 4602,
+        "loop_flag": 4602,
+        "state_hash": 4602,
+        "U_verbalized": 4602,
+        "skip_reasons": 4602,
+        "tau": 4602
+      },
+      "step_field_null": {
+        "U_verbalized": 1179,
+        "tau": 526
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "confidence_parse_failed": 1179,
+        "<none>": 3399,
+        "tau_unrecognized_action": 37
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 674,
+        "tau_unrecognized_action": 37
+      },
+      "tier_a_rule": {
+        "A3_exact_repeat": 1902,
+        "A1_inadmissible": 1563,
+        "A2_nothing_happens": 890
+      },
+      "tier_a_any": 2464,
+      "n_steps": 4602,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 1902,
+        "empty_action_parsed": 489
+      },
+      "meta": {
+        "skipped_lines": 4602,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "Qwen3.5-9B",
+      "path": "result/pivot/alfworld/Qwen3.5-9B/uq.jsonl",
+      "in_matrix": false,
+      "counts": {
+        "step": 4590,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 4590,
+        "step_idx": 4590,
+        "action_parsed": 4590,
+        "obs": 4590,
+        "obs_changed": 4590,
+        "admissible": 4590,
+        "in_admissible": 4590,
+        "loop_flag": 4590,
+        "state_hash": 4590,
+        "U_verbalized": 4590,
+        "skip_reasons": 4590,
+        "tau": 4590
+      },
+      "step_field_null": {
+        "U_verbalized": 372,
+        "tau": 341
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 4213,
+        "confidence_parse_failed": 372,
+        "tau_unrecognized_action": 16
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 368,
+        "tau_unrecognized_action": 16
+      },
+      "tier_a_rule": {
+        "A1_inadmissible": 901,
+        "A3_exact_repeat": 1421,
+        "A2_nothing_happens": 378
+      },
+      "tier_a_any": 1840,
+      "n_steps": 4590,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 1421,
+        "empty_action_parsed": 325
+      },
+      "meta": {
+        "skipped_lines": 4590,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "Qwen3.6-35B-A3B",
+      "path": "result/pivot/alfworld/Qwen3.6-35B-A3B/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 3342,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 3342,
+        "step_idx": 3342,
+        "action_parsed": 3342,
+        "obs": 3342,
+        "obs_changed": 3342,
+        "admissible": 3342,
+        "in_admissible": 3342,
+        "loop_flag": 3342,
+        "state_hash": 3342,
+        "U_verbalized": 3342,
+        "skip_reasons": 3342,
+        "tau": 3342
+      },
+      "step_field_null": {
+        "U_verbalized": 535,
+        "tau": 175
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 2776,
+        "confidence_parse_failed": 535,
+        "tau_unrecognized_action": 33
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 220,
+        "tau_unrecognized_action": 33
+      },
+      "tier_a_rule": {
+        "A1_inadmissible": 493,
+        "A2_nothing_happens": 206,
+        "A3_exact_repeat": 911
+      },
+      "tier_a_any": 1157,
+      "n_steps": 3342,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "empty_action_parsed": 142,
+        "A3_fired": 911,
+        "empty_action_no_skip_reason": 1
+      },
+      "meta": {
+        "skipped_lines": 3342,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "alfworld",
+      "model": "deepseek-v4-flash",
+      "path": "result/pivot/alfworld/deepseek-v4-flash/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 3313,
+        "episode": 117
+      },
+      "step_field_present": {
+        "task_id": 3313,
+        "step_idx": 3313,
+        "action_parsed": 3313,
+        "obs": 3313,
+        "obs_changed": 3313,
+        "admissible": 3313,
+        "in_admissible": 3313,
+        "loop_flag": 3313,
+        "state_hash": 3313,
+        "U_verbalized": 3313,
+        "skip_reasons": 3313,
+        "tau": 3313
+      },
+      "step_field_null": {
+        "U_verbalized": 10,
+        "tau": 10
+      },
+      "episode_field_present": {
+        "task_id": 117,
+        "success": 117,
+        "terminal_reason": 117,
+        "n_steps": 117,
+        "loop_collapse_fraction": 117
+      },
+      "skip_reasons": {
+        "<none>": 3303,
+        "confidence_parse_failed": 10,
+        "tau_unrecognized_action": 1
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 10,
+        "tau_unrecognized_action": 1
+      },
+      "tier_a_rule": {
+        "A3_exact_repeat": 688,
+        "A1_inadmissible": 165,
+        "A2_nothing_happens": 46
+      },
+      "tier_a_any": 779,
+      "n_steps": 3313,
+      "n_episodes": 117,
+      "episodes_seen": 120,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 688,
+        "empty_action_parsed": 9
+      },
+      "meta": {
+        "skipped_lines": 3313,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": [
+        "look_at_obj_in_light-CD-None-DeskLamp-314/trial_T20190907_114323_767231",
+        "pick_and_place_simple-Pencil-None-Dresser-330/trial_T20190909_071128_012892",
+        "pick_cool_then_place_in_recep-Mug-None-CoffeeMachine-16/trial_T20190908_184242_348366"
+      ]
+    },
+    {
+      "dataset": "alfworld",
+      "model": "gemma-3-4b-it",
+      "path": "result/pivot/alfworld/gemma-3-4b-it/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 6790,
+        "episode": 140
+      },
+      "step_field_present": {
+        "task_id": 6790,
+        "step_idx": 6790,
+        "action_parsed": 6790,
+        "obs": 6790,
+        "obs_changed": 6790,
+        "admissible": 6790,
+        "in_admissible": 6790,
+        "loop_flag": 6790,
+        "state_hash": 6790,
+        "U_verbalized": 6790,
+        "skip_reasons": 6790,
+        "tau": 6790
+      },
+      "step_field_null": {
+        "U_verbalized": 3977,
+        "tau": 34
+      },
+      "episode_field_present": {
+        "task_id": 140,
+        "success": 140,
+        "terminal_reason": 140,
+        "n_steps": 140,
+        "loop_collapse_fraction": 140
+      },
+      "skip_reasons": {
+        "<none>": 2797,
+        "confidence_parse_failed": 3977,
+        "tau_unrecognized_action": 34
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 3217,
+        "tau_unrecognized_action": 34
+      },
+      "tier_a_rule": {
+        "A3_exact_repeat": 5145,
+        "A1_inadmissible": 2909,
+        "A2_nothing_happens": 2100
+      },
+      "tier_a_any": 5538,
+      "n_steps": 6790,
+      "n_episodes": 140,
+      "episodes_seen": 140,
+      "hotpot": {},
+      "anomalies": {},
+      "checks": {
+        "A3_fired": 5145
+      },
+      "meta": {
+        "skipped_lines": 6790,
+        "sampled_skipped_kinds": {
+          "call": 2
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "Llama-3.3-70B-Instruct",
+      "path": "result/pivot/hotpotqa/Llama-3.3-70B-Instruct/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 2530,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 2530,
+        "step_idx": 2530,
+        "action_parsed": 2530,
+        "obs": 2530,
+        "obs_changed": 2530,
+        "admissible": 2530,
+        "in_admissible": 2530,
+        "loop_flag": 2530,
+        "state_hash": 2530,
+        "U_verbalized": 2530,
+        "skip_reasons": 2530,
+        "tau": 2530
+      },
+      "step_field_null": {
+        "tau": 7,
+        "U_verbalized": 1
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 499,
+        "question": 500
+      },
+      "skip_reasons": {
+        "<none>": 2522,
+        "invalid_action_syntax": 7,
+        "tau_unrecognized_action": 7,
+        "confidence_parse_failed": 1
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "invalid_action_syntax": 7,
+        "tau_unrecognized_action": 7
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 732,
+        "A3_repeat_query": 132,
+        "A1_malformed_toolcall": 7
+      },
+      "tier_a_any": 841,
+      "n_steps": 2530,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 2530,
+        "search_steps": 1631,
+        "zero_result_obs": 732,
+        "lookup_steps": 577,
+        "finish_steps": 322
+      },
+      "anomalies": {},
+      "checks": {},
+      "meta": {
+        "skipped_lines": 2530,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "Mistral-7B-Instruct-v0.3",
+      "path": "result/pivot/hotpotqa/Mistral-7B-Instruct-v0.3/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 3224,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 3224,
+        "step_idx": 3224,
+        "action_parsed": 3224,
+        "obs": 3224,
+        "obs_changed": 3224,
+        "admissible": 3224,
+        "in_admissible": 3224,
+        "loop_flag": 3224,
+        "state_hash": 3224,
+        "U_verbalized": 3224,
+        "skip_reasons": 3224,
+        "tau": 3224
+      },
+      "step_field_null": {
+        "tau": 24
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 500,
+        "question": 500
+      },
+      "skip_reasons": {
+        "<none>": 3200,
+        "invalid_action_syntax": 24,
+        "tau_unrecognized_action": 24
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "invalid_action_syntax": 24,
+        "tau_unrecognized_action": 24
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 2042,
+        "A3_repeat_query": 878,
+        "A1_malformed_toolcall": 24
+      },
+      "tier_a_any": 2277,
+      "n_steps": 3224,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 3224,
+        "zero_result_obs": 2042,
+        "search_steps": 2975,
+        "lookup_steps": 140,
+        "finish_steps": 98
+      },
+      "anomalies": {},
+      "checks": {},
+      "meta": {
+        "skipped_lines": 3224,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "Phi-4-mini-instruct",
+      "path": "result/pivot/hotpotqa/Phi-4-mini-instruct/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 2716,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 2716,
+        "step_idx": 2716,
+        "action_parsed": 2716,
+        "obs": 2716,
+        "obs_changed": 2716,
+        "admissible": 2716,
+        "in_admissible": 2716,
+        "loop_flag": 2716,
+        "state_hash": 2716,
+        "U_verbalized": 2716,
+        "skip_reasons": 2716,
+        "tau": 2716
+      },
+      "step_field_null": {
+        "U_verbalized": 3,
+        "tau": 15
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 499,
+        "question": 500
+      },
+      "skip_reasons": {
+        "<none>": 2698,
+        "confidence_parse_failed": 3,
+        "invalid_action_syntax": 15,
+        "tau_unrecognized_action": 15
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "invalid_action_syntax": 15,
+        "tau_unrecognized_action": 15,
+        "confidence_parse_failed": 1
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 1290,
+        "A3_repeat_query": 830,
+        "A1_malformed_toolcall": 15
+      },
+      "tier_a_any": 1620,
+      "n_steps": 2716,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 2716,
+        "zero_result_obs": 1290,
+        "search_steps": 1891,
+        "lookup_steps": 556,
+        "finish_steps": 268
+      },
+      "anomalies": {},
+      "checks": {},
+      "meta": {
+        "skipped_lines": 2716,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "Qwen3.5-4B",
+      "path": "result/pivot/hotpotqa/Qwen3.5-4B/uq.jsonl",
+      "in_matrix": false,
+      "counts": {
+        "step": 2479,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 2479,
+        "step_idx": 2479,
+        "action_parsed": 2479,
+        "obs": 2479,
+        "obs_changed": 2479,
+        "admissible": 2479,
+        "in_admissible": 2479,
+        "loop_flag": 2479,
+        "state_hash": 2479,
+        "U_verbalized": 2479,
+        "skip_reasons": 2479,
+        "tau": 2479
+      },
+      "step_field_null": {
+        "U_verbalized": 501,
+        "tau": 118
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 500,
+        "question": 500
+      },
+      "skip_reasons": {
+        "<none>": 1978,
+        "confidence_parse_failed": 501,
+        "invalid_action_syntax": 10,
+        "tau_unrecognized_action": 10
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 317,
+        "invalid_action_syntax": 10,
+        "tau_unrecognized_action": 10
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 970,
+        "A1_malformed_toolcall": 118,
+        "A3_repeat_query": 193
+      },
+      "tier_a_any": 1174,
+      "n_steps": 2479,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 2371,
+        "zero_result_obs": 970,
+        "search_steps": 1949,
+        "lookup_steps": 112,
+        "finish_steps": 309
+      },
+      "anomalies": {},
+      "checks": {
+        "empty_action_parsed": 108
+      },
+      "meta": {
+        "skipped_lines": 2479,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "Qwen3.5-9B",
+      "path": "result/pivot/hotpotqa/Qwen3.5-9B/uq.jsonl",
+      "in_matrix": false,
+      "counts": {
+        "step": 2376,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 2376,
+        "step_idx": 2376,
+        "action_parsed": 2376,
+        "obs": 2376,
+        "obs_changed": 2376,
+        "admissible": 2376,
+        "in_admissible": 2376,
+        "loop_flag": 2376,
+        "state_hash": 2376,
+        "U_verbalized": 2376,
+        "skip_reasons": 2376,
+        "tau": 2376
+      },
+      "step_field_null": {
+        "U_verbalized": 83,
+        "tau": 83
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 499,
+        "question": 500
+      },
+      "skip_reasons": {
+        "<none>": 2292,
+        "confidence_parse_failed": 83,
+        "invalid_action_syntax": 3,
+        "tau_unrecognized_action": 3
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 83,
+        "invalid_action_syntax": 3,
+        "tau_unrecognized_action": 3
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 899,
+        "A1_malformed_toolcall": 83,
+        "A3_repeat_query": 159
+      },
+      "tier_a_any": 1057,
+      "n_steps": 2376,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 2296,
+        "zero_result_obs": 899,
+        "search_steps": 1775,
+        "lookup_steps": 189,
+        "finish_steps": 332
+      },
+      "anomalies": {},
+      "checks": {
+        "empty_action_parsed": 80
+      },
+      "meta": {
+        "skipped_lines": 2376,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "Qwen3.6-35B-A3B",
+      "path": "result/pivot/hotpotqa/Qwen3.6-35B-A3B/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 2235,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 2235,
+        "step_idx": 2235,
+        "action_parsed": 2235,
+        "obs": 2235,
+        "obs_changed": 2235,
+        "admissible": 2235,
+        "in_admissible": 2235,
+        "loop_flag": 2235,
+        "state_hash": 2235,
+        "U_verbalized": 2235,
+        "skip_reasons": 2235,
+        "tau": 2235
+      },
+      "step_field_null": {
+        "U_verbalized": 75,
+        "tau": 43
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 499,
+        "question": 500
+      },
+      "skip_reasons": {
+        "<none>": 2159,
+        "confidence_parse_failed": 75,
+        "invalid_action_syntax": 1,
+        "tau_unrecognized_action": 1,
+        "thought_parse_failed": 1
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 63,
+        "invalid_action_syntax": 1,
+        "tau_unrecognized_action": 1,
+        "thought_parse_failed": 1
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 712,
+        "A3_repeat_query": 59,
+        "A1_malformed_toolcall": 43
+      },
+      "tier_a_any": 794,
+      "n_steps": 2235,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 2193,
+        "zero_result_obs": 712,
+        "search_steps": 1744,
+        "lookup_steps": 85,
+        "finish_steps": 363
+      },
+      "anomalies": {},
+      "checks": {
+        "empty_action_parsed": 42
+      },
+      "meta": {
+        "skipped_lines": 2235,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    },
+    {
+      "dataset": "hotpotqa",
+      "model": "gemma-3-4b-it",
+      "path": "result/pivot/hotpotqa/gemma-3-4b-it/uq.jsonl",
+      "in_matrix": true,
+      "counts": {
+        "step": 2565,
+        "episode": 500
+      },
+      "step_field_present": {
+        "task_id": 2565,
+        "step_idx": 2565,
+        "action_parsed": 2565,
+        "obs": 2565,
+        "obs_changed": 2565,
+        "admissible": 2565,
+        "in_admissible": 2565,
+        "loop_flag": 2565,
+        "state_hash": 2565,
+        "U_verbalized": 2565,
+        "skip_reasons": 2565,
+        "tau": 2565
+      },
+      "step_field_null": {
+        "U_verbalized": 1463
+      },
+      "episode_field_present": {
+        "task_id": 500,
+        "success": 500,
+        "terminal_reason": 500,
+        "n_steps": 500,
+        "loop_collapse_fraction": 500,
+        "em": 500,
+        "f1": 500,
+        "gold_answer": 500,
+        "predicted_answer": 500,
+        "question": 500
+      },
+      "skip_reasons": {
+        "confidence_parse_failed": 1463,
+        "<none>": 1102
+      },
+      "skip_reason_cooccur_with_tierA": {
+        "confidence_parse_failed": 892
+      },
+      "tier_a_rule": {
+        "A4_zero_result": 1009,
+        "A3_repeat_query": 835
+      },
+      "tier_a_any": 1386,
+      "n_steps": 2565,
+      "n_episodes": 500,
+      "episodes_seen": 500,
+      "hotpot": {
+        "query_text_recoverable": 2565,
+        "search_steps": 2142,
+        "zero_result_obs": 1009,
+        "lookup_steps": 151,
+        "finish_steps": 272
+      },
+      "anomalies": {},
+      "checks": {},
+      "meta": {
+        "skipped_lines": 2565,
+        "sampled_skipped_kinds": {
+          "call": 1
+        }
+      },
+      "steps_without_episode_record": []
+    }
+  ]
+}

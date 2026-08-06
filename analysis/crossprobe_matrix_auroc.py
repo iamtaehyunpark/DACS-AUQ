@@ -179,6 +179,40 @@ def invariance_delta(rows, fixed_scope, boot=1000, seed=17):
             "hi": draws[min(len(draws) - 1, int(0.975 * len(draws)))]}
 
 
+
+# ---------------------------------------------------------------- gate 1
+# Gate 1 swaps the LABEL INPUT and nothing else. No statistic below this line
+# changes: the dict shape returned here — {(task_id, step_idx): fraction of
+# judges voting CORRECT} — is exactly what the ensemble loader returned, with
+# environment labels entering as hard 0.0 / 1.0.
+def _gate1_labels(args, dataset, target, tdir):
+    which = getattr(args, "labels", "ensemble")
+    if which == "ensemble":
+        return load_labels(os.path.join(tdir, "judge.jsonl"))
+    import gate1_label_source
+    if which == "ensemble_on_env_support":
+        return gate1_label_source.load_ensemble_labels(
+            args.label_file, dataset, target, mode=args.label_mode,
+            column=args.label_column)
+    return gate1_label_source.load_env_labels(
+        args.label_file, dataset, target, mode=args.label_mode,
+        column=args.label_column)
+
+
+def _gate1_add_args(ap):
+    ap.add_argument("--labels", default="ensemble",
+                    choices=["ensemble", "env", "ensemble_on_env_support"],
+                    help="ensemble: the published 3-judge label over all judged steps. "
+                         "env: gate-1 y_env. ensemble_on_env_support: the 3-judge label "
+                         "over exactly the y_env-labelable steps, so a side-by-side "
+                         "isolates the label change from the step-set change")
+    ap.add_argument("--label-file", default="reports/gate1/labels_gate1.csv")
+    ap.add_argument("--label-mode", choices=["restricted", "full"], default="restricted",
+                    help="restricted: only y_env-labelable steps. "
+                         "full: all steps, unlabelled as negative-class-with-noise")
+    ap.add_argument("--label-column", default="y_env")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pivot", default="result/pivot")
@@ -188,6 +222,7 @@ def main():
     ap.add_argument("--csv", default="reports/tables/crossprobe_matrix.csv",
                     help="flat one-row-per-(cell,scope) table; the JSON is nested and "
                          "awkward to sort or paste, so this is the sharable artifact")
+    _gate1_add_args(ap)
     a = ap.parse_args()
 
     xp_root = os.path.join(a.pivot, "crossprobe")
@@ -201,7 +236,7 @@ def main():
             tdir = os.path.join(ds_dir, target)
             if not os.path.isdir(tdir):
                 continue
-            labels = load_labels(os.path.join(tdir, "judge.jsonl"))
+            labels = _gate1_labels(a, dataset, target, tdir)
             if not labels:
                 continue
 

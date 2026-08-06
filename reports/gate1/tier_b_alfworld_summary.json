@@ -1,0 +1,138 @@
+{
+  "alfworld/Llama-3.3-70B-Instruct": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 17,
+    "divergence_rate": 0.0,
+    "steps": 4765,
+    "labelled_correct": 696,
+    "labelled_incorrect": 3670,
+    "reasons": {
+      "B1_plan_shortened": 696,
+      "B1_plan_not_shortened": 3670,
+      "plan_timeout": 399
+    },
+    "in_matrix": true
+  },
+  "alfworld/Mistral-7B-Instruct-v0.3": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 18,
+    "divergence_rate": 0.0,
+    "steps": 6482,
+    "labelled_correct": 331,
+    "labelled_incorrect": 5582,
+    "reasons": {
+      "B1_plan_shortened": 331,
+      "B1_plan_not_shortened": 5582,
+      "plan_timeout": 569
+    },
+    "in_matrix": true
+  },
+  "alfworld/Phi-4-mini-instruct": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 23,
+    "divergence_rate": 0.0,
+    "steps": 6611,
+    "labelled_correct": 361,
+    "labelled_incorrect": 5668,
+    "reasons": {
+      "B1_plan_not_shortened": 5668,
+      "B1_plan_shortened": 361,
+      "plan_timeout": 582
+    },
+    "in_matrix": true
+  },
+  "alfworld/Qwen3.5-27B": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 11,
+    "divergence_rate": 0.0,
+    "steps": 3445,
+    "labelled_correct": 752,
+    "labelled_incorrect": 2438,
+    "reasons": {
+      "B1_plan_shortened": 752,
+      "B1_plan_not_shortened": 2438,
+      "plan_timeout": 255
+    },
+    "in_matrix": false
+  },
+  "alfworld/Qwen3.5-4B": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 12,
+    "divergence_rate": 0.0,
+    "steps": 4602,
+    "labelled_correct": 706,
+    "labelled_incorrect": 3560,
+    "reasons": {
+      "B1_plan_shortened": 706,
+      "B1_plan_not_shortened": 3560,
+      "plan_timeout": 336
+    },
+    "in_matrix": false
+  },
+  "alfworld/Qwen3.5-9B": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 19,
+    "divergence_rate": 0.0,
+    "steps": 4590,
+    "labelled_correct": 699,
+    "labelled_incorrect": 3434,
+    "reasons": {
+      "B1_plan_shortened": 699,
+      "B1_plan_not_shortened": 3434,
+      "plan_timeout": 457
+    },
+    "in_matrix": false
+  },
+  "alfworld/Qwen3.6-35B-A3B": {
+    "episodes": 140,
+    "episodes_diverged": 1,
+    "episodes_timed_out": 7,
+    "divergence_rate": 0.007142857142857143,
+    "steps": 3342,
+    "labelled_correct": 930,
+    "labelled_incorrect": 2210,
+    "reasons": {
+      "B1_plan_shortened": 930,
+      "B1_plan_not_shortened": 2210,
+      "replay_diverged": 4,
+      "plan_timeout": 198
+    },
+    "in_matrix": true
+  },
+  "alfworld/deepseek-v4-flash": {
+    "episodes": 120,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 14,
+    "divergence_rate": 0.0,
+    "steps": 3313,
+    "labelled_correct": 629,
+    "labelled_incorrect": 2316,
+    "reasons": {
+      "B1_plan_shortened": 629,
+      "B1_plan_not_shortened": 2316,
+      "plan_timeout": 368
+    },
+    "in_matrix": true
+  },
+  "alfworld/gemma-3-4b-it": {
+    "episodes": 140,
+    "episodes_diverged": 0,
+    "episodes_timed_out": 15,
+    "divergence_rate": 0.0,
+    "steps": 6790,
+    "labelled_correct": 283,
+    "labelled_incorrect": 6125,
+    "reasons": {
+      "B1_plan_shortened": 283,
+      "B1_plan_not_shortened": 6125,
+      "plan_timeout": 382
+    },
+    "in_matrix": true
+  }
+}

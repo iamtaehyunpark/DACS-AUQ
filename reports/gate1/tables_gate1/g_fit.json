@@ -1,0 +1,394 @@
+{
+  "ensemble": {
+    "alfworld/Llama-3.3-70B-Instruct": {
+      "n_targets": 6,
+      "r": 0.9898418554510697
+    },
+    "alfworld/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 6,
+      "r": 0.8236373915446052
+    },
+    "alfworld/Phi-4-mini-instruct": {
+      "n_targets": 6,
+      "r": 0.6528408211682895
+    },
+    "alfworld/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.6-35B-A3B": {
+      "n_targets": 6,
+      "r": 0.9598232138240166
+    },
+    "alfworld/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/gemma-3-4b-it": {
+      "n_targets": 6,
+      "r": 0.6731862713815118
+    },
+    "hotpotqa/Llama-3.3-70B-Instruct": {
+      "n_targets": 5,
+      "r": 0.9980130647114831
+    },
+    "hotpotqa/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 5,
+      "r": 0.8514259615874181
+    },
+    "hotpotqa/Phi-4-mini-instruct": {
+      "n_targets": 5,
+      "r": 0.5592093000875377
+    },
+    "hotpotqa/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.6-35B-A3B": {
+      "n_targets": 5,
+      "r": 0.9723015239779975
+    },
+    "hotpotqa/gemma-3-4b-it": {
+      "n_targets": 5,
+      "r": 0.6197076092359429
+    },
+    "ALL/Llama-3.3-70B-Instruct": {
+      "n_targets": 11,
+      "r": 0.9509212709081385
+    },
+    "ALL/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 11,
+      "r": 0.8555933181840856
+    },
+    "ALL/Phi-4-mini-instruct": {
+      "n_targets": 11,
+      "r": 0.6912082367908711
+    },
+    "ALL/Qwen3.5-4B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.5-9B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.6-35B-A3B": {
+      "n_targets": 11,
+      "r": 0.9628125141478638
+    },
+    "ALL/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "ALL/gemma-3-4b-it": {
+      "n_targets": 11,
+      "r": 0.719956255044099
+    }
+  },
+  "ensemble_on_env_support": {
+    "alfworld/Llama-3.3-70B-Instruct": {
+      "n_targets": 6,
+      "r": 0.9897766500798864
+    },
+    "alfworld/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 6,
+      "r": 0.8255375763481766
+    },
+    "alfworld/Phi-4-mini-instruct": {
+      "n_targets": 6,
+      "r": 0.6757829241585069
+    },
+    "alfworld/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.6-35B-A3B": {
+      "n_targets": 6,
+      "r": 0.9640721283383129
+    },
+    "alfworld/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/gemma-3-4b-it": {
+      "n_targets": 6,
+      "r": 0.6847714594496577
+    },
+    "hotpotqa/Llama-3.3-70B-Instruct": {
+      "n_targets": 5,
+      "r": 0.9979712183182109
+    },
+    "hotpotqa/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 5,
+      "r": 0.8052394125066608
+    },
+    "hotpotqa/Phi-4-mini-instruct": {
+      "n_targets": 5,
+      "r": 0.46336358149362133
+    },
+    "hotpotqa/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.6-35B-A3B": {
+      "n_targets": 5,
+      "r": 0.9772536143940973
+    },
+    "hotpotqa/gemma-3-4b-it": {
+      "n_targets": 5,
+      "r": 0.5140491468279184
+    },
+    "ALL/Llama-3.3-70B-Instruct": {
+      "n_targets": 11,
+      "r": 0.97653852817149
+    },
+    "ALL/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 11,
+      "r": 0.8151248266167498
+    },
+    "ALL/Phi-4-mini-instruct": {
+      "n_targets": 11,
+      "r": 0.6117664386262934
+    },
+    "ALL/Qwen3.5-4B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.5-9B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.6-35B-A3B": {
+      "n_targets": 11,
+      "r": 0.963730999278089
+    },
+    "ALL/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "ALL/gemma-3-4b-it": {
+      "n_targets": 11,
+      "r": 0.6294253995993303
+    }
+  },
+  "env_restricted": {
+    "alfworld/Llama-3.3-70B-Instruct": {
+      "n_targets": 6,
+      "r": 0.9476623932029813
+    },
+    "alfworld/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 6,
+      "r": 0.8102320509616961
+    },
+    "alfworld/Phi-4-mini-instruct": {
+      "n_targets": 6,
+      "r": 0.8053881596293652
+    },
+    "alfworld/Qwen3.5-27B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.6-35B-A3B": {
+      "n_targets": 6,
+      "r": 0.9872399900298503
+    },
+    "alfworld/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/gemma-3-4b-it": {
+      "n_targets": 6,
+      "r": 0.7551276286105065
+    },
+    "hotpotqa/Llama-3.3-70B-Instruct": {
+      "n_targets": 5,
+      "r": 0.9764457461474532
+    },
+    "hotpotqa/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 5,
+      "r": 0.8202859958186284
+    },
+    "hotpotqa/Phi-4-mini-instruct": {
+      "n_targets": 5,
+      "r": 0.5351279421080748
+    },
+    "hotpotqa/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.6-35B-A3B": {
+      "n_targets": 5,
+      "r": 0.9871682974738025
+    },
+    "hotpotqa/gemma-3-4b-it": {
+      "n_targets": 5,
+      "r": 0.5260949949632118
+    },
+    "ALL/Llama-3.3-70B-Instruct": {
+      "n_targets": 11,
+      "r": 0.9445007975730281
+    },
+    "ALL/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 11,
+      "r": 0.6951488403995747
+    },
+    "ALL/Phi-4-mini-instruct": {
+      "n_targets": 11,
+      "r": 0.6261649228340216
+    },
+    "ALL/Qwen3.5-27B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "ALL/Qwen3.5-4B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.5-9B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.6-35B-A3B": {
+      "n_targets": 11,
+      "r": 0.9606002109583547
+    },
+    "ALL/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "ALL/gemma-3-4b-it": {
+      "n_targets": 11,
+      "r": 0.5307630041848089
+    }
+  },
+  "env_full": {
+    "alfworld/Llama-3.3-70B-Instruct": {
+      "n_targets": 6,
+      "r": 0.9807651701961929
+    },
+    "alfworld/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 6,
+      "r": 0.8175170569503669
+    },
+    "alfworld/Phi-4-mini-instruct": {
+      "n_targets": 6,
+      "r": 0.7246995926434994
+    },
+    "alfworld/Qwen3.5-27B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/Qwen3.6-35B-A3B": {
+      "n_targets": 6,
+      "r": 0.9782733759561648
+    },
+    "alfworld/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "alfworld/gemma-3-4b-it": {
+      "n_targets": 6,
+      "r": 0.7332843806701785
+    },
+    "hotpotqa/Llama-3.3-70B-Instruct": {
+      "n_targets": 5,
+      "r": 0.9793099330890389
+    },
+    "hotpotqa/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 5,
+      "r": 0.7847402036447826
+    },
+    "hotpotqa/Phi-4-mini-instruct": {
+      "n_targets": 5,
+      "r": 0.4827379583372362
+    },
+    "hotpotqa/Qwen3.5-4B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.5-9B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "hotpotqa/Qwen3.6-35B-A3B": {
+      "n_targets": 5,
+      "r": 0.9365027926795778
+    },
+    "hotpotqa/gemma-3-4b-it": {
+      "n_targets": 5,
+      "r": 0.48385388158756726
+    },
+    "ALL/Llama-3.3-70B-Instruct": {
+      "n_targets": 11,
+      "r": 0.7168964293419752
+    },
+    "ALL/Mistral-7B-Instruct-v0.3": {
+      "n_targets": 11,
+      "r": 0.7362095379215142
+    },
+    "ALL/Phi-4-mini-instruct": {
+      "n_targets": 11,
+      "r": 0.6355036358984402
+    },
+    "ALL/Qwen3.5-27B": {
+      "n_targets": 1,
+      "r": null
+    },
+    "ALL/Qwen3.5-4B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.5-9B": {
+      "n_targets": 2,
+      "r": null
+    },
+    "ALL/Qwen3.6-35B-A3B": {
+      "n_targets": 11,
+      "r": 0.8276492621308124
+    },
+    "ALL/deepseek-v4-flash": {
+      "n_targets": 1,
+      "r": null
+    },
+    "ALL/gemma-3-4b-it": {
+      "n_targets": 11,
+      "r": 0.6892101107109353
+    }
+  }
+}

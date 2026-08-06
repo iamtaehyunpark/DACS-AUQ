@@ -1,0 +1,1100 @@
+{
+  "alfworld|Llama-3.3-70B-Instruct|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6363372267807338,
+      "n": 4765
+    },
+    "SPLIT-action": {
+      "auroc": 0.6912082386966706,
+      "n": 4765
+    },
+    "AGG-mean": {
+      "auroc": 0.6800777707835609,
+      "n": 4765
+    },
+    "AGG-true": {
+      "auroc": 0.6666547028746231,
+      "n": 4765
+    }
+  },
+  "alfworld|Llama-3.3-70B-Instruct|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.6273171411077122,
+      "n": 4765
+    },
+    "SPLIT-action": {
+      "auroc": 0.6367423085087716,
+      "n": 4765
+    },
+    "AGG-mean": {
+      "auroc": 0.6322376340404855,
+      "n": 4765
+    },
+    "AGG-true": {
+      "auroc": 0.6384158589573218,
+      "n": 4765
+    }
+  },
+  "alfworld|Llama-3.3-70B-Instruct|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6490617932926687,
+      "n": 4765
+    },
+    "SPLIT-action": {
+      "auroc": 0.6282145788929259,
+      "n": 4765
+    },
+    "AGG-mean": {
+      "auroc": 0.6394450518369635,
+      "n": 4765
+    },
+    "AGG-true": {
+      "auroc": 0.6120396854320279,
+      "n": 4765
+    }
+  },
+  "alfworld|Llama-3.3-70B-Instruct|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6856532046397427,
+      "n": 4765
+    },
+    "SPLIT-action": {
+      "auroc": 0.7186419807622224,
+      "n": 4765
+    },
+    "AGG-mean": {
+      "auroc": 0.7066361620645947,
+      "n": 4765
+    },
+    "AGG-true": {
+      "auroc": 0.7016251737817485,
+      "n": 4765
+    }
+  },
+  "alfworld|Llama-3.3-70B-Instruct|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.5351330557733579,
+      "n": 4765
+    },
+    "SPLIT-action": {
+      "auroc": 0.5913950885872786,
+      "n": 4765
+    },
+    "AGG-mean": {
+      "auroc": 0.5840198709382926,
+      "n": 4765
+    },
+    "AGG-true": {
+      "auroc": 0.5730429383564081,
+      "n": 4765
+    }
+  },
+  "alfworld|Mistral-7B-Instruct-v0.3|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.5712927820060434,
+      "n": 6482
+    },
+    "SPLIT-action": {
+      "auroc": 0.5978777006610324,
+      "n": 6482
+    },
+    "AGG-mean": {
+      "auroc": 0.5854722946697173,
+      "n": 6482
+    },
+    "AGG-true": {
+      "auroc": 0.5881358518380171,
+      "n": 6482
+    }
+  },
+  "alfworld|Mistral-7B-Instruct-v0.3|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6558249731518107,
+      "n": 6482
+    },
+    "SPLIT-action": {
+      "auroc": 0.7757442451489824,
+      "n": 6482
+    },
+    "AGG-mean": {
+      "auroc": 0.7362384269295676,
+      "n": 6482
+    },
+    "AGG-true": {
+      "auroc": 0.7413568841425588,
+      "n": 6482
+    }
+  },
+  "alfworld|Mistral-7B-Instruct-v0.3|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.593568441204133,
+      "n": 6482
+    },
+    "SPLIT-action": {
+      "auroc": 0.5972167099128184,
+      "n": 6482
+    },
+    "AGG-mean": {
+      "auroc": 0.6037261451336406,
+      "n": 6482
+    },
+    "AGG-true": {
+      "auroc": 0.5576777483540892,
+      "n": 6482
+    }
+  },
+  "alfworld|Mistral-7B-Instruct-v0.3|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6758473021738696,
+      "n": 6482
+    },
+    "SPLIT-action": {
+      "auroc": 0.7769453264139491,
+      "n": 6482
+    },
+    "AGG-mean": {
+      "auroc": 0.7489673452643796,
+      "n": 6482
+    },
+    "AGG-true": {
+      "auroc": 0.7573657423774488,
+      "n": 6482
+    }
+  },
+  "alfworld|Mistral-7B-Instruct-v0.3|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.521193393677835,
+      "n": 6482
+    },
+    "SPLIT-action": {
+      "auroc": 0.5670358431665522,
+      "n": 6482
+    },
+    "AGG-mean": {
+      "auroc": 0.5451641575004836,
+      "n": 6482
+    },
+    "AGG-true": {
+      "auroc": 0.5155023279548017,
+      "n": 6482
+    }
+  },
+  "alfworld|Phi-4-mini-instruct|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.5415029550508592,
+      "n": 6611
+    },
+    "SPLIT-action": {
+      "auroc": 0.5590630325724298,
+      "n": 6604
+    },
+    "AGG-mean": {
+      "auroc": 0.5534098887448693,
+      "n": 6604
+    },
+    "AGG-true": {
+      "auroc": 0.5192869980317323,
+      "n": 6604
+    }
+  },
+  "alfworld|Phi-4-mini-instruct|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.53452441962921,
+      "n": 6611
+    },
+    "SPLIT-action": {
+      "auroc": 0.6412710253594489,
+      "n": 6604
+    },
+    "AGG-mean": {
+      "auroc": 0.5895694939511774,
+      "n": 6604
+    },
+    "AGG-true": {
+      "auroc": 0.6256383368138067,
+      "n": 6604
+    }
+  },
+  "alfworld|Phi-4-mini-instruct|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.5143616670562778,
+      "n": 6611
+    },
+    "SPLIT-action": {
+      "auroc": 0.5416724799572742,
+      "n": 6604
+    },
+    "AGG-mean": {
+      "auroc": 0.5171754608626773,
+      "n": 6604
+    },
+    "AGG-true": {
+      "auroc": 0.555088617051919,
+      "n": 6604
+    }
+  },
+  "alfworld|Phi-4-mini-instruct|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.5590114815414217,
+      "n": 6611
+    },
+    "SPLIT-action": {
+      "auroc": 0.6469258569165407,
+      "n": 6604
+    },
+    "AGG-mean": {
+      "auroc": 0.6043868216077386,
+      "n": 6604
+    },
+    "AGG-true": {
+      "auroc": 0.6209310716257411,
+      "n": 6604
+    }
+  },
+  "alfworld|Phi-4-mini-instruct|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.5297509335682988,
+      "n": 6611
+    },
+    "SPLIT-action": {
+      "auroc": 0.5142646899978397,
+      "n": 6604
+    },
+    "AGG-mean": {
+      "auroc": 0.5140580368930174,
+      "n": 6604
+    },
+    "AGG-true": {
+      "auroc": 0.4849642051318979,
+      "n": 6604
+    }
+  },
+  "alfworld|Qwen3.5-27B|Qwen3.5-27B": {
+    "SPLIT-thought": {
+      "auroc": 0.7521119800521364,
+      "n": 3445
+    },
+    "SPLIT-action": {
+      "auroc": 0.7592604620267178,
+      "n": 3241
+    },
+    "AGG-mean": {
+      "auroc": 0.7444977489113588,
+      "n": 3241
+    },
+    "AGG-true": {
+      "auroc": null,
+      "n": 0
+    }
+  },
+  "alfworld|Qwen3.5-4B|Qwen3.5-4B": {
+    "SPLIT-thought": {
+      "auroc": 0.6768662073136361,
+      "n": 4602
+    },
+    "SPLIT-action": {
+      "auroc": 0.6598572789018614,
+      "n": 4113
+    },
+    "AGG-mean": {
+      "auroc": 0.648451337643214,
+      "n": 4113
+    },
+    "AGG-true": {
+      "auroc": 0.6410409158985934,
+      "n": 4113
+    }
+  },
+  "alfworld|Qwen3.5-9B|Qwen3.5-9B": {
+    "SPLIT-thought": {
+      "auroc": 0.6656797672868747,
+      "n": 4590
+    },
+    "SPLIT-action": {
+      "auroc": 0.666864628562698,
+      "n": 4265
+    },
+    "AGG-mean": {
+      "auroc": 0.6471516369348317,
+      "n": 4265
+    },
+    "AGG-true": {
+      "auroc": 0.6402559446654843,
+      "n": 4265
+    }
+  },
+  "alfworld|Qwen3.6-35B-A3B|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6993614064825125,
+      "n": 3339
+    },
+    "SPLIT-action": {
+      "auroc": 0.7141793171405876,
+      "n": 3197
+    },
+    "AGG-mean": {
+      "auroc": 0.7052064663815591,
+      "n": 3197
+    },
+    "AGG-true": {
+      "auroc": 0.680384989159719,
+      "n": 3197
+    }
+  },
+  "alfworld|Qwen3.6-35B-A3B|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6642599509229056,
+      "n": 3339
+    },
+    "SPLIT-action": {
+      "auroc": 0.688911598213363,
+      "n": 3197
+    },
+    "AGG-mean": {
+      "auroc": 0.674428836713114,
+      "n": 3197
+    },
+    "AGG-true": {
+      "auroc": 0.6778406285588429,
+      "n": 3197
+    }
+  },
+  "alfworld|Qwen3.6-35B-A3B|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.6191080385915465,
+      "n": 3339
+    },
+    "SPLIT-action": {
+      "auroc": 0.6581856386371204,
+      "n": 3197
+    },
+    "AGG-mean": {
+      "auroc": 0.6424487030806857,
+      "n": 3197
+    },
+    "AGG-true": {
+      "auroc": 0.6534064160684592,
+      "n": 3197
+    }
+  },
+  "alfworld|Qwen3.6-35B-A3B|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6484256895923053,
+      "n": 3339
+    },
+    "SPLIT-action": {
+      "auroc": 0.7023385153042637,
+      "n": 3197
+    },
+    "AGG-mean": {
+      "auroc": 0.6674095329754353,
+      "n": 3197
+    },
+    "AGG-true": {
+      "auroc": 0.600405949471869,
+      "n": 3197
+    }
+  },
+  "alfworld|Qwen3.6-35B-A3B|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.48973889606102117,
+      "n": 3339
+    },
+    "SPLIT-action": {
+      "auroc": 0.59611106877759,
+      "n": 3197
+    },
+    "AGG-mean": {
+      "auroc": 0.5618370962034487,
+      "n": 3197
+    },
+    "AGG-true": {
+      "auroc": 0.5336440149853706,
+      "n": 3197
+    }
+  },
+  "alfworld|deepseek-v4-flash|deepseek-v4-flash": {
+    "SPLIT-thought": {
+      "auroc": 0.6627581800350679,
+      "n": 3313
+    },
+    "SPLIT-action": {
+      "auroc": 0.6706951103422736,
+      "n": 3304
+    },
+    "AGG-mean": {
+      "auroc": 0.6697635575969518,
+      "n": 3304
+    },
+    "AGG-true": {
+      "auroc": 0.6190712088309808,
+      "n": 2322
+    }
+  },
+  "alfworld|deepseek-v4-flash|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6166384340297384,
+      "n": 3313
+    },
+    "SPLIT-action": {
+      "auroc": 0.6725092521480642,
+      "n": 3304
+    },
+    "AGG-mean": {
+      "auroc": 0.6514705260986382,
+      "n": 3304
+    },
+    "AGG-true": {
+      "auroc": 0.6589771312251609,
+      "n": 3304
+    }
+  },
+  "alfworld|deepseek-v4-flash|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.581890001684052,
+      "n": 3313
+    },
+    "SPLIT-action": {
+      "auroc": 0.6187667613629303,
+      "n": 3304
+    },
+    "AGG-mean": {
+      "auroc": 0.6086678149520678,
+      "n": 3304
+    },
+    "AGG-true": {
+      "auroc": 0.6200164537864835,
+      "n": 3304
+    }
+  },
+  "alfworld|deepseek-v4-flash|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.647357524245396,
+      "n": 3313
+    },
+    "SPLIT-action": {
+      "auroc": 0.6658862302685049,
+      "n": 3304
+    },
+    "AGG-mean": {
+      "auroc": 0.6560333450150246,
+      "n": 3304
+    },
+    "AGG-true": {
+      "auroc": 0.6214093090652411,
+      "n": 3304
+    }
+  },
+  "alfworld|deepseek-v4-flash|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6751859886871329,
+      "n": 3313
+    },
+    "SPLIT-action": {
+      "auroc": 0.7156885114294165,
+      "n": 3304
+    },
+    "AGG-mean": {
+      "auroc": 0.7014149759282595,
+      "n": 3304
+    },
+    "AGG-true": {
+      "auroc": 0.6823589062954374,
+      "n": 3304
+    }
+  },
+  "alfworld|deepseek-v4-flash|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.4799092593142936,
+      "n": 3313
+    },
+    "SPLIT-action": {
+      "auroc": 0.5678937413474706,
+      "n": 3304
+    },
+    "AGG-mean": {
+      "auroc": 0.537098814681152,
+      "n": 3304
+    },
+    "AGG-true": {
+      "auroc": 0.5133004754696909,
+      "n": 3304
+    }
+  },
+  "alfworld|gemma-3-4b-it|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.4810146396220826,
+      "n": 6790
+    },
+    "SPLIT-action": {
+      "auroc": 0.5836329336929577,
+      "n": 6790
+    },
+    "AGG-mean": {
+      "auroc": 0.5194268876381721,
+      "n": 6790
+    },
+    "AGG-true": {
+      "auroc": 0.43426139286883586,
+      "n": 6790
+    }
+  },
+  "alfworld|gemma-3-4b-it|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6235163156171559,
+      "n": 6790
+    },
+    "SPLIT-action": {
+      "auroc": 0.7131485321401287,
+      "n": 6790
+    },
+    "AGG-mean": {
+      "auroc": 0.6745024243463619,
+      "n": 6790
+    },
+    "AGG-true": {
+      "auroc": 0.6971490934035952,
+      "n": 6790
+    }
+  },
+  "alfworld|gemma-3-4b-it|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.6246070376202429,
+      "n": 6790
+    },
+    "SPLIT-action": {
+      "auroc": 0.6242203894544831,
+      "n": 6790
+    },
+    "AGG-mean": {
+      "auroc": 0.6015659250713272,
+      "n": 6790
+    },
+    "AGG-true": {
+      "auroc": 0.6740955083332034,
+      "n": 6790
+    }
+  },
+  "alfworld|gemma-3-4b-it|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.5913465645998659,
+      "n": 6790
+    },
+    "SPLIT-action": {
+      "auroc": 0.6093824542804135,
+      "n": 6790
+    },
+    "AGG-mean": {
+      "auroc": 0.59859746496001,
+      "n": 6790
+    },
+    "AGG-true": {
+      "auroc": 0.5184253441636395,
+      "n": 6790
+    }
+  },
+  "alfworld|gemma-3-4b-it|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6440248826803449,
+      "n": 6790
+    },
+    "SPLIT-action": {
+      "auroc": 0.7626497871876023,
+      "n": 6790
+    },
+    "AGG-mean": {
+      "auroc": 0.7059216413838263,
+      "n": 6790
+    },
+    "AGG-true": {
+      "auroc": 0.7177499571257074,
+      "n": 6790
+    }
+  },
+  "hotpotqa|Llama-3.3-70B-Instruct|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6617330308791506,
+      "n": 2530
+    },
+    "SPLIT-action": {
+      "auroc": 0.7449421513600238,
+      "n": 2530
+    },
+    "AGG-mean": {
+      "auroc": 0.7101572880204847,
+      "n": 2530
+    },
+    "AGG-true": {
+      "auroc": 0.7255448748954473,
+      "n": 2530
+    }
+  },
+  "hotpotqa|Llama-3.3-70B-Instruct|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.5318817375189939,
+      "n": 2530
+    },
+    "SPLIT-action": {
+      "auroc": 0.6360836526673024,
+      "n": 2530
+    },
+    "AGG-mean": {
+      "auroc": 0.5939815829356877,
+      "n": 2530
+    },
+    "AGG-true": {
+      "auroc": 0.6143334063803618,
+      "n": 2530
+    }
+  },
+  "hotpotqa|Llama-3.3-70B-Instruct|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6408494777137465,
+      "n": 2530
+    },
+    "SPLIT-action": {
+      "auroc": 0.6701189613633866,
+      "n": 2530
+    },
+    "AGG-mean": {
+      "auroc": 0.6660750515442208,
+      "n": 2530
+    },
+    "AGG-true": {
+      "auroc": 0.6396688797942048,
+      "n": 2530
+    }
+  },
+  "hotpotqa|Llama-3.3-70B-Instruct|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6817906919659457,
+      "n": 2530
+    },
+    "SPLIT-action": {
+      "auroc": 0.7429665911847373,
+      "n": 2530
+    },
+    "AGG-mean": {
+      "auroc": 0.7261210251064611,
+      "n": 2530
+    },
+    "AGG-true": {
+      "auroc": 0.7264783632727437,
+      "n": 2530
+    }
+  },
+  "hotpotqa|Llama-3.3-70B-Instruct|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.5226962382096503,
+      "n": 2530
+    },
+    "SPLIT-action": {
+      "auroc": 0.6265164661821871,
+      "n": 2530
+    },
+    "AGG-mean": {
+      "auroc": 0.5735139371756071,
+      "n": 2530
+    },
+    "AGG-true": {
+      "auroc": 0.5773768746269501,
+      "n": 2530
+    }
+  },
+  "hotpotqa|Mistral-7B-Instruct-v0.3|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.551679284249507,
+      "n": 3224
+    },
+    "SPLIT-action": {
+      "auroc": 0.6731578547057117,
+      "n": 3224
+    },
+    "AGG-mean": {
+      "auroc": 0.5921078702808811,
+      "n": 3224
+    },
+    "AGG-true": {
+      "auroc": 0.6426528074303489,
+      "n": 3224
+    }
+  },
+  "hotpotqa|Mistral-7B-Instruct-v0.3|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6670321865842321,
+      "n": 3224
+    },
+    "SPLIT-action": {
+      "auroc": 0.8276315617365321,
+      "n": 3224
+    },
+    "AGG-mean": {
+      "auroc": 0.7710217553385529,
+      "n": 3224
+    },
+    "AGG-true": {
+      "auroc": 0.7957559964402381,
+      "n": 3224
+    }
+  },
+  "hotpotqa|Mistral-7B-Instruct-v0.3|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.5568619642735164,
+      "n": 3224
+    },
+    "SPLIT-action": {
+      "auroc": 0.6459601692291818,
+      "n": 3224
+    },
+    "AGG-mean": {
+      "auroc": 0.6017780400284277,
+      "n": 3224
+    },
+    "AGG-true": {
+      "auroc": 0.5727268367194188,
+      "n": 3224
+    }
+  },
+  "hotpotqa|Mistral-7B-Instruct-v0.3|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6785406138893693,
+      "n": 3224
+    },
+    "SPLIT-action": {
+      "auroc": 0.811991475562002,
+      "n": 3224
+    },
+    "AGG-mean": {
+      "auroc": 0.7705925298289928,
+      "n": 3224
+    },
+    "AGG-true": {
+      "auroc": 0.7842778474582922,
+      "n": 3224
+    }
+  },
+  "hotpotqa|Mistral-7B-Instruct-v0.3|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.5534904124295181,
+      "n": 3224
+    },
+    "SPLIT-action": {
+      "auroc": 0.6623782871964355,
+      "n": 3224
+    },
+    "AGG-mean": {
+      "auroc": 0.5758195857634716,
+      "n": 3224
+    },
+    "AGG-true": {
+      "auroc": 0.595758709377996,
+      "n": 3224
+    }
+  },
+  "hotpotqa|Phi-4-mini-instruct|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.5500223835507512,
+      "n": 2716
+    },
+    "SPLIT-action": {
+      "auroc": 0.6306883176648478,
+      "n": 2716
+    },
+    "AGG-mean": {
+      "auroc": 0.5994064445842764,
+      "n": 2716
+    },
+    "AGG-true": {
+      "auroc": 0.5535292441873206,
+      "n": 2716
+    }
+  },
+  "hotpotqa|Phi-4-mini-instruct|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6461827436911258,
+      "n": 2716
+    },
+    "SPLIT-action": {
+      "auroc": 0.8509894155545329,
+      "n": 2716
+    },
+    "AGG-mean": {
+      "auroc": 0.7853498877691896,
+      "n": 2716
+    },
+    "AGG-true": {
+      "auroc": 0.8043646358681531,
+      "n": 2716
+    }
+  },
+  "hotpotqa|Phi-4-mini-instruct|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.5303060754904815,
+      "n": 2716
+    },
+    "SPLIT-action": {
+      "auroc": 0.6688924994756301,
+      "n": 2716
+    },
+    "AGG-mean": {
+      "auroc": 0.5834825048288989,
+      "n": 2716
+    },
+    "AGG-true": {
+      "auroc": 0.6114766569306047,
+      "n": 2716
+    }
+  },
+  "hotpotqa|Phi-4-mini-instruct|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.6517138286515711,
+      "n": 2716
+    },
+    "SPLIT-action": {
+      "auroc": 0.8338276497897824,
+      "n": 2716
+    },
+    "AGG-mean": {
+      "auroc": 0.7719689072131384,
+      "n": 2716
+    },
+    "AGG-true": {
+      "auroc": 0.8035481841148793,
+      "n": 2716
+    }
+  },
+  "hotpotqa|Phi-4-mini-instruct|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.5286468752250094,
+      "n": 2716
+    },
+    "SPLIT-action": {
+      "auroc": 0.7304575949109511,
+      "n": 2716
+    },
+    "AGG-mean": {
+      "auroc": 0.6136705579608742,
+      "n": 2716
+    },
+    "AGG-true": {
+      "auroc": 0.6309869737126328,
+      "n": 2716
+    }
+  },
+  "hotpotqa|Qwen3.5-4B|Qwen3.5-4B": {
+    "SPLIT-thought": {
+      "auroc": 0.7322285811349353,
+      "n": 2479
+    },
+    "SPLIT-action": {
+      "auroc": 0.7980935949230861,
+      "n": 2371
+    },
+    "AGG-mean": {
+      "auroc": 0.7570330005096274,
+      "n": 2371
+    },
+    "AGG-true": {
+      "auroc": 0.7536592101629385,
+      "n": 2371
+    }
+  },
+  "hotpotqa|Qwen3.5-9B|Qwen3.5-9B": {
+    "SPLIT-thought": {
+      "auroc": 0.7461285432095616,
+      "n": 2376
+    },
+    "SPLIT-action": {
+      "auroc": 0.8160128360137012,
+      "n": 2296
+    },
+    "AGG-mean": {
+      "auroc": 0.7722131270098964,
+      "n": 2296
+    },
+    "AGG-true": {
+      "auroc": 0.7823220949904481,
+      "n": 2296
+    }
+  },
+  "hotpotqa|Qwen3.6-35B-A3B|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.7535145961166438,
+      "n": 2234
+    },
+    "SPLIT-action": {
+      "auroc": 0.8050964193260769,
+      "n": 2192
+    },
+    "AGG-mean": {
+      "auroc": 0.7818946171439893,
+      "n": 2192
+    },
+    "AGG-true": {
+      "auroc": 0.7812657486335032,
+      "n": 2192
+    }
+  },
+  "hotpotqa|Qwen3.6-35B-A3B|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.7184513313294204,
+      "n": 2234
+    },
+    "SPLIT-action": {
+      "auroc": 0.7549299414635408,
+      "n": 2192
+    },
+    "AGG-mean": {
+      "auroc": 0.7336828004462382,
+      "n": 2192
+    },
+    "AGG-true": {
+      "auroc": 0.7408699922037534,
+      "n": 2192
+    }
+  },
+  "hotpotqa|Qwen3.6-35B-A3B|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.5543269954718589,
+      "n": 2234
+    },
+    "SPLIT-action": {
+      "auroc": 0.6766073836054841,
+      "n": 2192
+    },
+    "AGG-mean": {
+      "auroc": 0.6059251474179779,
+      "n": 2192
+    },
+    "AGG-true": {
+      "auroc": 0.643478073594845,
+      "n": 2192
+    }
+  },
+  "hotpotqa|Qwen3.6-35B-A3B|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6160312485342992,
+      "n": 2234
+    },
+    "SPLIT-action": {
+      "auroc": 0.6782450261238872,
+      "n": 2192
+    },
+    "AGG-mean": {
+      "auroc": 0.6485822460943389,
+      "n": 2192
+    },
+    "AGG-true": {
+      "auroc": 0.6174894363012194,
+      "n": 2192
+    }
+  },
+  "hotpotqa|Qwen3.6-35B-A3B|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.5222445031593308,
+      "n": 2234
+    },
+    "SPLIT-action": {
+      "auroc": 0.6170991932392328,
+      "n": 2192
+    },
+    "AGG-mean": {
+      "auroc": 0.5240860946834767,
+      "n": 2192
+    },
+    "AGG-true": {
+      "auroc": 0.5833694430206363,
+      "n": 2192
+    }
+  },
+  "hotpotqa|gemma-3-4b-it|gemma-3-4b-it": {
+    "SPLIT-thought": {
+      "auroc": 0.579057746195684,
+      "n": 2565
+    },
+    "SPLIT-action": {
+      "auroc": 0.6819543456627362,
+      "n": 2565
+    },
+    "AGG-mean": {
+      "auroc": 0.6033184528733117,
+      "n": 2565
+    },
+    "AGG-true": {
+      "auroc": 0.6509929780178108,
+      "n": 2565
+    }
+  },
+  "hotpotqa|gemma-3-4b-it|Llama-3.3-70B-Instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.7577788368299021,
+      "n": 2565
+    },
+    "SPLIT-action": {
+      "auroc": 0.8483414734709563,
+      "n": 2565
+    },
+    "AGG-mean": {
+      "auroc": 0.8200639333789758,
+      "n": 2565
+    },
+    "AGG-true": {
+      "auroc": 0.8156981005779964,
+      "n": 2565
+    }
+  },
+  "hotpotqa|gemma-3-4b-it|Mistral-7B-Instruct-v0.3": {
+    "SPLIT-thought": {
+      "auroc": 0.5521736585316193,
+      "n": 2565
+    },
+    "SPLIT-action": {
+      "auroc": 0.672800826654518,
+      "n": 2565
+    },
+    "AGG-mean": {
+      "auroc": 0.603193105782764,
+      "n": 2565
+    },
+    "AGG-true": {
+      "auroc": 0.6387388682875679,
+      "n": 2565
+    }
+  },
+  "hotpotqa|gemma-3-4b-it|Phi-4-mini-instruct": {
+    "SPLIT-thought": {
+      "auroc": 0.6187094212654839,
+      "n": 2565
+    },
+    "SPLIT-action": {
+      "auroc": 0.6605791671862951,
+      "n": 2565
+    },
+    "AGG-mean": {
+      "auroc": 0.6453364519519788,
+      "n": 2565
+    },
+    "AGG-true": {
+      "auroc": 0.6009922144822338,
+      "n": 2565
+    }
+  },
+  "hotpotqa|gemma-3-4b-it|Qwen3.6-35B-A3B": {
+    "SPLIT-thought": {
+      "auroc": 0.7573579378431138,
+      "n": 2565
+    },
+    "SPLIT-action": {
+      "auroc": 0.8373115657824076,
+      "n": 2565
+    },
+    "AGG-mean": {
+      "auroc": 0.8149285203444054,
+      "n": 2565
+    },
+    "AGG-true": {
+      "auroc": 0.8104179339236312,
+      "n": 2565
+    }
+  }
+}
