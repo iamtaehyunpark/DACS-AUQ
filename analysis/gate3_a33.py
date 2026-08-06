@@ -368,10 +368,15 @@ def main():
                            if cb is not None and len(cb) else [None, None]),
                 "abstain": sum(1 for r in cap if r[arm] is None)}
 
+    ARMS3 = ("arm0_h_rule", "arm1_mixture", "arm2_violation")
     prim = results.get(a.primary, [])
-    verdicts = {arm: verdict(prim, arm)
-                for arm in ("arm0_h_rule", "arm1_mixture", "arm2_violation")}
+    verdicts = {arm: verdict(prim, arm) for arm in ARMS3}
     any_pass = any(v and v["verdict"].startswith("PASS") for v in verdicts.values())
+    # spec section 1: all constructs reported, primary decides.  A rule that passes
+    # only on the construct that happens to be primary is a different finding from one
+    # that passes everywhere, and the table has to make that visible.
+    by_construct = {c: {arm: verdict(rows, arm) for arm in ARMS3}
+                    for c, rows in results.items()}
 
     L = ["# GATE-3 SUMMARY (A33) — final label-free attempt\n",
          "Spec: `%s`. Primary construct **%s**, capable stratum, seed %d, %d draws.\n"
@@ -401,6 +406,53 @@ def main():
     L.append("Bars are A28.1's, unchanged: PASS needs ≥80% of countable cells at or "
              "above V **and** pooled capture ≥0.5. Abstentions count as losses "
              "(spec §3.4).\n")
+    L.append("## Robustness across constructs (spec §1 — primary decides)\n")
+    L.append("| construct | h-rule | mixture | violation-calibrated |")
+    L.append("|---|---|---|---|")
+    for c in results:
+        row = by_construct[c]
+        mark = " ←primary" if c == a.primary else ""
+        L.append("| %s%s | %s | %s | %s |"
+                 % (c, mark,
+                    *[("%s %d/%d, cap %s" % (row[k]["verdict"], row[k]["wins"],
+                                             row[k]["n"],
+                                             "n/a" if row[k]["capture"] is None
+                                             else "%.2f" % row[k]["capture"]))
+                      if row[k] else "—" for k in ARMS3]))
+    L.append("")
+    L.append("## Per-cell detail, primary construct, capable stratum\n")
+    L.append("| dataset | assessor | target | n | V | h-rule | mixture | viol-cal | fitted |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
+    for r in prim:
+        if r["capable"] != "yes":
+            continue
+        g = lambda k: "—" if r[k] is None else "%.3f" % r[k]
+        L.append("| %s | %s | %s | %d | %s | %s | %s | %s | %s |"
+                 % (r["dataset"], r["assessor"], r["target"], r["n"], g("V"),
+                    g("arm0_h_rule"),
+                    g("arm1_mixture") if r["arm1_mixture"] is not None
+                    else "ABSTAIN(%s)" % r["arm1_status"],
+                    g("arm2_violation"), g("S_fitted")))
+    L.append("")
+    L.append("## Mechanism\n")
+    L.append("Spec §0 diagnosed the A28.1 failure as the indexing identity: the "
+             "optimal flag-rate is not the error rate. The g-rule predicted the error "
+             "rate and cut at 1−p̂; the h-rule predicts the optimal **percentile** "
+             "directly and never forms the identity. On the same cells under the same "
+             "bars, pooled capture moves 0.455 → %s.\n"
+             % ("n/a" if verdicts["arm0_h_rule"] is None
+                else "%.3f" % verdicts["arm0_h_rule"]["capture"]))
+    L.append("Arm 1 was the arm registered to *escape* the percentile family "
+             "altogether, and it is the one that failed — %d abstentions on degenerate "
+             "EM, each counted as a loss per spec §3.4. Bimodality is present in the "
+             "scores but its component boundary is not where the decision boundary "
+             "belongs, which is the same result S7 reached from the gap side.\n"
+             % (verdicts["arm1_mixture"]["abstain"] if verdicts["arm1_mixture"] else 0))
+    L.append("Arm 2 is **not label-free**. Per spec §4 its claim wording is "
+             "\"human-annotation-free, environment-self-calibrating\": it fits on "
+             "violation labels the environment emits automatically in any deployment "
+             "log. Its risk was pre-registered — violation steps are gross failures, so "
+             "the cut may sit wrong for subtle errors.\n")
     L.append("## Closure clause (spec §6)\n")
     if any_pass:
         L.append("**NOT INVOKED** — an arm reached PASS on the primary construct. "
