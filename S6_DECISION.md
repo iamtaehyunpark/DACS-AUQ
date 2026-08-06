@@ -8,7 +8,7 @@ KEEP → run the C5 retrospective-stream corpus pass, then P1/P2 per v4.1 §6d. 
 
 ## Cost if KEEP
 
-C5 is a capable-judge pass over the same matrix arms: **77,026 assessments**, **3.9 – 1.3 A100-hours** at the unverified inherited rate (same bracketing as S4).
+C5 is a capable-judge pass over the same matrix arms: **77,026 assessments**, **1.3 – 3.9 A100-hours** at the unverified inherited rate (same bracketing as S4).
 
 ## What P1/P2 would test
 

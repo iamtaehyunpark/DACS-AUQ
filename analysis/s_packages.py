@@ -63,7 +63,7 @@ def s4(man, arms, out):
     rate = man["throughput"]["assessments"]
     n_steps = sum(arms.values())
     n_assess = n_steps * len(CAPABLE)
-    lo, hi = hours(n_assess, rate * 1.5), hours(n_assess, rate * 0.5)
+    fast, slow = hours(n_assess, rate * 1.5), hours(n_assess, rate * 0.5)
     L = ["# S4_COST — hindsight-ceiling pass (STOP gate)\n",
          "**This branch is HALTED pending author budget acknowledgement "
          "(EXECUTION_HANDOVER.md §5).** Nothing has been launched.\n",
@@ -82,10 +82,19 @@ def s4(man, arms, out):
              "in the manifest — one A100 gives %s A100-hours. Bracketing the rate at "
              "±50%% because §1 requires a 500-step probe before any GPU stage sizes "
              "itself: **%s – %s A100-hours**.\n"
-             % (rate, fmt_h(hours(n_assess, rate)), fmt_h(hi), fmt_h(lo)))
+             % (rate, fmt_h(hours(n_assess, rate)), fmt_h(fast), fmt_h(slow)))
     L.append("With all 5 A100s free (S0 capacity check), wall clock is roughly "
              "**%s – %s hours**.\n"
-             % (fmt_h(hi / 5), fmt_h(lo / 5)))
+             % (fmt_h(fast / 5), fmt_h(slow / 5)))
+    L.append("> **This sizing disagrees with the handover.** §5 estimates 6–10 "
+             "A100-hours; the arithmetic here gives %s–%s. The handover figure is "
+             "%.1fx the upper bound of this bracket. Either the inherited throughput "
+             "constant is optimistic (likely — hindsight prompts are longer), or §5's "
+             "estimate assumed both evidence conditions rather than the hindsight one "
+             "alone. **The 500-step probe resolves which, and should be run before the "
+             "author is asked to approve anything.** Until then treat 10 A100-hours as "
+             "the number to budget against, not %s.\n"
+             % (fmt_h(fast), fmt_h(slow), 10.0 / max(slow, 0.1), fmt_h(slow)))
     L.append("Hindsight prompts carry the full trajectory plus episode outcome, so "
              "they are LONGER than the banked online prompts and the true rate will "
              "be below the inherited constant. Treat the upper bound as the planning "
@@ -98,10 +107,14 @@ def s4(man, arms, out):
                                             "{:,}".format(n * 2)))
     L.append("")
     L.append("## What the author is being asked\n")
-    L.append("Approve **%s – %s A100-hours** for the hindsight condition. "
+    L.append("Approve up to **10 A100-hours** (the handover's own §5 ceiling) "
+             "for the hindsight condition; this document's arithmetic says %s–%s but "
+             "the throughput constant behind it is unverified.\n\n"
              "A30 calls this the keystone: it converts the construct taxonomy from "
-             "argument to measurement and decomposes the R3 movements into "
-             "information-gap vs construct-gap.\n" % (fmt_h(hi), fmt_h(lo)))
+             "argument into measurement, and decomposes the R3 movements into "
+             "information-gap vs construct-gap. S1d raises the stakes — the "
+             "construct choice now decides a gate verdict, not just a framing.\n"
+             % (fmt_h(fast), fmt_h(slow)))
     open(out, "w").write("\n".join(L) + "\n")
     return n_assess
 
@@ -152,7 +165,7 @@ def s6(man, arms, out, s1_verdict_note):
     rate = man["throughput"]["assessments"]
     n_steps = sum(arms.values())
     n_assess = n_steps * len(CAPABLE)
-    lo, hi = hours(n_assess, rate * 1.5), hours(n_assess, rate * 0.5)
+    fast, slow = hours(n_assess, rate * 1.5), hours(n_assess, rate * 0.5)
     L = ["# S6_DECISION — A25 kill-or-keep (STOP gate)\n",
          "**HALTED for author decision (EXECUTION_HANDOVER.md §7).** Silent drop is "
          "prohibited; the wording is committed in v4.1.\n",
@@ -162,7 +175,7 @@ def s6(man, arms, out, s1_verdict_note):
          "## Cost if KEEP\n",
          "C5 is a capable-judge pass over the same matrix arms: **%s assessments**, "
          "**%s – %s A100-hours** at the unverified inherited rate (same bracketing as "
-         "S4).\n" % ("{:,}".format(n_assess), fmt_h(hi), fmt_h(lo)),
+         "S4).\n" % ("{:,}".format(n_assess), fmt_h(fast), fmt_h(slow)),
          "## What P1/P2 would test\n",
          "- **P1**: retrospective-stream p̂ convergence against the forward stream.\n"
          "- **P2**: two-phase vs forward-only gating at equal budget.\n",
