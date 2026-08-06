@@ -35,8 +35,17 @@ def path_to_arm(path):
 
 
 def install(construct, labels_csv, in_matrix_only=True):
-    """Point every gate's label reader at an A30 construct.  Returns the arm map so
-    callers can assert coverage rather than discover an empty join as a zero result."""
+    """Point every gate's label reader at an A30 construct.  Returns the replacement
+    function so the caller can also bind it onto modules that define their OWN
+    load_labels rather than importing the shared one -- verdict_vs_value.py does, and
+    patching only gate2b_cut_transfer would have left b1 silently reading L1.
+
+    construct == "L1" installs nothing: the gates read judge.jsonl exactly as when
+    they were banked.  That is the reproduction control of spec section 7 -- if the
+    L1 pass does not match the banked tables to 0.001, the harness is wrong and no
+    L2 number from it can be trusted."""
+    if construct == "L1":
+        return None
     by_arm = SL.load(labels_csv, construct, in_matrix_only=in_matrix_only)
 
     def load_labels(path):
@@ -48,18 +57,38 @@ def install(construct, labels_csv, in_matrix_only=True):
         return {k: (0.0 if y == 1 else 1.0) for k, (y, _w) in steps.items()}
 
     G.load_labels = load_labels
-    return by_arm
+    return load_labels
 
 
-def run(script, args, log):
-    """Run a gate script in-process-free (subprocess) so its own __main__ guard,
-    argument parsing and console output are exercised exactly as when it was banked."""
-    cmd = [sys.executable, script] + args
-    with open(log, "w") as f:
-        f.write("$ %s\n\n" % " ".join(cmd))
-        f.flush()
-        rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT)
-    return rc
+RUNNER = (
+    # (gate, module, extra argv)  -- b1 is verdict_vs_value, the gate-2b1 primary
+    ("b1", "verdict_vs_value", ["--pivot", "{pivot}", "--scope", "{scope}",
+                                "--out", "{od}/S1d_b1.csv"]),
+    ("A28", "gate2b_cut_transfer", ["--pivot", "{pivot}", "--scope", "{scope}",
+                                    "--outdir", "{od}"]),
+    ("A28.1", "gate2b1_indexed_cut", ["--pivot", "{pivot}", "--scope", "{scope}",
+                                      "--outdir", "{od}", "--figdir", "{fd}"]),
+)
+
+# The gate modules are invoked by IMPORTING them and calling main(), never by
+# re-executing the file.  runpy.run_path would build a fresh module object whose
+# `import gate2b_cut_transfer` resolves to the cached-but-then-shadowed module, so
+# the label patch would silently not apply and every "L2" number would really be L1.
+CHILD = r"""
+import os, sys, importlib
+sys.path.insert(0, {here!r})
+import s1_gate2
+patched = s1_gate2.install(os.environ['S1_CONSTRUCT'], os.environ['S1_LABELS'],
+                           os.environ.get('S1_IN_MATRIX') == '1')
+m = importlib.import_module({mod!r})
+if patched is not None and 'load_labels' in vars(m):
+    m.load_labels = patched          # module defines its own reader
+if patched is not None:
+    import gate2b_cut_transfer as G
+    assert G.load_labels is patched, 'label patch did not reach the shared reader'
+sys.argv = [{mod!r}] + {argv!r}
+sys.exit(m.main() or 0)
+"""
 
 
 def main():
@@ -71,11 +100,12 @@ def main():
     ap.add_argument("--figdir", default="figures_S1")
     ap.add_argument("--constructs", default=",".join(SL.CONSTRUCTS))
     ap.add_argument("--labelpass", default="L2")
+    ap.add_argument("--gates", default="b1,A28,A28.1")
     a = ap.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
-    os.makedirs(a.outdir, exist_ok=True)
-    os.makedirs(a.figdir, exist_ok=True)
+    want = set(a.gates.split(","))
+    results = []
 
     for c in a.constructs.split(","):
         if not c:
@@ -89,43 +119,27 @@ def main():
         env["S1_CONSTRUCT"] = c
         env["S1_LABELS"] = a.labels
         env["S1_IN_MATRIX"] = "1"
-        # The gate scripts import gate2b_cut_transfer themselves; the patch has to be
-        # in THEIR process, so it is installed via sitecustomize-style bootstrap.
-        boot = os.path.join(od, "_s1_bootstrap.py")
-        with open(boot, "w") as f:
-            f.write(
-                "import os, sys\n"
-                "sys.path.insert(0, %r)\n"
-                "import s1_gate2\n"
-                "s1_gate2.install(os.environ['S1_CONSTRUCT'], os.environ['S1_LABELS'],\n"
-                "                 os.environ.get('S1_IN_MATRIX') == '1')\n" % here)
-        env["PYTHONSTARTUP"] = boot
 
-        for gate, script, extra in (
-            ("A28", os.path.join(here, "gate2b_cut_transfer.py"),
-             ["--pivot", a.pivot, "--scope", a.scope, "--outdir", od]),
-            ("A28.1", os.path.join(here, "gate2b1_indexed_cut.py"),
-             ["--pivot", a.pivot, "--scope", a.scope, "--outdir", od,
-              "--figdir", fd]),
-        ):
+        for gate, mod, extra in RUNNER:
+            if gate not in want:
+                continue
+            argv = [x.format(pivot=a.pivot, scope=a.scope, od=od, fd=fd)
+                    for x in extra]
             log = os.path.join(od, "S1d_%s_console.txt" % gate.replace(".", "_"))
-            cmd = [sys.executable, "-c",
-                   "import runpy,os,sys;"
-                   "sys.path.insert(0, %r);"
-                   "import s1_gate2;"
-                   "s1_gate2.install(os.environ['S1_CONSTRUCT'], os.environ['S1_LABELS'],"
-                   " os.environ.get('S1_IN_MATRIX')=='1');"
-                   "sys.argv=[%r]+%r;"
-                   "runpy.run_path(%r, run_name='__main__')"
-                   % (here, script, extra, script)]
+            code = CHILD.format(here=here, mod=mod, argv=argv)
             with open(log, "w") as f:
-                f.write("$ construct=%s %s %s\n\n" % (c, script, " ".join(extra)))
+                f.write("$ construct=%s gate=%s %s\n\n" % (c, gate, " ".join(argv)))
                 f.flush()
-                rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT, env=env)
-            print("[%s] %-20s rc=%d -> %s" % (c, gate, rc, log))
-        os.remove(boot)
-    print("-> %s" % a.outdir)
-    return 0
+                rc = subprocess.call([sys.executable, "-c", code],
+                                     stdout=f, stderr=subprocess.STDOUT, env=env)
+            results.append((c, gate, rc, log))
+            print("[%-20s] %-6s rc=%d -> %s" % (c, gate, rc, log), flush=True)
+
+    bad = [r for r in results if r[2] != 0]
+    print("\nS1d: %d runs, %d failed" % (len(results), len(bad)))
+    for c, gate, rc, log in bad:
+        print("  FAILED %s/%s rc=%d see %s" % (c, gate, rc, log))
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":
