@@ -7,14 +7,23 @@ this shares the score path with the gate-2 arms rather than reimplementing it.
 
 y = 1 means INCORRECT throughout.  No orientation flips (ground rule 4): U is always
 "higher = more likely incorrect", and AUROC is computed in that direction everywhere.
+
+PERFORMANCE, because it changes what is feasible rather than just how fast it is:
+  * Scores are read ONCE for all constructs.  The pivot is 31 GB; re-reading it per
+    construct made the stage I/O-bound five times over.
+  * The episode-clustered bootstrap is vectorised.  2000 draws x 61 cells x 5
+    constructs with a per-draw sort is ~1e11 operations and does not finish; here
+    each cell is sorted once and a draw is a bincount over episode multiplicities,
+    which is O(n) in numpy.  Same estimator, same seed, same draws.
 """
 import argparse
 import collections
 import csv
 import json
 import os
-import random
 import sys
+
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gate2b_cut_transfer as G          # noqa: E402
@@ -28,94 +37,130 @@ MINORITY_FLOOR = 10    # spec §0
 CAPABLE = G.CAPABLE
 
 
-# ---------------------------------------------------------------- AUROC
-def auroc_w(rows):
-    """Weighted AUROC.  rows = [(u, y, w)].  Rank-based with tie correction:
-    sum over positive/negative pairs of w_p*w_n*(1 if u_p>u_n else 0.5 if equal)."""
-    pos = [(u, w) for u, y, w in rows if y == 1]
-    neg = [(u, w) for u, y, w in rows if y == 0]
-    if not pos or not neg:
-        return None
-    srt = sorted(rows, key=lambda r: r[0])
-    # Sweep once: accumulate negative weight below and tied-with each positive.
-    i = 0
-    wneg_below = 0.0
-    num = 0.0
-    Wn = sum(w for _, w in neg)
-    Wp = sum(w for _, w in pos)
-    while i < len(srt):
-        j = i
-        while j < len(srt) and srt[j][0] == srt[i][0]:
-            j += 1
-        tie_pos = sum(w for _, y, w in srt[i:j] if y == 1)
-        tie_neg = sum(w for _, y, w in srt[i:j] if y == 0)
-        num += tie_pos * (wneg_below + 0.5 * tie_neg)
-        wneg_below += tie_neg
-        i = j
-    return num / (Wp * Wn)
+class Cell(object):
+    """Pre-sorted scores + episode index for one (dataset, assessor, target)."""
+
+    __slots__ = ("u", "y", "w", "ep", "g", "n_ep", "n", "n_pos", "n_neg",
+                 "self_", "capable", "underpowered", "ep_keys")
+
+    def __init__(self, rows):
+        rows.sort(key=lambda r: r[0])
+        self.u = np.array([r[0] for r in rows], dtype=np.float64)
+        self.y = np.array([r[1] for r in rows], dtype=np.int8)
+        self.w = np.array([r[2] for r in rows], dtype=np.float64)
+        eps = sorted({r[3] for r in rows})
+        idx = {e: i for i, e in enumerate(eps)}
+        self.ep = np.array([idx[r[3]] for r in rows], dtype=np.int64)
+        self.ep_keys = eps
+        self.n_ep = len(eps)
+        # tie groups: equal scores share a group, so ties get the 0.5 credit
+        _, self.g = np.unique(self.u, return_inverse=True)
+        self.n = len(rows)
+        self.n_pos = int((self.y == 1).sum())
+        self.n_neg = self.n - self.n_pos
+        self.underpowered = (self.n < N_FLOOR
+                             or min(self.n_pos, self.n_neg) < MINORITY_FLOOR)
+
+    def auroc(self, eff_w=None):
+        w = self.w if eff_w is None else eff_w
+        wp = np.where(self.y == 1, w, 0.0)
+        wn = np.where(self.y == 0, w, 0.0)
+        Wp, Wn = wp.sum(), wn.sum()
+        if Wp <= 0 or Wn <= 0:
+            return None
+        k = self.g.max() + 1
+        tp = np.bincount(self.g, weights=wp, minlength=k)
+        tn = np.bincount(self.g, weights=wn, minlength=k)
+        below = np.concatenate(([0.0], np.cumsum(tn)[:-1]))
+        return float((tp * (below + 0.5 * tn)).sum() / (Wp * Wn))
+
+    def eff_w(self, mult):
+        return self.w * mult[self.ep]
 
 
-def boot_auroc(by_ep, rng, nboot=NBOOT):
+def boot_ci(cell, rng, nboot=NBOOT):
     """Episode-clustered bootstrap: resample EPISODES, not steps.  Steps inside an
     episode are not independent, so a step-level bootstrap understates the CI."""
-    eps = list(by_ep.values())
-    if not eps:
+    if cell.n_ep < 2:
         return None, None
     out = []
-    n = len(eps)
     for _ in range(nboot):
-        rows = []
-        for _ in range(n):
-            rows.extend(eps[rng.randrange(n)])
-        a = auroc_w(rows)
+        mult = np.bincount(rng.integers(0, cell.n_ep, cell.n_ep),
+                           minlength=cell.n_ep).astype(np.float64)
+        a = cell.auroc(cell.eff_w(mult))
         if a is not None:
             out.append(a)
     if not out:
         return None, None
-    out.sort()
-    return out[int(0.025 * len(out))], out[min(int(0.975 * len(out)), len(out) - 1)]
+    out = np.sort(np.array(out))
+    return float(np.quantile(out, 0.025)), float(np.quantile(out, 0.975))
 
 
-def boot_paired(by_ep_a, by_ep_b, rng, nboot=NBOOT):
+def boot_paired(ca, cb, rng, nboot=NBOOT):
     """CI on the PAIRED difference auroc(a) - auroc(b) over shared episodes.  The two
     arms score the same episodes, so resampling them independently would inflate the
-    interval; episodes are drawn once and applied to both."""
-    keys = sorted(set(by_ep_a) & set(by_ep_b))
-    if not keys:
+    interval and make a real difference look null."""
+    shared = sorted(set(ca.ep_keys) & set(cb.ep_keys))
+    if len(shared) < 2:
         return None, None, None
-    base = None
-    aa, ab = auroc_w([r for k in keys for r in by_ep_a[k]]), \
-        auroc_w([r for k in keys for r in by_ep_b[k]])
-    if aa is not None and ab is not None:
-        base = aa - ab
+    ia = {e: i for i, e in enumerate(ca.ep_keys)}
+    ib = {e: i for i, e in enumerate(cb.ep_keys)}
+    sa = np.array([ia[e] for e in shared])
+    sb = np.array([ib[e] for e in shared])
+    # restrict both cells to the shared episodes via a 0/1 multiplicity vector
+    ma = np.zeros(ca.n_ep); ma[sa] = 1.0
+    mb = np.zeros(cb.n_ep); mb[sb] = 1.0
+    base_a, base_b = ca.auroc(ca.eff_w(ma)), cb.auroc(cb.eff_w(mb))
+    base = None if base_a is None or base_b is None else base_a - base_b
     out = []
-    n = len(keys)
+    n = len(shared)
     for _ in range(nboot):
-        pick = [keys[rng.randrange(n)] for _ in range(n)]
-        ra = [r for k in pick for r in by_ep_a[k]]
-        rb = [r for k in pick for r in by_ep_b[k]]
-        x, y = auroc_w(ra), auroc_w(rb)
+        pick = rng.integers(0, n, n)
+        cnt = np.bincount(pick, minlength=n).astype(np.float64)
+        ma = np.zeros(ca.n_ep); ma[sa] = cnt
+        mb = np.zeros(cb.n_ep); mb[sb] = cnt
+        x, y = ca.auroc(ca.eff_w(ma)), cb.auroc(cb.eff_w(mb))
         if x is not None and y is not None:
             out.append(x - y)
     if not out:
         return base, None, None
-    out.sort()
-    return base, out[int(0.025 * len(out))], out[min(int(0.975 * len(out)), len(out) - 1)]
+    out = np.array(out)
+    return base, float(np.quantile(out, 0.025)), float(np.quantile(out, 0.975))
 
 
-# ---------------------------------------------------------------- collect
-def collect(pivot, labels_by_arm, scope):
-    """-> {(ds, assessor, target): {"by_ep": {ep: [(u,y,w)]}, ...}}"""
-    cells = {}
+def boot_mean(vals, rng, nboot=NBOOT):
+    if not vals:
+        return None, None, None
+    v = np.array(vals, dtype=np.float64)
+    n = len(v)
+    b = np.array([v[rng.integers(0, n, n)].mean() for _ in range(nboot)])
+    return float(v.mean()), float(np.quantile(b, 0.025)), float(np.quantile(b, 0.975))
+
+
+# ---------------------------------------------------------------- scores
+def load_scores(pivot, scope, cache=None):
+    """{(ds, assessor, target): {(task_id, step_idx): u}} — read once, reused by
+    every construct.
+
+    Parsing the pivot costs ~30 min (31 GB of JSONL), and S1's L1 reproduction pass,
+    S2 and every other scope need the same scores.  The cache makes that a one-time
+    cost.  It is keyed by scope and stores only (key -> u), never a derived quantity,
+    so a stale cache cannot silently change a result — and the manifest's sha256 pins
+    are what detect upstream drift.
+    """
+    if cache and os.path.exists(cache):
+        import pickle
+        with open(cache, "rb") as f:
+            out = pickle.load(f)
+        print("S1: score cache hit %s (%d cells)" % (cache, len(out)), flush=True)
+        return out
+    out = {}
     xp = os.path.join(pivot, "crossprobe")
     for ds in sorted(d for d in os.listdir(pivot)
                      if os.path.isdir(os.path.join(pivot, d)) and d != "crossprobe"):
         for tgt in sorted(os.listdir(os.path.join(pivot, ds))):
             tdir = os.path.join(pivot, ds, tgt)
             if not os.path.isdir(tdir):
-                continue
-            lab = labels_by_arm.get((ds, tgt))
-            if not lab:
                 continue
             src = {tgt: [os.path.join(tdir, "probes.jsonl"),
                          os.path.join(tdir, "probes.aggtrue.jsonl")]}
@@ -124,26 +169,41 @@ def collect(pivot, labels_by_arm, scope):
                             for p in ("stages", "response")]
             for asr, paths in src.items():
                 pr = G.load_ptrue(paths)
-                by_ep = collections.defaultdict(list)
+                d = {}
                 for key, v in pr.items():
-                    yw = lab.get(key)
-                    if yw is None:
-                        continue
                     u, _said = G.scoped(v, scope)
-                    if u is None:
-                        continue
-                    by_ep[key[0]].append((u, yw[0], yw[1]))
-                flat = [r for rs in by_ep.values() for r in rs]
-                if not flat:
-                    continue
-                npos = sum(1 for r in flat if r[1] == 1)
-                cells[(ds, asr, tgt)] = {
-                    "by_ep": dict(by_ep), "n": len(flat), "n_pos": npos,
-                    "n_neg": len(flat) - npos, "n_ep": len(by_ep),
-                    "self": asr == tgt, "capable": asr in CAPABLE,
-                    "underpowered": (len(flat) < N_FLOOR
-                                     or min(npos, len(flat) - npos) < MINORITY_FLOOR),
-                }
+                    if u is not None:
+                        d[key] = u
+                if d:
+                    out[(ds, asr, tgt)] = d
+            print("  scores %s/%s: %d assessors" % (ds, tgt, len(src)), flush=True)
+    if cache:
+        import pickle
+        tmp = cache + ".tmp"
+        with open(tmp, "wb") as f:
+            pickle.dump(out, f, protocol=4)
+        os.replace(tmp, cache)   # atomic: a killed run never leaves a half cache
+        print("S1: score cache written %s" % cache, flush=True)
+    return out
+
+
+def build_cells(scores, labels_by_arm):
+    cells = {}
+    for (ds, asr, tgt), d in scores.items():
+        lab = labels_by_arm.get((ds, tgt))
+        if not lab:
+            continue
+        rows = []
+        for key, u in d.items():
+            yw = lab.get(key)
+            if yw is not None:
+                rows.append((u, yw[0], yw[1], key[0]))
+        if not rows:
+            continue
+        c = Cell(rows)
+        c.self_ = asr == tgt
+        c.capable = asr in CAPABLE
+        cells[(ds, asr, tgt)] = c
     return cells
 
 
@@ -151,139 +211,128 @@ def collect(pivot, labels_by_arm, scope):
 def s1a(cells, rng):
     rows = []
     for (ds, asr, tgt), c in sorted(cells.items()):
-        flat = [r for rs in c["by_ep"].values() for r in rs]
-        a = auroc_w(flat)
-        lo, hi = (None, None) if a is None else boot_auroc(c["by_ep"], rng)
+        a = c.auroc()
+        lo, hi = (None, None) if a is None else boot_ci(c, rng)
         rows.append({"dataset": ds, "assessor": asr, "target": tgt,
-                     "self": int(c["self"]), "capable": int(c["capable"]),
-                     "n": c["n"], "n_pos": c["n_pos"], "n_neg": c["n_neg"],
-                     "n_ep": c["n_ep"], "auroc": a, "ci_lo": lo, "ci_hi": hi,
-                     "underpowered": int(c["underpowered"])})
+                     "self": int(c.self_), "capable": int(c.capable),
+                     "n": c.n, "n_pos": c.n_pos, "n_neg": c.n_neg, "n_ep": c.n_ep,
+                     "auroc": a, "ci_lo": lo, "ci_hi": hi,
+                     "underpowered": int(c.underpowered)})
     return rows
 
 
+def _best_external(d, tgt):
+    scored = []
+    for a, c in d.items():
+        if a == tgt or c.underpowered:
+            continue
+        v = c.auroc()
+        if v is not None:
+            scored.append((v, a, c))
+    if not scored:
+        return None
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return scored[0]
+
+
 def s1b(cells, rng):
-    """Per arm: best-self vs best-external, paired CI on the difference."""
     by_arm = collections.defaultdict(dict)
     for (ds, asr, tgt), c in cells.items():
         by_arm[(ds, tgt)][asr] = c
     rows = []
     for (ds, tgt), d in sorted(by_arm.items()):
-        usable = {a: c for a, c in d.items() if not c["underpowered"]}
-        selfc = usable.get(tgt)
-        ext = {a: c for a, c in usable.items() if a != tgt}
-        if not selfc or not ext:
+        sc = d.get(tgt)
+        be = _best_external(d, tgt)
+        if sc is None or sc.underpowered or be is None:
             rows.append({"dataset": ds, "target": tgt, "best_external": "",
                          "self_auroc": None, "ext_auroc": None, "delta": None,
-                         "ci_lo": None, "ci_hi": None, "n_ext_cells": len(ext),
+                         "ci_lo": None, "ci_hi": None,
+                         "n_ext": sum(1 for a in d if a != tgt),
                          "note": "no countable self or external cell"})
             continue
-        scored = []
-        for a, c in ext.items():
-            v = auroc_w([r for rs in c["by_ep"].values() for r in rs])
-            if v is not None:
-                scored.append((v, a, c))
-        if not scored:
-            continue
-        scored.sort(reverse=True)
-        bv, ba, bc = scored[0]
-        sv = auroc_w([r for rs in selfc["by_ep"].values() for r in rs])
-        delta, lo, hi = boot_paired(bc["by_ep"], selfc["by_ep"], rng)
+        bv, ba, bc = be
+        delta, lo, hi = boot_paired(bc, sc, rng)
         rows.append({"dataset": ds, "target": tgt, "best_external": ba,
-                     "self_auroc": sv, "ext_auroc": bv, "delta": delta,
-                     "ci_lo": lo, "ci_hi": hi, "n_ext_cells": len(ext), "note": ""})
+                     "self_auroc": sc.auroc(), "ext_auroc": bv, "delta": delta,
+                     "ci_lo": lo, "ci_hi": hi,
+                     "n_ext": sum(1 for a in d if a != tgt), "note": ""})
     return rows
 
 
-def s1c_i(cells_vj, rng):
+def s1c_i(cells, rng):
     """(i) capable external superiority intact on violation+judgment."""
     by_tgt = collections.defaultdict(dict)
-    for (ds, asr, tgt), c in cells_vj.items():
-        if asr == tgt or c["underpowered"]:
-            continue
-        by_tgt[(ds, tgt)][asr] = c
+    for (ds, asr, tgt), c in cells.items():
+        if asr != tgt and not c.underpowered:
+            by_tgt[(ds, tgt)][asr] = c
     wins = tot = 0
-    diffs = []
+    out = []
+    deltas = []
     for (ds, tgt), d in sorted(by_tgt.items()):
-        cap = {a: c for a, c in d.items() if a in CAPABLE}
-        non = {a: c for a, c in d.items() if a not in CAPABLE}
+        cap = [(c.auroc(), a, c) for a, c in d.items() if a in CAPABLE]
+        non = [(c.auroc(), a, c) for a, c in d.items() if a not in CAPABLE]
+        cap = [x for x in cap if x[0] is not None]
+        non = [x for x in non if x[0] is not None]
         if not cap or not non:
             continue
-        cv = max(auroc_w([r for rs in c["by_ep"].values() for r in rs]) for c in cap.values())
-        nv = max(auroc_w([r for rs in c["by_ep"].values() for r in rs]) for c in non.values())
+        cap.sort(key=lambda t: t[0], reverse=True)
+        non.sort(key=lambda t: t[0], reverse=True)
         tot += 1
-        if cv >= nv:
+        if cap[0][0] >= non[0][0]:
             wins += 1
-        bc = max(cap.values(), key=lambda c: auroc_w([r for rs in c["by_ep"].values() for r in rs]))
-        bn = max(non.values(), key=lambda c: auroc_w([r for rs in c["by_ep"].values() for r in rs]))
-        d0, lo, hi = boot_paired(bc["by_ep"], bn["by_ep"], rng)
-        diffs.append({"dataset": ds, "target": tgt, "capable": cv, "noncapable": nv,
-                      "delta": d0, "ci_lo": lo, "ci_hi": hi})
-    pooled = [x["delta"] for x in diffs if x["delta"] is not None]
-    plo = phi = None
-    if pooled:
-        b = []
-        for _ in range(NBOOT):
-            s = [pooled[rng.randrange(len(pooled))] for _ in range(len(pooled))]
-            b.append(sum(s) / len(s))
-        b.sort()
-        plo, phi = b[int(0.025 * NBOOT)], b[int(0.975 * NBOOT)]
+        d0, lo, hi = boot_paired(cap[0][2], non[0][2], rng)
+        if d0 is not None:
+            deltas.append(d0)
+        out.append({"dataset": ds, "target": tgt, "capable_best": cap[0][1],
+                    "noncapable_best": non[0][1], "capable": cap[0][0],
+                    "noncapable": non[0][0], "delta": d0, "ci_lo": lo, "ci_hi": hi})
+    mean, plo, phi = boot_mean(deltas, rng)
     if tot == 0:
         verdict = "UNDERPOWERED"
     elif wins / tot >= 2 / 3 and plo is not None and plo > 0:
         verdict = "PASS"
     else:
         verdict = "FAIL"
-    return {"verdict": verdict, "wins": wins, "total": tot,
-            "pooled_delta": (sum(pooled) / len(pooled)) if pooled else None,
-            "pooled_ci": [plo, phi], "cells": diffs}
+    return {"verdict": verdict, "wins": wins, "total": tot, "pooled_delta": mean,
+            "pooled_ci": [plo, phi], "cells": out}
 
 
 def s1c_ii(cells_by_c, rng):
-    """(ii) self-probe inflation confined to outcome strata: is (self - best-external)
-    larger under `outcome` than under `violation+judgment`?"""
+    """(ii) self-probe inflation confined to outcome strata."""
     def gaps(cells):
         by_arm = collections.defaultdict(dict)
         for (ds, asr, tgt), c in cells.items():
-            if not c["underpowered"]:
-                by_arm[(ds, tgt)][asr] = c
+            by_arm[(ds, tgt)][asr] = c
         out = {}
-        for k, d in by_arm.items():
-            ds, tgt = k
-            if tgt not in d:
+        for (ds, tgt), d in by_arm.items():
+            sc = d.get(tgt)
+            be = _best_external(d, tgt)
+            if sc is None or sc.underpowered or be is None:
                 continue
-            ext = [(auroc_w([r for rs in c["by_ep"].values() for r in rs]), a)
-                   for a, c in d.items() if a != tgt]
-            ext = [e for e in ext if e[0] is not None]
-            sv = auroc_w([r for rs in d[tgt]["by_ep"].values() for r in rs])
-            if not ext or sv is None:
-                continue
-            out[k] = sv - max(ext)[0]
+            sv = sc.auroc()
+            if sv is not None:
+                out[(ds, tgt)] = sv - be[0]
         return out
-    go = gaps(cells_by_c["outcome"])
-    gv = gaps(cells_by_c["violation+judgment"])
+    go, gv = gaps(cells_by_c["outcome"]), gaps(cells_by_c["violation+judgment"])
     shared = sorted(set(go) & set(gv))
     if not shared:
         return {"verdict": "UNDERPOWERED", "arms": 0, "larger": 0,
                 "mean_dd": None, "ci": [None, None], "rows": []}
     dd = [go[k] - gv[k] for k in shared]
-    larger = sum(1 for d in dd if d > 0)
-    b = []
-    for _ in range(NBOOT):
-        s = [dd[rng.randrange(len(dd))] for _ in range(len(dd))]
-        b.append(sum(s) / len(s))
-    b.sort()
-    lo, hi = b[int(0.025 * NBOOT)], b[int(0.975 * NBOOT)]
-    verdict = ("PASS" if larger / len(dd) >= 2 / 3 and lo > 0 else "FAIL")
-    return {"verdict": verdict, "arms": len(dd), "larger": larger,
-            "mean_dd": sum(dd) / len(dd), "ci": [lo, hi],
+    larger = sum(1 for x in dd if x > 0)
+    mean, lo, hi = boot_mean(dd, rng)
+    verdict = "PASS" if (larger / len(dd) >= 2 / 3 and lo is not None and lo > 0) else "FAIL"
+    return {"verdict": verdict, "arms": len(dd), "larger": larger, "mean_dd": mean,
+            "ci": [lo, hi],
             "rows": [{"dataset": k[0], "target": k[1], "gap_outcome": go[k],
                       "gap_viol_judg": gv[k], "dd": go[k] - gv[k]} for k in shared]}
 
 
 # ---------------------------------------------------------------- io
 def write_csv(path, rows, cols):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(cols)
@@ -293,7 +342,12 @@ def write_csv(path, rows, cols):
                         for c in cols])
 
 
+def fmt(x, p="%.4f"):
+    return "n/a" if x is None else p % x
+
+
 def main():
+    global NBOOT
     ap = argparse.ArgumentParser()
     ap.add_argument("--pivot", default="result/pivot")
     ap.add_argument("--labels", default="reports/gate1/labels_gate1.csv")
@@ -301,69 +355,76 @@ def main():
     ap.add_argument("--labelpass", default="L2")
     ap.add_argument("--outdir", default="tables_S1")
     ap.add_argument("--constructs", default=",".join(SL.CONSTRUCTS))
+    ap.add_argument("--nboot", type=int, default=NBOOT)
+    ap.add_argument("--score-cache", default="runs/score_cache_{scope}.pkl",
+                    help="{scope} is substituted; empty string disables")
     a = ap.parse_args()
 
+    NBOOT = a.nboot
     constructs = [c for c in a.constructs.split(",") if c]
+    os.makedirs(a.outdir, exist_ok=True)
+
+    print("S1: loading scores once (scope=%s) ..." % a.scope, flush=True)
+    cache = a.score_cache.replace("{scope}", a.scope) if a.score_cache else None
+    if cache:
+        os.makedirs(os.path.dirname(cache) or ".", exist_ok=True)
+    scores = load_scores(a.pivot, a.scope, cache)
+    print("S1: %d score cells" % len(scores), flush=True)
+
     cells_by_c = {}
-    summary = {"stage": "S1", "spec": SPEC, "scope": a.scope,
-               "labelpass": a.labelpass, "seed": SEED, "constructs": {}}
+    summary = {"stage": "S1", "spec": SPEC, "scope": a.scope, "seed": SEED,
+               "labelpass": a.labelpass, "nboot": NBOOT, "constructs": {}}
 
     for c in constructs:
-        rng = random.Random(SEED)          # same draws per construct: comparable CIs
+        rng = np.random.default_rng(SEED)   # same draws per construct
         lab = SL.load(a.labels, c, in_matrix_only=True)
-        cells = collect(a.pivot, lab, a.scope)
+        cells = build_cells(scores, lab)
         cells_by_c[c] = cells
         rows = s1a(cells, rng)
-        write_csv(os.path.join(a.outdir, "S1a_crossprobe_%s_%s.csv" % (a.labelpass, c)),
-                  rows, ["dataset", "assessor", "target", "self", "capable", "n",
-                         "n_pos", "n_neg", "n_ep", "auroc", "ci_lo", "ci_hi",
-                         "underpowered"])
+        write_csv(os.path.join(a.outdir, "S1a_crossprobe_%s_%s.csv"
+                               % (a.labelpass, c.replace("+", "-"))), rows,
+                  ["dataset", "assessor", "target", "self", "capable", "n", "n_pos",
+                   "n_neg", "n_ep", "auroc", "ci_lo", "ci_hi", "underpowered"])
         ind = s1b(cells, rng)
-        write_csv(os.path.join(a.outdir, "S1b_independence_%s_%s.csv" % (a.labelpass, c)),
-                  ind, ["dataset", "target", "best_external", "self_auroc",
-                        "ext_auroc", "delta", "ci_lo", "ci_hi", "n_ext_cells", "note"])
+        write_csv(os.path.join(a.outdir, "S1b_independence_%s_%s.csv"
+                               % (a.labelpass, c.replace("+", "-"))), ind,
+                  ["dataset", "target", "best_external", "self_auroc", "ext_auroc",
+                   "delta", "ci_lo", "ci_hi", "n_ext", "note"])
         ok = [r for r in rows if not r["underpowered"] and r["auroc"] is not None]
         summary["constructs"][c] = {
-            "cells": len(rows), "underpowered": sum(r["underpowered"] for r in rows),
-            "countable": len(ok),
-            "mean_auroc": (sum(r["auroc"] for r in ok) / len(ok)) if ok else None,
-            "independence_rows": len(ind),
-        }
+            "cells": len(rows), "countable": len(ok),
+            "underpowered": sum(r["underpowered"] for r in rows),
+            "mean_auroc": (sum(r["auroc"] for r in ok) / len(ok)) if ok else None}
         print("%-20s cells %3d  countable %3d  underpowered %3d  mean AUROC %s"
               % (c, len(rows), len(ok), sum(r["underpowered"] for r in rows),
-                 "%.4f" % summary["constructs"][c]["mean_auroc"]
-                 if ok else "n/a"))
+                 fmt(summary["constructs"][c]["mean_auroc"])), flush=True)
 
     if "violation+judgment" in cells_by_c:
-        rng = random.Random(SEED)
+        rng = np.random.default_rng(SEED)
         ci = s1c_i(cells_by_c["violation+judgment"], rng)
         summary["A30_pred_i"] = {k: v for k, v in ci.items() if k != "cells"}
         write_csv(os.path.join(a.outdir, "S1c_pred_i_%s.csv" % a.labelpass), ci["cells"],
-                  ["dataset", "target", "capable", "noncapable", "delta", "ci_lo", "ci_hi"])
-        print("A30 (i) capable-external superiority on violation+judgment: %s "
-              "(%d/%d cells, pooled delta %s CI [%s, %s])"
-              % (ci["verdict"], ci["wins"], ci["total"],
-                 "%.4f" % ci["pooled_delta"] if ci["pooled_delta"] is not None else "n/a",
-                 "%.4f" % ci["pooled_ci"][0] if ci["pooled_ci"][0] is not None else "n/a",
-                 "%.4f" % ci["pooled_ci"][1] if ci["pooled_ci"][1] is not None else "n/a"))
+                  ["dataset", "target", "capable_best", "noncapable_best", "capable",
+                   "noncapable", "delta", "ci_lo", "ci_hi"])
+        print("A30 (i) capable-external superiority [violation+judgment]: %s  "
+              "%d/%d cells, pooled delta %s CI [%s, %s]"
+              % (ci["verdict"], ci["wins"], ci["total"], fmt(ci["pooled_delta"]),
+                 fmt(ci["pooled_ci"][0]), fmt(ci["pooled_ci"][1])), flush=True)
         if "outcome" in cells_by_c:
-            rng = random.Random(SEED)
+            rng = np.random.default_rng(SEED)
             cii = s1c_ii(cells_by_c, rng)
             summary["A30_pred_ii"] = {k: v for k, v in cii.items() if k != "rows"}
             write_csv(os.path.join(a.outdir, "S1c_pred_ii_%s.csv" % a.labelpass),
-                      cii["rows"], ["dataset", "target", "gap_outcome",
-                                    "gap_viol_judg", "dd"])
-            print("A30 (ii) self-inflation confined to outcome strata: %s "
-                  "(%d/%d arms, mean dd %s CI [%s, %s])"
-                  % (cii["verdict"], cii["larger"], cii["arms"],
-                     "%.4f" % cii["mean_dd"] if cii["mean_dd"] is not None else "n/a",
-                     "%.4f" % cii["ci"][0] if cii["ci"][0] is not None else "n/a",
-                     "%.4f" % cii["ci"][1] if cii["ci"][1] is not None else "n/a"))
+                      cii["rows"],
+                      ["dataset", "target", "gap_outcome", "gap_viol_judg", "dd"])
+            print("A30 (ii) self-inflation confined to outcome: %s  %d/%d arms, "
+                  "mean dd %s CI [%s, %s]"
+                  % (cii["verdict"], cii["larger"], cii["arms"], fmt(cii["mean_dd"]),
+                     fmt(cii["ci"][0]), fmt(cii["ci"][1])), flush=True)
 
-    os.makedirs(a.outdir, exist_ok=True)
     with open(os.path.join(a.outdir, "S1abc_%s.json" % a.labelpass), "w") as f:
         json.dump(summary, f, indent=1)
-    print("-> %s" % a.outdir)
+    print("-> %s" % a.outdir, flush=True)
     return 0
 
 
