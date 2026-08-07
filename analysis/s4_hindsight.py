@@ -156,14 +156,28 @@ def main():
             return len(text) // 4
 
     outc = outcomes(a.labels)
+    # Restrict to the in_matrix arms the spec scopes S4 to.  Enumerating every arm
+    # with a uq.jsonl scored Qwen3.5-27B/4B/9B as well -- 12,637 steps that the D1.3
+    # analyses filter out by in_matrix==1, i.e. GPU time spent on records nothing can
+    # use.  The filter belongs here, not downstream.
+    in_matrix = set()
+    if os.path.exists(a.labels):
+        import csv as _csv
+        with open(a.labels) as _f:
+            for _x in _csv.DictReader(_f):
+                if _x.get("in_matrix") == "1":
+                    in_matrix.add((_x["dataset"], _x["model"]))
     arms = []
     for ds in sorted(os.listdir(a.pivot)):
         d = os.path.join(a.pivot, ds)
         if ds == "crossprobe" or not os.path.isdir(d):
             continue
         for m in sorted(os.listdir(d)):
-            if os.path.exists(os.path.join(d, m, "uq.jsonl")):
-                arms.append((ds, m))
+            if not os.path.exists(os.path.join(d, m, "uq.jsonl")):
+                continue
+            if in_matrix and (ds, m) not in in_matrix:
+                continue
+            arms.append((ds, m))
     if a.arms:
         want = set(a.arms.split(","))
         arms = [x for x in arms if x[1] in want or "%s/%s" % x in want]
@@ -185,6 +199,8 @@ def main():
                     except (ValueError, KeyError):
                         pass
         eps = load_arm(a.pivot, ds, model)
+        print("[%s] %s/%s: %d episodes, %d already scored"
+              % (a.judge, ds, model, len(eps), len(seen)), flush=True)
         fh = open(path, "a")
         for task, steps in eps.items():
             oc = outc.get((ds, model, task), "UNKNOWN")
