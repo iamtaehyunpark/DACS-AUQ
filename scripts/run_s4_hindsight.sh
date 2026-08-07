@@ -23,7 +23,13 @@ snap_for() {
     Qwen3.6-35B-A3B)        echo "/data5/user/hf_cache/hub/models--Qwen--Qwen3.6-35B-A3B/snapshots/995ad96eacd98c81ed38be0c5b274b04031597b0" ;;
   esac
 }
-tp_for() { case "$1" in Llama-3.3-70B-Instruct) echo 2 ;; *) echo 1 ;; esac; }
+tp_for() { case "$1" in Llama-3.3-70B-Instruct) echo "${LLAMA_TP:-2}" ;; *) echo 1 ;; esac; }
+# Pipeline parallel is the way to use an ODD number of cards. vLLM requires the
+# tensor-parallel size to divide both head counts, and Llama-70B has 64 attention /
+# 8 KV heads, so TP=3 is rejected outright (64%3=1, 8%3=2). PP splits the 80 layers
+# instead (~27/27/26) and only passes activations at layer boundaries, which suits a
+# PCIe box with no NVLink far better than TP's per-layer all-reduce.
+PP=${PP:-1}
 MODE=${MODE:-main}          # main | long
 # GPU topology matters here: 0 and 1 are interconnected, 1 and 2 are NOT. Llama-70B
 # runs TP=2 and every all-reduce crosses that link, so placing it on 1,2 forced the
@@ -39,7 +45,12 @@ CONC=${CONC:-24}
 # hindsight prompts, so 24 concurrent client requests sat at "Running: 2, Waiting: 21"
 # -- the client was no longer the bottleneck, the scheduler was. KV cache was at 10%,
 # so the headroom was there; this spends it on prefill batching.
-BATCH_TOK=${BATCH_TOK:-65536}
+# Empty = leave vLLM's default (8192). Raising it is memory-bound, not free: at
+# 65536 with TP=2 / ctx 32768 / util 0.95 the activation workspace leaves only
+# 1.7 GiB for KV cache and the engine aborts with _check_enough_kv_cache_memory.
+# The flag IS accepted ("Chunked prefill is enabled with max_num_batched_tokens=
+# 65536") -- it is the memory that refuses. Set explicitly to experiment.
+BATCH_TOK=${BATCH_TOK:-}
 # vLLM 0.23 defaults max_num_partial_prefills=1 and max_long_partial_prefills=1, so
 # exactly ONE long prompt prefills per scheduler step no matter what --max-num-seqs or
 # --max-num-batched-tokens say. That is why the engine sat at "Running: 2, Waiting: 21"
@@ -72,9 +83,10 @@ serve_and_run () {
 
   : > "$SERVE_LOG"
   CUDA_VISIBLE_DEVICES=$GPU setsid nohup $V serve "$SNAP" --served-model-name probe \
-    --tensor-parallel-size "$TP" --max-model-len "$CTX" \
+    --tensor-parallel-size "$TP" --pipeline-parallel-size "$PP" \
+    --max-model-len "$CTX" \
     --gpu-memory-utilization 0.95 --max-num-seqs "$SEQS" \
-    --max-num-batched-tokens "$BATCH_TOK" \
+    ${BATCH_TOK:+--max-num-batched-tokens "$BATCH_TOK"} \
     --port "$PORT" >> "$SERVE_LOG" 2>&1 &
 
   printf '%s serving' "$JUDGE"
@@ -94,7 +106,10 @@ serve_and_run () {
 }
 
 if [ "$MODE" = "main" ]; then
-  CTX=32768; QSEQS=128; LSEQS=64; QPORT=8071; LPORT=8072
+  # Llama-70B bf16 is ~70 GB/card at TP=2; on an 80 GB card at 0.95 util that leaves
+  # ~1.7 GiB for KV cache, and ctx 32768 needs 5.0 GiB -- the engine aborts at startup.
+  # Overridable so the context can be traded against KV headroom without editing here.
+  CTX=${CTX_MAIN:-32768}; QSEQS=128; LSEQS=64; QPORT=8071; LPORT=8072
 else
   # long-context sub-pass: 36,864 ctx, batch 16 — KV cache scales with ctx x seqs and
   # 128 sequences at 36k does not fit in 80GB
