@@ -1,0 +1,6 @@
+claim_id,quantity,estimate,ci_lo,ci_hi,null_value,n,source,status
+C-h-passrate,arm0_h_rule pass-rate vs V,0.9091,0.7727,1.0000,0.8000,22,tables_gate3/gate3_cells_violation-judgment.csv,soften
+C-h-capture,arm0_h_rule pooled capture,0.9394,0.7964,1.0408,0.5000,16,tables_gate3/gate3_cells_violation-judgment.csv,ok
+C-viol-passrate,arm2_violation pass-rate vs V,0.8636,0.7273,1.0000,0.8000,22,tables_gate3/gate3_cells_violation-judgment.csv,soften
+C-viol-capture,arm2_violation pooled capture,0.9685,0.8822,1.0318,0.5000,16,tables_gate3/gate3_cells_violation-judgment.csv,ok
+C-crossenv-h,cross-environment h degradation,-0.0024,-0.0047,0.0001,0.0000,22,tables_gate4/D_cross_env_h.csv,soften
