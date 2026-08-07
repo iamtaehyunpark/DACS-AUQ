@@ -16,7 +16,9 @@ import argparse
 import json
 import os
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     from openai import OpenAI
@@ -141,16 +143,32 @@ def main():
                     help="tokens reserved for the completion + template slack")
     ap.add_argument("--arms", default="")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--conc", type=int, default=16,
+                    help="concurrent in-flight requests; 1 starves the server")
     a = ap.parse_args()
 
     cl = OpenAI(base_url="http://localhost:%s/v1" % a.port, api_key="x")
 
     # Token counting through the server's own tokenizer (spec: not a char heuristic).
+    # Called only when a prompt is anywhere near the window: a /tokenize round trip per
+    # step doubles the request count, and at batch-1 that was half the wall clock.
+    # The heuristic is used ONLY to prove a prompt is comfortably short (chars/2 is a
+    # hard upper bound on tokens for this text); anything close to the limit still goes
+    # through the real tokenizer, so the truncation budget is never set by a guess.
     import requests
-    def ntok(text):
+    _sess = threading.local()
+
+    def _http():
+        if not hasattr(_sess, "s"):
+            _sess.s = requests.Session()
+        return _sess.s
+
+    def ntok(text, exact=True):
+        if not exact and (len(text) // 2) < limit_tok:
+            return len(text) // 4
         try:
-            r = requests.post("http://localhost:%s/tokenize" % a.port,
-                              json={"model": "probe", "prompt": text}, timeout=120)
+            r = _http().post("http://localhost:%s/tokenize" % a.port,
+                             json={"model": "probe", "prompt": text}, timeout=300)
             return int(r.json().get("count", 10 ** 9))
         except Exception:                             # noqa: BLE001
             return len(text) // 4
@@ -202,58 +220,73 @@ def main():
         print("[%s] %s/%s: %d episodes, %d already scored"
               % (a.judge, ds, model, len(eps), len(seen)), flush=True)
         fh = open(path, "a")
+        lock = threading.Lock()
+
+        # Build the work list first, then issue requests CONCURRENTLY.  A serial
+        # client leaves the server at "Running: 1 reqs" with KV cache at ~10%, so
+        # --max-num-seqs never engages: Llama-70B prefilled at 1.3k tok/s instead of
+        # its batched rate, which was the whole reason this pass looked 6x slower
+        # than Qwen rather than ~2x.
+        work = []
         for task, steps in eps.items():
             oc = outc.get((ds, model, task), "UNKNOWN")
             for i, (sidx, _p, _c) in enumerate(steps):
                 if (task, sidx) in seen:
                     skipped += 1
                     continue
-                total += 1
-                txt, n_elided = assemble(steps, i, oc)
-                nt = ntok(txt)
-                route = "main"
-                truncated = 0
-                if nt > limit_tok:
-                    if a.mode == "main":
-                        # over-length: leave for the long-context sub-pass (spec route 2)
-                        fh.write(json.dumps({
-                            "task_id": task, "step_idx": sidx, "U": None,
+                work.append((task, steps, i, sidx, oc))
+
+        def do_one(item):
+            task, steps, i, sidx, oc = item
+            txt, n_elided = assemble(steps, i, oc)
+            nt = ntok(txt, exact=False)
+            route, truncated = "main", 0
+            if nt > limit_tok:
+                nt = ntok(txt, exact=True)          # confirm with the real tokenizer
+            if nt > limit_tok:
+                if a.mode == "main":
+                    return {"task_id": task, "step_idx": sidx, "U": None,
                             "route": "deferred_long", "truncated": 0, "n_elided": 0,
-                            "prompt_tokens": nt}) + "\n")
-                        continue
-                    txt, n_elided = middle_out(steps, i, oc, ntok)
-                    nt = ntok(txt)
-                    route, truncated = "truncated", 1
-                elif a.mode == "long":
-                    route = "long"
-                try:
-                    resp = cl.chat.completions.create(
-                        model="probe", messages=[{"role": "user", "content": txt}],
-                        max_tokens=1, temperature=0.0, logprobs=True, top_logprobs=20)
-                    ch = resp.choices[0]
-                    top = []
-                    lp = getattr(ch, "logprobs", None)
-                    if lp and getattr(lp, "content", None):
-                        top = [{"token": t.token, "logprob": t.logprob}
-                               for t in lp.content[0].top_logprobs]
-                    rec = {"task_id": task, "step_idx": sidx,
-                           "U": ptrue_from_top(top), "first_token_top": top,
-                           "route": route, "truncated": truncated,
-                           "n_elided": n_elided, "prompt_tokens": nt}
-                    done += 1
-                except Exception as e:                # noqa: BLE001
-                    rec = {"task_id": task, "step_idx": sidx, "U": None,
-                           "route": "failed", "truncated": truncated,
-                           "n_elided": n_elided, "prompt_tokens": nt,
-                           "error": repr(e)[:200]}
-                fh.write(json.dumps(rec) + "\n")
-                if done and done % 200 == 0:
-                    el = time.time() - t0
-                    print("  %s/%s  done=%d skipped=%d  %.1f/s  elapsed %.0fm"
-                          % (ds, model, done, skipped, done / el, el / 60), flush=True)
+                            "prompt_tokens": nt}
+                txt, n_elided = middle_out(steps, i, oc, lambda t: ntok(t, True))
+                nt = ntok(txt, exact=True)
+                route, truncated = "truncated", 1
+            elif a.mode == "long":
+                route = "long"
+            try:
+                resp = cl.chat.completions.create(
+                    model="probe", messages=[{"role": "user", "content": txt}],
+                    max_tokens=1, temperature=0.0, logprobs=True, top_logprobs=20)
+                ch = resp.choices[0]
+                top = []
+                lp = getattr(ch, "logprobs", None)
+                if lp and getattr(lp, "content", None):
+                    top = [{"token": t.token, "logprob": t.logprob}
+                           for t in lp.content[0].top_logprobs]
+                return {"task_id": task, "step_idx": sidx, "U": ptrue_from_top(top),
+                        "first_token_top": top, "route": route,
+                        "truncated": truncated, "n_elided": n_elided,
+                        "prompt_tokens": nt}
+            except Exception as e:                    # noqa: BLE001
+                return {"task_id": task, "step_idx": sidx, "U": None,
+                        "route": "failed", "truncated": truncated,
+                        "n_elided": n_elided, "prompt_tokens": nt,
+                        "error": repr(e)[:200]}
+
+        with ThreadPoolExecutor(max_workers=a.conc) as ex:
+            for rec in ex.map(do_one, work):
+                with lock:
+                    fh.write(json.dumps(rec) + "\n")
+                    if rec.get("route") not in ("deferred_long",):
+                        done += 1
+                    if done and done % 500 == 0:
+                        fh.flush()
+                        el = time.time() - t0
+                        print("  %s/%s  done=%d skipped=%d  %.2f/s  elapsed %.0fm"
+                              % (ds, model, done, skipped, done / el, el / 60),
+                              flush=True)
                 if a.limit and done >= a.limit:
-                    fh.close()
-                    print("limit reached"); return 0
+                    break
         fh.close()
         print("[%s] %s/%s complete" % (a.judge, ds, model), flush=True)
     el = time.time() - t0

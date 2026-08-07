@@ -32,6 +32,26 @@ MODE=${MODE:-main}          # main | long
 LLAMA_GPUS=${LLAMA_GPUS:-0,1}
 QWEN_GPU=${QWEN_GPU:-2}
 JUDGES=${JUDGES:-both}      # both | llama | qwen
+# In-flight requests per judge. A serial client leaves vLLM at
+# "Running: 1 reqs" with KV cache ~10%, so --max-num-seqs never engages.
+CONC=${CONC:-24}
+# Prefill token budget per scheduler step. The default fits barely two ~7k-token
+# hindsight prompts, so 24 concurrent client requests sat at "Running: 2, Waiting: 21"
+# -- the client was no longer the bottleneck, the scheduler was. KV cache was at 10%,
+# so the headroom was there; this spends it on prefill batching.
+BATCH_TOK=${BATCH_TOK:-65536}
+# vLLM 0.23 defaults max_num_partial_prefills=1 and max_long_partial_prefills=1, so
+# exactly ONE long prompt prefills per scheduler step no matter what --max-num-seqs or
+# --max-num-batched-tokens say. That is why the engine sat at "Running: 2, Waiting: 21"
+# with KV cache at 10%, why raising BATCH_TOK to 65536 changed nothing, and why moving
+# the client from serial to 24 threads bought 0.20 -> 0.21 steps/s: the server was the
+# serializer, not the client.
+# NOT USABLE on this stack: vLLM 0.23 runs the V1 engine, which raises
+#   NotImplementedError: Concurrent Partial Prefill is not supported
+# at startup if either flag is passed. The Running:1-2 ceiling on long prefills is
+# therefore not tunable here; these are kept only to document that the lever was
+# tried and rejected by the engine.
+# PARTIAL / LONG_PARTIAL intentionally unset.
 
 serve_and_run () {
   local JUDGE=$1 GPU=$2 PORT=$3 CTX=$4 SEQS=$5
@@ -54,6 +74,7 @@ serve_and_run () {
   CUDA_VISIBLE_DEVICES=$GPU setsid nohup $V serve "$SNAP" --served-model-name probe \
     --tensor-parallel-size "$TP" --max-model-len "$CTX" \
     --gpu-memory-utilization 0.95 --max-num-seqs "$SEQS" \
+    --max-num-batched-tokens "$BATCH_TOK" \
     --port "$PORT" >> "$SERVE_LOG" 2>&1 &
 
   printf '%s serving' "$JUDGE"
@@ -65,7 +86,7 @@ serve_and_run () {
   [ "$up" -eq 1 ] || { echo; echo "$JUDGE: SERVE FAILED"; tail -20 "$SERVE_LOG"; return 3; }
 
   $PY analysis/s4_hindsight.py --judge "$JUDGE" --port "$PORT" --mode "$MODE" \
-      --ctx "$CTX" > "$RUN_LOG" 2>&1
+      --ctx "$CTX" --conc "$CONC" > "$RUN_LOG" 2>&1
   local rc=$?
   pkill -f "vllm serve.*--port $PORT" 2>/dev/null || true
   echo "$JUDGE $MODE finished rc=$rc -> $RUN_LOG"
