@@ -1,0 +1,5 @@
+env,judge,n_targets,slope,intercept,slope_lo,slope_hi,max_jackknife_swing_pts,median_swing_pts,stable,leverage_targets
+alfworld,Llama-3.3-70B-Instruct,6,-0.4942,0.6835,-0.6178,-0.3780,3.4476,0.3914,yes,
+alfworld,Qwen3.6-35B-A3B,6,-0.6204,0.8044,-1.2490,-0.2579,11.7374,1.0407,no,Qwen3.6-35B-A3B(11.7)
+hotpotqa,Llama-3.3-70B-Instruct,5,-0.6139,0.7938,-0.6696,-0.4624,1.2059,0.1694,yes,
+hotpotqa,Qwen3.6-35B-A3B,5,-0.5216,0.7779,-0.6575,-0.4775,0.9611,0.0665,yes,
