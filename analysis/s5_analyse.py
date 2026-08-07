@@ -162,6 +162,12 @@ def main():
          "flag), seed 13, 11 in-matrix arms. The frontier-vs-open contrast uses the "
          "**trust** framing, matching the banked open-judge probe verbatim so only "
          "the model differs. Parse rates 99.9%% / 99.6%%, 0 errors.\n",
+         "**Provenance note.** 1,188 of the 5,404 trust records predate the "
+         "`framing` field; their framing is established by the code version that "
+         "wrote them (the wording was hardcoded to the banked trust text) rather "
+         "than by a field in the data. Dropping them moves the primary-construct "
+         "delta from -0.0209 to -0.0182, same sign and same cell counts, so the "
+         "result does not rest on them.\n",
          "**Two deviations, recorded not smoothed.**\n",
          "1. D2.2 gated the run behind a 500-call pilot plus an author "
          "acknowledgement. The first batch ran 1,188 calls after a 50-call pilot "
