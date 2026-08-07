@@ -91,3 +91,38 @@ and over-length flags** (D1.2).
 Ground rule 12 applies. If the online condition recomputed here disagrees with the
 banked crossprobe AUROC beyond 0.001, emit `DISCREPANCY_S4.md` and halt — the online
 side is banked and must reproduce.
+
+---
+
+## AMENDMENT — single-judge scope (2026-08-07, before any S4 number is computed)
+
+**Registered before the analyses run, not after.** The Llama-3.3-70B half of the pass
+is dropped by author decision; S4 ships on Qwen3.6-35B-A3B only, whose matrix is
+complete (44,573/44,573, 100% route=main, 0 truncated, 0 failed).
+
+Reason of record: the pass could not be served. Llama-70B bf16 is ~70 GB/card at TP=2,
+leaving ~1.7 GiB for KV cache on an 80 GB card, while ctx 32768 needs 5.0 GiB and
+ctx 16384 needs ~2.5 GiB — the engine aborts at startup at both. TP=3 is rejected by
+vLLM (64 attention / 8 KV heads do not divide by 3). The remaining route, PP=3 across
+GPUs 2,3,4, was not taken because those cards are committed to GATE-4 Part A scoring,
+which the author ranked higher.
+
+### What this costs, stated before results exist
+
+- **D1.3 analysis (i) hindsight − online ΔAUROC** — unaffected, full matrix.
+- **D1.3 analysis (ii) hindsight vs online agreement with outcome labels** —
+  unaffected, full matrix.
+- **D1.3 analysis (iii) R3 decomposition** — computable, but on one judge.
+- **Judge-agreement contrast — LOST.** Whether any S4 finding replicates across two
+  independent capable judges cannot be answered. Every S4 conclusion is therefore
+  a single-model result and must be written that way: "on Qwen3.6-35B-A3B" is part
+  of the claim, not a footnote.
+
+### Predictions, unchanged
+
+P-h1, P-h2 and P-h3 stand exactly as registered. They are evaluated on one judge; a
+prediction that holds on one model is weaker evidence than the same prediction holding
+on two, and no S4 verdict may be stated as though the contrast had been run.
+
+**Not amended:** the arms, the constructs, the labels, the bootstrap, the seed, the
+counting rules, and the failure policy. Only the judge roster shrinks.
