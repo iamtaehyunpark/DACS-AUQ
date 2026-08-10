@@ -1282,3 +1282,589 @@
    }
   },
   {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 38043602,
+     "mtime": 1785817765,
+     "lines": 2716,
+     "sha256": "8d6ff5d8d04b208c7124ae9d701b6e84d394ade7c6cae7d53ddac62ac8e34198"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 74335565,
+     "mtime": 1785817578,
+     "lines": 5432,
+     "sha256": "5ce14330120af113171dfe7440e78a1e96f552179cd119771c560394279979e6"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 36157463,
+     "mtime": 1785837661,
+     "lines": 2716,
+     "sha256": "38f02a032776c7d6011ad59d40956b012b913b1ffd1e7ba45ab54c85761d3466"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 70759415,
+     "mtime": 1785837416,
+     "lines": 5432,
+     "sha256": "4d588567e825f4fa5a0b9cbcd0a28854c9ed788c735e175c130537dcdef36655"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 39513025,
+     "mtime": 1785811461,
+     "lines": 2716,
+     "sha256": "06eeba3196d27e215e334e056e278bdebef01eaabaa3d98df68815220c9acf7e"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 75757086,
+     "mtime": 1785811334,
+     "lines": 5432,
+     "sha256": "926f5bb76f171837b8e3a0691d58ab8e7d8f38e50dbc50f5c9d9b0144e1b3ad5"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 34519459,
+     "mtime": 1785859847,
+     "lines": 2192,
+     "sha256": "9e75e83bf971dc206a80b3267fb6561c351311911c98fba2f8eaf87557a7c00c"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 68070954,
+     "mtime": 1785859025,
+     "lines": 4426,
+     "sha256": "8100d626c3d40bf7031722d48bd438065e73405133fc64697a4d35028bc10a1e"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 33508172,
+     "mtime": 1785818276,
+     "lines": 2192,
+     "sha256": "12c1bb20fda500b086f5df2643fcdc8e428864cbc0be6ef8c6ca2d3d998ef9f9"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 66092240,
+     "mtime": 1785818078,
+     "lines": 4426,
+     "sha256": "26182edfcfe14bab59cff5c8bb7d20d88b620f0e040c056a77a11e00fa3f1f54"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 34092230,
+     "mtime": 1785807792,
+     "lines": 2192,
+     "sha256": "5b39995205e50f57c200caca08b4eae0fe0a2a02199cebbb0d8a4ca409edff68"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 67512316,
+     "mtime": 1785807696,
+     "lines": 4426,
+     "sha256": "07478df5d86e11b25896c3e459c2560ce954911f847cd8f4ff38e0c894658c76"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 34363625,
+     "mtime": 1785811791,
+     "lines": 2192,
+     "sha256": "745e3296ed0c3bea1df2a2746c7fd1cd267233283e5f8ee09306d276a552920b"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Qwen3.6-35B-A3B/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 66532430,
+     "mtime": 1785811661,
+     "lines": 4426,
+     "sha256": "1b17c0b8ac5b417131d47ab0834bdb96e87c77dca346a19e8ed351b753075a9c"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "gemma-3-4b-it",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 37541989,
+     "mtime": 1785861611,
+     "lines": 2565,
+     "sha256": "dfa48018ee7e28105d4d4d1641b93f6d8279aea931e09328cbd835b9fcd285fa"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 73802733,
+     "mtime": 1785860886,
+     "lines": 5130,
+     "sha256": "e1542552c7cfec96a6d531921367104ec3f6d5aaa48973a3f79aa15496af846f"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "gemma-3-4b-it",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 36017285,
+     "mtime": 1785818693,
+     "lines": 2565,
+     "sha256": "0950e3999daa561450b4d6c631c099f64025e79a78a7d70c62b029b3d14edcc8"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 70540168,
+     "mtime": 1785818523,
+     "lines": 5130,
+     "sha256": "2cf69e044f4d993e69960441ca50e9059d07b6fa0e1447fc404b968eabc1d39e"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "gemma-3-4b-it",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 37018909,
+     "mtime": 1785808002,
+     "lines": 2565,
+     "sha256": "beb1c61624e998535e287bc73f93978012cdc42a721f130c56752b7a15945777"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 73165524,
+     "mtime": 1785807918,
+     "lines": 5130,
+     "sha256": "4dab58a129a1f113a21a9df61d458f657aff383bdba3c335f8ab03e41591c67d"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "gemma-3-4b-it",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 34215223,
+     "mtime": 1785838302,
+     "lines": 2565,
+     "sha256": "eaee1395c90161d3716741618842b36d4355b961839ac21bd1fac76c9c4d2c34"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/gemma-3-4b-it/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 67138764,
+     "mtime": 1785838083,
+     "lines": 5130,
+     "sha256": "0d70a4247ad31f24a1f741235da9cb4301074e37b0f9e17976b54979f7457e95"
+    }
+   }
+  }
+ ],
+ "worker_shards": {
+  "count": 1008,
+  "note": "provenance only; never counted as cells"
+ },
+ "labels": {
+  "present": true,
+  "path": "reports/gate1/labels_gate1.csv",
+  "columns": [
+   "run_id",
+   "task_id",
+   "step_idx",
+   "dataset",
+   "model",
+   "in_matrix",
+   "action_parsed",
+   "y_env",
+   "y_env_source",
+   "y_env_conflict",
+   "y_tier_a",
+   "A1",
+   "A2",
+   "A3",
+   "A4",
+   "tier_a_rules",
+   "y_tier_b",
+   "b_reason",
+   "plan_len_before",
+   "plan_len_after",
+   "replay_diverged",
+   "y_suffix",
+   "y_ensemble",
+   "judge_frac_correct",
+   "judge_n_valid",
+   "judge_present",
+   "labelable_env",
+   "unlabelable_reason",
+   "U_verbalized",
+   "in_admissible",
+   "obs_changed",
+   "loop_flag",
+   "skip_reasons",
+   "episode_present",
+   "episode_success",
+   "terminal_reason",
+   "episode_em",
+   "episode_f1",
+   "productive"
+  ],
+  "missing_required": [],
+  "rows": 62065,
+  "arms": {
+   "alfworld/Llama-3.3-70B-Instruct": {
+    "steps": 4765,
+    "in_matrix": 4765,
+    "violation": 1714,
+    "outcome": 4366,
+    "judgment": 4142,
+    "y_env_1": 3937,
+    "y_env_0": 555,
+    "y_env_null": 273
+   },
+   "alfworld/Mistral-7B-Instruct-v0.3": {
+    "steps": 6482,
+    "in_matrix": 6482,
+    "violation": 4616,
+    "outcome": 5913,
+    "judgment": 5866,
+    "y_env_1": 6088,
+    "y_env_0": 233,
+    "y_env_null": 161
+   },
+   "alfworld/Phi-4-mini-instruct": {
+    "steps": 6611,
+    "in_matrix": 6611,
+    "violation": 4109,
+    "outcome": 6029,
+    "judgment": 5682,
+    "y_env_1": 6179,
+    "y_env_0": 273,
+    "y_env_null": 159
+   },
+   "alfworld/Qwen3.5-27B": {
+    "steps": 3445,
+    "in_matrix": 0,
+    "violation": 967,
+    "outcome": 3190,
+    "judgment": 0,
+    "y_env_1": 2595,
+    "y_env_0": 641,
+    "y_env_null": 209
+   },
+   "alfworld/Qwen3.5-4B": {
+    "steps": 4602,
+    "in_matrix": 0,
+    "violation": 2464,
+    "outcome": 4266,
+    "judgment": 3475,
+    "y_env_1": 3904,
+    "y_env_0": 566,
+    "y_env_null": 132
+   },
+   "alfworld/Qwen3.5-9B": {
+    "steps": 4590,
+    "in_matrix": 0,
+    "violation": 1840,
+    "outcome": 4133,
+    "judgment": 3663,
+    "y_env_1": 3764,
+    "y_env_0": 585,
+    "y_env_null": 241
+   },
+   "alfworld/Qwen3.6-35B-A3B": {
+    "steps": 3342,
+    "in_matrix": 3342,
+    "violation": 1157,
+    "outcome": 3140,
+    "judgment": 2707,
+    "y_env_1": 2543,
+    "y_env_0": 712,
+    "y_env_null": 87
+   },
+   "alfworld/deepseek-v4-flash": {
+    "steps": 3313,
+    "in_matrix": 3313,
+    "violation": 779,
+    "outcome": 2945,
+    "judgment": 2981,
+    "y_env_1": 2508,
+    "y_env_0": 517,
+    "y_env_null": 288
+   },
+   "alfworld/gemma-3-4b-it": {
+    "steps": 6790,
+    "in_matrix": 6790,
+    "violation": 5538,
+    "outcome": 6408,
+    "judgment": 6372,
+    "y_env_1": 6545,
+    "y_env_0": 185,
+    "y_env_null": 60
+   },
+   "hotpotqa/Llama-3.3-70B-Instruct": {
+    "steps": 2530,
+    "in_matrix": 2530,
+    "violation": 139,
+    "outcome": 1054,
+    "judgment": 1845,
+    "y_env_1": 981,
+    "y_env_0": 182,
+    "y_env_null": 1367
+   },
+   "hotpotqa/Mistral-7B-Instruct-v0.3": {
+    "steps": 3224,
+    "in_matrix": 3224,
+    "violation": 899,
+    "outcome": 2140,
+    "judgment": 2607,
+    "y_env_1": 2343,
+    "y_env_0": 32,
+    "y_env_null": 849
+   },
+   "hotpotqa/Phi-4-mini-instruct": {
+    "steps": 2716,
+    "in_matrix": 2716,
+    "violation": 843,
+    "outcome": 1558,
+    "judgment": 2229,
+    "y_env_1": 1855,
+    "y_env_0": 30,
+    "y_env_null": 831
+   },
+   "hotpotqa/Qwen3.5-4B": {
+    "steps": 2479,
+    "in_matrix": 0,
+    "violation": 279,
+    "outcome": 1279,
+    "judgment": 1912,
+    "y_env_1": 1315,
+    "y_env_0": 168,
+    "y_env_null": 996
+   },
+   "hotpotqa/Qwen3.5-9B": {
+    "steps": 2376,
+    "in_matrix": 0,
+    "violation": 218,
+    "outcome": 1231,
+    "judgment": 1136,
+    "y_env_1": 1209,
+    "y_env_0": 180,
+    "y_env_null": 987
+   },
+   "hotpotqa/Qwen3.6-35B-A3B": {
+    "steps": 2235,
+    "in_matrix": 2235,
+    "violation": 92,
+    "outcome": 1075,
+    "judgment": 1784,
+    "y_env_1": 938,
+    "y_env_0": 219,
+    "y_env_null": 1078
+   },
+   "hotpotqa/gemma-3-4b-it": {
+    "steps": 2565,
+    "in_matrix": 2565,
+    "violation": 835,
+    "outcome": 1281,
+    "judgment": 2229,
+    "y_env_1": 1553,
+    "y_env_0": 105,
+    "y_env_null": 907
+   }
+  }
+ },
+ "scripts": {
+  "analysis/gate2b_cut_transfer.py": {
+   "present": true,
+   "sha256": "3021afcb3a716bd4a4985a77dc888daeb14334cf6f1ca907650877e5ade36a1e"
+  },
+  "analysis/gate2b1_indexed_cut.py": {
+   "present": true,
+   "sha256": "9463a268b096b146f8429d7a111b39b311815a7398cafc1cd69356e543f9e91b"
+  },
+  "analysis/crossprobe_matrix_auroc.py": {
+   "present": true,
+   "sha256": "c4b5714b9ab62fce019ff9f2a7a66cac0999ff188d94a05a8ca68d310b325627"
+  },
+  "analysis/uncertainty_levels.py": {
+   "present": true,
+   "sha256": "80930c879a7584ebd26015548a31ec74f08911be9b01d8e4cb342b1b4a3bac79"
+  },
+  "analysis/percentile_consistency.py": {
+   "present": true,
+   "sha256": "467e52cdd72de310a5b4dd8cc15d9829e21b0b578efe7e5b3e8b3b2fe41f780f"
+  },
+  "analysis/verdict_vs_value.py": {
+   "present": true,
+   "sha256": "42171ffe00a08257f36b709936187354468b2dece6267b37cfd72b6d809c71b5"
+  },
+  "analysis/selfassess_auroc.py": {
+   "present": true,
+   "sha256": "a2d882c67903113d2639612f421924db75f9ab92b127068b9bbfd63d4d4f72fd"
+  },
+  "analysis/selfassess_table.py": {
+   "present": true,
+   "sha256": "5e9af46a028fefaadfa04122a42150fe2ca10a80c37a0666f23b5521f23344d4"
+  },
+  "analysis/ptrue_binary_consensus.py": {
+   "present": true,
+   "sha256": "8e4cec39cc934a62df1a247b2d446bba4b99401342d956a9c1d57ac7b08b3783"
+  },
+  "analysis/gate1_manifest.py": {
+   "present": true,
+   "sha256": "7ef6ee5fc9f5e4898f2155ca788a32d0254fb417944f5537a36ee5717f60a431"
+  },
+  "analysis/gate1_assemble.py": {
+   "present": true,
+   "sha256": "6a0b9142077bf64957d95f4d45c31a8eda07908fc87cb50b7d11e7212c8db33a"
+  },
+  "analysis/s0_inventory.py": {
+   "present": true,
+   "sha256": "9a2212769029e43f0d41266be18c83d7e31d847b2cd195d8efdf61eef6818f06"
+  }
+ },
+ "gpu": {
+  "available": true,
+  "devices": [
+   {
+    "index": 0,
+    "name": "NVIDIA A100 80GB PCIe",
+    "mem_total_mib": 81920,
+    "mem_used_mib": 1,
+    "mem_free_mib": 81158,
+    "util_pct": 0
+   },
+   {
+    "index": 1,
+    "name": "NVIDIA A100 80GB PCIe",
+    "mem_total_mib": 81920,
+    "mem_used_mib": 1,
+    "mem_free_mib": 81158,
+    "util_pct": 0
+   },
+   {
+    "index": 2,
+    "name": "NVIDIA A100 80GB PCIe",
+    "mem_total_mib": 81920,
+    "mem_used_mib": 1,
+    "mem_free_mib": 81158,
+    "util_pct": 0
+   },
+   {
+    "index": 3,
+    "name": "NVIDIA A100 80GB PCIe",
+    "mem_total_mib": 81920,
+    "mem_used_mib": 1,
+    "mem_free_mib": 81158,
+    "util_pct": 0
+   },
+   {
+    "index": 4,
+    "name": "NVIDIA A100 80GB PCIe",
+    "mem_total_mib": 81920,
+    "mem_used_mib": 1,
+    "mem_free_mib": 81158,
+    "util_pct": 0
+   }
+  ]
+ },
+ "throughput": {
+  "assessments": 3300,
+  "minutes": 5,
+  "device": "A100",
+  "verified": false,
+  "note": "ONLINE-length prompts (~330 tok). Do NOT size hindsight-length work with this."
+ },
+ "specs_recorded": {
+  "A34": {
+   "path": "docs/specs/GATE4_SPEC_A34.md",
+   "sha256": "ec1c8220b421ebfb6ee18b63551428fd6eda1411e6bfc3f343849940e85291e8"
+  }
+ },
+ "throughput_hindsight": {
+  "assessments": 375,
+  "minutes": 5,
+  "device": "A100",
+  "verified": true,
+  "source": "runs/s4_probe.json",
+  "judge": "Qwen3.6-35B-A3B",
+  "mean_prompt_tokens": 6957,
+  "max_prompt_tokens": 35448,
+  "note": "MEASURED 2026-08-06 on real hindsight prompts. Authoritative sizing constant for any future hindsight-length work (D1.2 resolution)."
+ },
+ "voided": {
+  "A35_S4_hindsight": {
+   "status": "VOID",
+   "records": 69940,
+   "files": 17,
+   "reason": "Hindsight block appended after a CLOSED chat template (prompt_templated ends <|start_header_id|>assistant<|end_header_id|>), so the judge continued the agent ReAct completion instead of answering. Top-1 token was \"The\" on 100% of records; U values are residual Yes/No mass behind a token the model never intended.",
+   "detected_by": "analysis/audit_answers.py (A35 tripwire)",
+   "retained_for": "postmortem paragraph only; not data",
+   "decision": "A35 \u2014 S4 dropped by author 2026-08-08; tripwire adopted"
+  }
+ }
+}
