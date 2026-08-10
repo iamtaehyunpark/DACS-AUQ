@@ -31,7 +31,7 @@
 
 ## A-log entries bearing on verdicts
 
-**A30** construct taxonomy (violation / outcome / judgment) · **A31** retrospective stream dropped, migrated to follow-up work · **A32** judgment-as-human-proxy, validated ~2% on the environment-certain band, untested on the contested band · **A34.1** h-noself registered pre-lock · **A35** S4 dropped after template-bug void; answer-distribution tripwire adopted.
+**A30** construct taxonomy (violation / outcome / judgment) · **A31** retrospective stream dropped, migrated to follow-up work · **A32** judgment-as-human-proxy, validated ~2% on the environment-certain band, untested on the contested band · **A34.1** h-noself registered pre-lock · **A35** S4 dropped after template-bug void; answer-distribution tripwire adopted · **A36** artifact-hash / ack-token discipline adopted after the b3 phantom-freeze — a sealed artifact is identified by its content hash and a run is gated on a recorded acknowledgement token, so a regenerated sample or an unacknowledged batch cannot pass as sealed or approved. (The S9 protocol in the standing directive cites A36 by name.)
 
 ## Registration integrity notes
 
