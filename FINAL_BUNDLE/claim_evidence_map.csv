@@ -1,0 +1,21 @@
+claim_id,claim_sentence,evidence_table,number,ci,status
+C-indep,external judges read a target better than the target reads itself,tables_S1/S1b_independence_L2_*.csv,9-10 of 11 arms under every construct,7-10 arms with CI excluding 0,supported
+C-chan,reading the P(True) value beats reading the verdict out-of-sample,reports/tables/verdict_vs_value.csv + tables_S1/L2_*/S1d_b1_console.txt,+0.065 L1; +0.073 to +0.133 per construct L2,"[0.052, 0.079]",supported
+C-chan-frac,the value beats the verdict in the large majority of cells,reports/tables/verdict_vs_value.csv,55/60 L1; 48-52/56 L2,"[0.850, 0.983]",supported
+C-tier,capable-tier judges beat the tier below,tables_S1/S1a_crossprobe_L2_violation-judgment.csv,+0.282,"[0.235, 0.329]",supported
+C-a30i,capable external superiority holds on the primary construct,tables_S1/S1c_pred_i_L2.csv,11/11 cells pooled delta 0.2222,"[0.180, 0.272]",supported
+C-a30ii,self-probe inflation is larger under outcome labels than under violation+judgment,tables_S1/S1c_pred_ii_L2.csv,9/11 arms mean dd 0.1185,"[0.036, 0.205]",supported
+C-frontier,a frontier API judge does not beat capable open judges,tables_S5/S5_frontier_vs_open.csv,-0.0209 vs capable; +0.1473 vs all open,per-cell CIs in table,supported
+C-200label,a step-level operating point can be calibrated from ~200 labelled episodes,tables_P3/label_source_menu.csv,0.8083 primary construct,"[0.7858, 0.8292]",supported
+C-daylone,a day-one violation-calibrated cut needs zero human labels,tables_P3/label_source_menu.csv,0.8012 primary; 0.6717 outcome,"[0.7776, 0.8212]",supported-with-caveat
+C-h-withingate,the h-rule transfers across targets within a gate,tables_gate3/gate3_cells_violation-judgment.csv,20/22 capture 0.940,"pass-rate [0.773, 1.000]",PASS (marginal)
+C-h-forecast,the h-rule survives forecast-first validation on untouched targets,tables_gate4/A_forecast_evaluation.csv,P-A1 6/8 vs >=8/10,n/a,REFUTED
+C-prequential,the sequential form tracks the batch rule,tables_P3/S71_prequential_h.csv,-0.0004 mean penalty,n/a,supported
+C-invariance,class-conditional score distributions are target-invariant,tables_gate4/B_invariance_verdict.csv,"hotpotqa 0.162/0.151 holds; alfworld 0.809/0.364 fails",n/a,SPLIT
+C-stability,fit stability predicts forecast accuracy,tables_gate4/C_fit_stability.csv,3 of 4 fits stable; unstable judge has worst forecasts,n/a,candidate-necessary-n2
+C-crossenv,the h-rule transfers across environments,tables_gate4/D_cross_env_h.csv,-0.0024,"[-0.0047, 0.0001]",no-claim
+N-fixedpct,fixed-percentile transfer,tables_S1/L2_*/S1d_A28_console.txt,12/22 capture 0.310,n/a,NEGATIVE RESULT
+N-grule,error-rate-indexed (g) transfer,tables_S1/L2_*/S1d_A28_1_console.txt,17/22 capture 0.455,"[0.097, 0.847]",NEGATIVE RESULT
+N-mixture,mixture-cut placement,tables_gate3/gate3_cells_violation-judgment.csv,8/22 capture -0.180,n/a,NEGATIVE RESULT
+N-retrostream,retrospective-stream mechanism,A31,not tested,n/a,DROPPED (A31)
+N-hindsight,hindsight-ceiling measurement,A35,void (template bug),n/a,DROPPED (A35)
