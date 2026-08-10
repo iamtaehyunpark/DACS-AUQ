@@ -1,0 +1,60 @@
+{
+ "stage": "S1",
+ "spec": "docs/specs/S1_SPEC.md",
+ "scope": "AGG-true",
+ "seed": 13,
+ "labelpass": "L2",
+ "nboot": 2000,
+ "constructs": {
+  "violation": {
+   "cells": 56,
+   "countable": 56,
+   "underpowered": 0,
+   "mean_auroc": 0.7852861094736305
+  },
+  "outcome": {
+   "cells": 56,
+   "countable": 56,
+   "underpowered": 0,
+   "mean_auroc": 0.720322082469376
+  },
+  "judgment": {
+   "cells": 56,
+   "countable": 56,
+   "underpowered": 0,
+   "mean_auroc": 0.7168150532524589
+  },
+  "y_env": {
+   "cells": 56,
+   "countable": 56,
+   "underpowered": 0,
+   "mean_auroc": 0.7396165095586845
+  },
+  "violation+judgment": {
+   "cells": 56,
+   "countable": 56,
+   "underpowered": 0,
+   "mean_auroc": 0.714029198597463
+  }
+ },
+ "A30_pred_i": {
+  "verdict": "PASS",
+  "wins": 11,
+  "total": 11,
+  "pooled_delta": 0.2221797217950854,
+  "pooled_ci": [
+   0.18019378418545498,
+   0.27238534434786005
+  ]
+ },
+ "A30_pred_ii": {
+  "verdict": "PASS",
+  "arms": 11,
+  "larger": 9,
+  "mean_dd": 0.11845171321100866,
+  "ci": [
+   0.03594843401775036,
+   0.205400420135842
+  ]
+ }
+}

@@ -1,0 +1,5 @@
+env,judge,within_median,class_separation,ratio,CI_supported,n_targets_ext
+alfworld,Llama-3.3-70B-Instruct,6.3751,7.8802,0.8090,no,5
+alfworld,Qwen3.6-35B-A3B,1.2390,3.4043,0.3640,no,5
+hotpotqa,Llama-3.3-70B-Instruct,1.8502,11.4105,0.1621,yes,4
+hotpotqa,Qwen3.6-35B-A3B,0.5846,3.8693,0.1511,yes,4

@@ -1,0 +1,27 @@
+$ construct=judgment gate=A28 --pivot result/pivot --scope AGG-true --outdir tables_S1/L2_judgment
+
+cells: 56 -> tables_S1/L2_judgment/gate2b_cells_AGG-true.csv
+
+===== ALL JUDGES =====
+countable cells: 55 (excluded for pool<3: 1, saturated: 7)
+  V                  mean 0.603   sd 0.138   95% CI [0.567, 0.639]
+  S_LOTO_raw         mean 0.659   sd 0.116   95% CI [0.628, 0.689]
+  S_LOTO_quantile    mean 0.657   sd 0.111   95% CI [0.628, 0.685]
+  S_fitted           mean 0.678   sd 0.122   95% CI [0.646, 0.709]
+  P-raw    : S-LOTO-raw < V in 12/55 cells (22%)
+  P-quantile: S-LOTO-quantile >= V in 42/55 cells (76%)  [needs >=80%]   95% CI [65%, 87%]
+  capture ratio (mean over 48 unsaturated): 0.647  [R1 needs >=0.5]   95% CI [0.448, 0.822]
+  rule stability: P-quantile CI STRADDLES 80% threshold; capture CI STRADDLES 0.50
+  ==> G2b-R3 FAIL
+
+===== CAPABLE STRATUM (Llama-70B, Qwen-35B) =====
+countable cells: 22 (excluded for pool<3: 0, saturated: 6)
+  V                  mean 0.761   sd 0.066   95% CI [0.733, 0.789]
+  S_LOTO_raw         mean 0.766   sd 0.080   95% CI [0.732, 0.801]
+  S_LOTO_quantile    mean 0.772   sd 0.050   95% CI [0.750, 0.792]
+  S_fitted           mean 0.809   sd 0.046   95% CI [0.789, 0.827]
+  P-raw    : S-LOTO-raw < V in 10/22 cells (45%)
+  P-quantile: S-LOTO-quantile >= V in 11/22 cells (50%)  [needs >=80%]   95% CI [32%, 73%]
+  capture ratio (mean over 16 unsaturated): 0.204  [R1 needs >=0.5]   95% CI [-0.259, 0.566]
+  rule stability: P-quantile CI entirely BELOW 80% threshold; capture CI STRADDLES 0.50
+  ==> G2b-R3 FAIL

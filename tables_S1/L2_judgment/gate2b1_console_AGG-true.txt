@@ -1,0 +1,58 @@
+[FULL pass] cells: 56
+
+===== CAPABLE STRATUM (decisive) — full =====
+countable 22 | unsaturated 16 | g-degenerate 0
+  V                mean 0.761  95% CI [0.733, 0.789]  (n=22)
+  S_LOTO_raw       mean 0.766  95% CI [0.732, 0.801]  (n=22)
+  S_LOTO_quantile  mean 0.772  95% CI [0.750, 0.792]  (n=22)
+  S_g_quantile     mean 0.784  95% CI [0.751, 0.814]  (n=22)
+  S_oracle_pct     mean 0.790  95% CI [0.766, 0.814]  (n=22)
+  S_mid_gap        mean 0.753  95% CI [0.724, 0.783]  (n=22)
+  S_fitted         mean 0.809  95% CI [0.789, 0.827]  (n=22)
+  capture(S_LOTO_quantile ) pooled 0.468  95% CI [0.206, 0.643]   mean-of-ratios 0.204
+  capture(S_g_quantile    ) pooled 0.484  95% CI [-0.145, 0.849]   mean-of-ratios 0.121
+  capture(S_oracle_pct    ) pooled 0.654  95% CI [0.393, 0.851]   mean-of-ratios 0.540
+  capture(S_mid_gap       ) pooled -0.161  95% CI [-0.355, -0.014]   mean-of-ratios -0.139
+  realized-vs-requested |flag - (1-pct)| for S_g_quantile     mean 0.000 max 0.001
+  realized-vs-requested |flag - (1-pct)| for S_LOTO_quantile  mean 0.000 max 0.001
+  realized-vs-requested |flag - (1-pct)| for S_oracle_pct     mean 0.000 max 0.001
+  P-g2: S_g_quantile >= V in 18/22 (82%)  95% CI [64%, 95%]  [needs >=80%]
+  P-g1: S_g_quantile >= S_LOTO_quantile in 16/22 (73%)
+  ==> G2b1-R2 PARTIAL
+  P-gap: |S_mid_gap - S_fitted| <= 0.01 in 5/22 (23%)
+  P-shape: mass-at-extremes>50% in 18/22 (82%); gap width min 0.018 median 0.062 max 0.062; width>0.05 in 11/22
+
+===== ALL JUDGES (context) — full =====
+countable 55 | unsaturated 48 | g-degenerate 0
+  V                mean 0.603  95% CI [0.567, 0.639]  (n=55)
+  S_LOTO_raw       mean 0.659  95% CI [0.628, 0.689]  (n=55)
+  S_LOTO_quantile  mean 0.657  95% CI [0.628, 0.685]  (n=55)
+  S_g_quantile     mean 0.652  95% CI [0.619, 0.685]  (n=55)
+  S_oracle_pct     mean 0.658  95% CI [0.625, 0.689]  (n=55)
+  S_mid_gap        mean 0.599  95% CI [0.565, 0.635]  (n=55)
+  S_fitted         mean 0.678  95% CI [0.646, 0.709]  (n=55)
+  capture(S_LOTO_quantile ) pooled 0.786  95% CI [0.696, 0.856]   mean-of-ratios 0.647
+  capture(S_g_quantile    ) pooled 0.656  95% CI [0.474, 0.801]   mean-of-ratios 0.532
+  capture(S_oracle_pct    ) pooled 0.739  95% CI [0.631, 0.831]   mean-of-ratios 0.645
+  capture(S_mid_gap       ) pooled -0.050  95% CI [-0.110, -0.009]   mean-of-ratios -0.052
+  realized-vs-requested |flag - (1-pct)| for S_g_quantile     mean 0.000 max 0.001
+  realized-vs-requested |flag - (1-pct)| for S_LOTO_quantile  mean 0.000 max 0.001
+  realized-vs-requested |flag - (1-pct)| for S_oracle_pct     mean 0.000 max 0.001
+  P-g2: S_g_quantile >= V in 47/55 (85%)  95% CI [76%, 95%]  [needs >=80%]
+  P-g1: S_g_quantile >= S_LOTO_quantile in 29/55 (53%)
+  ==> G2b1-R1 PASS
+  P-gap: |S_mid_gap - S_fitted| <= 0.01 in 6/55 (11%)
+  P-shape: mass-at-extremes>50% in 46/55 (84%); gap width min 0.018 median 0.062 max 0.412; width>0.05 in 40/55
+
+===== CROSS-DATASET PROBE (secondary) =====
+assessor                   cut from  applied to   within   across    delta
+Llama-3.3-70B-Instruct     alfworld  hotpotqa     0.732    0.760   +0.028
+Llama-3.3-70B-Instruct     hotpotqa  alfworld     0.802    0.725   -0.077
+Mistral-7B-Instruct-v0.3   alfworld  hotpotqa     0.600    0.551   -0.049
+Mistral-7B-Instruct-v0.3   hotpotqa  alfworld     0.678    0.563   -0.115
+Phi-4-mini-instruct        alfworld  hotpotqa     0.498    0.532   +0.034
+Phi-4-mini-instruct        hotpotqa  alfworld     0.574    0.493   -0.082
+Qwen3.6-35B-A3B            alfworld  hotpotqa     0.766    0.789   +0.023
+Qwen3.6-35B-A3B            hotpotqa  alfworld     0.815    0.761   -0.054
+gemma-3-4b-it              alfworld  hotpotqa     0.558    0.586   +0.028
+gemma-3-4b-it              hotpotqa  alfworld     0.662    0.554   -0.107

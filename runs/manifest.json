@@ -1,0 +1,1284 @@
+{
+ "stage": "S0",
+ "status": "OK",
+ "spec": "docs/specs/S0_SPEC.md",
+ "spec_sha256": "71d1bb9bb392b3320a356be19623b52d558aaaa6c3e7a3367ed8dbffa9c5e4a0",
+ "seed": 13,
+ "stop_conditions": [],
+ "cells": [
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/Llama-3.3-70B-Instruct/probes.aggtrue.jsonl",
+     "bytes": 99500383,
+     "mtime": 1784882473,
+     "lines": 4765,
+     "sha256": "fe29f2e384513a69c7657764ff7c6c6b7136fd5a5c7df01570118d20cf3823ec"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Llama-3.3-70B-Instruct/probes.jsonl",
+     "bytes": 759758948,
+     "mtime": 1784869912,
+     "lines": 38120,
+     "sha256": "f2aceecd28ef20316ad978d4afba38465f202b92882a2d09b571efcafc0295aa"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/Llama-3.3-70B-Instruct/judge.jsonl",
+     "bytes": 3166882,
+     "mtime": 1784871241,
+     "lines": 4765,
+     "sha256": "aaa937468b66e145023e6ec0b13174c12cc5263d79e076c1d70ffcf23d3b5fdf"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Llama-3.3-70B-Instruct/uq.jsonl",
+     "bytes": 742608873,
+     "mtime": 1784862831,
+     "lines": 9670,
+     "sha256": "01dcf53e3456b1ec21e2a69ee2b2ef9a7e37545a76d120f25f6a07e4711d7f84"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/Mistral-7B-Instruct-v0.3/probes.aggtrue.jsonl",
+     "bytes": 123986063,
+     "mtime": 1785399922,
+     "lines": 6482,
+     "sha256": "8c110ebb80335d7c10c87b406bfe7613e696f82c19e46d6181fba15cc2021396"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Mistral-7B-Instruct-v0.3/probes.jsonl",
+     "bytes": 1097328709,
+     "mtime": 1785398618,
+     "lines": 51856,
+     "sha256": "b127f3b17cba9e73045dd65b31d3687f28eb6b26f66be533d15c194a31ad2c58"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/Mistral-7B-Instruct-v0.3/judge.jsonl",
+     "bytes": 4344081,
+     "mtime": 1785401362,
+     "lines": 6482,
+     "sha256": "fbb337ebaad846af72a86bd454ab6386801318d22299e4517307da835ffe9014"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Mistral-7B-Instruct-v0.3/uq.jsonl",
+     "bytes": 864595244,
+     "mtime": 1785802123,
+     "lines": 13104,
+     "sha256": "858c76b80a57ae8e0c10a700941ff4ef9f282f6c5cb63b39881439c307e7de23"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/Phi-4-mini-instruct/probes.aggtrue.jsonl",
+     "bytes": 122897257,
+     "mtime": 1785262966,
+     "lines": 6604,
+     "sha256": "cf4fb8101aee972b7e9c8d516e7766894f51580b3a9eb4199e6cc6bdd9cd7842"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Phi-4-mini-instruct/probes.jsonl",
+     "bytes": 1043452334,
+     "mtime": 1785262692,
+     "lines": 52867,
+     "sha256": "71e4635e528f08808891e8f2dbf30a3bd72391066d96c9d76a30a7d8ebd9d3f1"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/Phi-4-mini-instruct/judge.jsonl",
+     "bytes": 4395203,
+     "mtime": 1785264913,
+     "lines": 6604,
+     "sha256": "9c27ad2a7d13f40a13bc535153518b7f2e57dc8c9460677402c9548d92aa304a"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Phi-4-mini-instruct/uq.jsonl",
+     "bytes": 779476839,
+     "mtime": 1785261437,
+     "lines": 13362,
+     "sha256": "36b1180434604b323f5a84dfe8b0a4cac1f983ed91532c2bdfa514b13cf82d15"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Qwen3.5-27B",
+   "assessor": "Qwen3.5-27B",
+   "files": {
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Qwen3.5-27B/probes.jsonl",
+     "bytes": 569633319,
+     "mtime": 1785927214,
+     "lines": 26948,
+     "sha256": "f3bd05e6e682b1b2895b36229ad25c03181ae17688c90add989d7cc198a15cc8"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Qwen3.5-27B/uq.jsonl",
+     "bytes": 1110410831,
+     "mtime": 1785905136,
+     "lines": 7030,
+     "sha256": "05d0f3a2aedcca1de1fa782b354ad9cc6cfdbabbfcec03bff0991eeb8b16af56"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Qwen3.5-4B",
+   "assessor": "Qwen3.5-4B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/Qwen3.5-4B/probes.aggtrue.jsonl",
+     "bytes": 88600443,
+     "mtime": 1785899825,
+     "lines": 4113,
+     "sha256": "94a2637e7f68334bcd4865b343d5c51b8e0a7a71cf4c3332bb9ff15d7843a9dd"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Qwen3.5-4B/probes.jsonl",
+     "bytes": 825701672,
+     "mtime": 1785899245,
+     "lines": 35349,
+     "sha256": "5bb659370c1ee08ce8ca313e55c10614418c95fdf1868714cf4c8c1892db73e5"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/Qwen3.5-4B/judge.jsonl",
+     "bytes": 2830497,
+     "mtime": 1785900701,
+     "lines": 4113,
+     "sha256": "9c839e8a377d1ab654a719ccb06251d00884c092c01ef5fa604fa15085368ca1"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Qwen3.5-4B/uq.jsonl",
+     "bytes": 1948191230,
+     "mtime": 1785894572,
+     "lines": 9344,
+     "sha256": "b1c770bac06051e6474285f1926690241139726931e22c6614e658c1a6ab347d"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Qwen3.5-9B",
+   "assessor": "Qwen3.5-9B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/Qwen3.5-9B/probes.aggtrue.jsonl",
+     "bytes": 89418754,
+     "mtime": 1785906781,
+     "lines": 4265,
+     "sha256": "f4de478f65e65a4c4e8a4c6e9f0749b983a1e3ba1078cdf2ca3fef8f743627a8"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Qwen3.5-9B/probes.jsonl",
+     "bytes": 801607278,
+     "mtime": 1785905757,
+     "lines": 35745,
+     "sha256": "42cb83f611305f7c975c296b557e517ca1b325d4fda9aa9c4c9e0c0d493923b8"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/Qwen3.5-9B/judge.jsonl",
+     "bytes": 2925538,
+     "mtime": 1785907679,
+     "lines": 4265,
+     "sha256": "8ce6e134ebaa0cd9cc3f8d2ab33a14c13dc31d33408f7bfe22c35bb98395fef1"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Qwen3.5-9B/uq.jsonl",
+     "bytes": 1678898169,
+     "mtime": 1785896805,
+     "lines": 9320,
+     "sha256": "efda6668fdd0ada99f7c5b795ec7048e6255a31bf6f23737d83438d37106bb3d"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/Qwen3.6-35B-A3B/probes.aggtrue.jsonl",
+     "bytes": 62998151,
+     "mtime": 1784879999,
+     "lines": 3197,
+     "sha256": "d005b3270c0563623783af6b3fc39c03735d8807769ebf094f6cc75b3cfa49e0"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/Qwen3.6-35B-A3B/probes.jsonl",
+     "bytes": 554844853,
+     "mtime": 1784795067,
+     "lines": 26286,
+     "sha256": "59a4387a47d5df21ba735b0e0ad6e81bddcadf2dbac45be87fd8c29fe7e634c4"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/Qwen3.6-35B-A3B/judge.jsonl",
+     "bytes": 2143809,
+     "mtime": 1784794654,
+     "lines": 3200,
+     "sha256": "fb3afafcd290cb3440ba60e019872c52f3de8027d54a7f770b95ce96bdf59df1"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/Qwen3.6-35B-A3B/uq.jsonl",
+     "bytes": 897373986,
+     "mtime": 1784795525,
+     "lines": 6824,
+     "sha256": "6dee834681a109c03b7ffe614d3d2dee0262d6e18e1bbb2e67199e3df7227126"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "deepseek-v4-flash",
+   "assessor": "deepseek-v4-flash",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/deepseek-v4-flash/probes.aggtrue.jsonl",
+     "bytes": 30825828,
+     "mtime": 1785734927,
+     "lines": 2586,
+     "sha256": "1d95307758120ddc79a0101293968f3390b0233f22b9be5f321b31f00f234ffd"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/deepseek-v4-flash/probes.jsonl",
+     "bytes": 75841010,
+     "mtime": 1785424328,
+     "lines": 6617,
+     "sha256": "6c4b0820055d8bee124ae140bb33e8af9b79954d08a2941c34f93fef8f5c3669"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/deepseek-v4-flash/judge.jsonl",
+     "bytes": 2207980,
+     "mtime": 1785371163,
+     "lines": 3304,
+     "sha256": "90f9dd2be7a7c0669f23460d550a07e4b9d59c4f4806ab753754e24da78a7ec3"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/deepseek-v4-flash/uq.jsonl",
+     "bytes": 467553965,
+     "mtime": 1785303731,
+     "lines": 6743,
+     "sha256": "6a6a6bf06643ab31c53f432ef6cedb0199076d4d74ba5230aae994f334946aa2"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "alfworld",
+   "target": "gemma-3-4b-it",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/alfworld/gemma-3-4b-it/probes.aggtrue.jsonl",
+     "bytes": 128275712,
+     "mtime": 1785272909,
+     "lines": 6790,
+     "sha256": "144990a33ee54a4b4880d061a899663f095d6f5d75025c70f5b9c70bfe787cb3"
+    },
+    "SPLIT": {
+     "path": "result/pivot/alfworld/gemma-3-4b-it/probes.jsonl",
+     "bytes": 1089793383,
+     "mtime": 1785272643,
+     "lines": 54320,
+     "sha256": "4832205c53a9565a31b1f28cdc16d59b766f09a2e7954a2db91443afebb8f5dc"
+    },
+    "labels": {
+     "path": "result/pivot/alfworld/gemma-3-4b-it/judge.jsonl",
+     "bytes": 4514671,
+     "mtime": 1785274245,
+     "lines": 6790,
+     "sha256": "4f3b5c9aa58169358ef799820903e83f6dc621fd8b4052b0a3ecbc3c480e8a14"
+    },
+    "generation": {
+     "path": "result/pivot/alfworld/gemma-3-4b-it/uq.jsonl",
+     "bytes": 555565649,
+     "mtime": 1785271426,
+     "lines": 13720,
+     "sha256": "0bc1a6013ce50ab2b9e7f07f984375fae5929af514bceb0c5c45cf0b274485b3"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/Llama-3.3-70B-Instruct/probes.jsonl",
+     "bytes": 252820348,
+     "mtime": 1785769141,
+     "lines": 17710,
+     "sha256": "f54e876473cb185db5f1a8897509c6ddd161a09c4bc61b68e97df9307a1d35f3"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/Llama-3.3-70B-Instruct/judge.jsonl",
+     "bytes": 1609594,
+     "mtime": 1785771329,
+     "lines": 2530,
+     "sha256": "7de24cef8f968746133eb2e0fd88198f52e5416ae1f6fba2a27d97c945b4e80a"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/Llama-3.3-70B-Instruct/uq.jsonl",
+     "bytes": 417151869,
+     "mtime": 1785765061,
+     "lines": 5560,
+     "sha256": "d0c4c56b37d1ff95b7bee9fb8b2da8b78027a180df715460141602b6c743cbc9"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/Mistral-7B-Instruct-v0.3/probes.jsonl",
+     "bytes": 351691966,
+     "mtime": 1785754376,
+     "lines": 22568,
+     "sha256": "1ce85e61524ac2cf6c01e30659b0afa0c8e820ce2f030ee5edd1752dafd09fd2"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/Mistral-7B-Instruct-v0.3/judge.jsonl",
+     "bytes": 2108307,
+     "mtime": 1785756407,
+     "lines": 3224,
+     "sha256": "f6feeb855d2b4549a64bc835411594b0c3f0e5060330b3d8bb6e38502dd49ba9"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/Mistral-7B-Instruct-v0.3/uq.jsonl",
+     "bytes": 415994571,
+     "mtime": 1785802078,
+     "lines": 6948,
+     "sha256": "c7e2590487e72c202d068d052aae2523f2343896c50b8691e9dd8ff8fed64830"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/Phi-4-mini-instruct/probes.jsonl",
+     "bytes": 297257819,
+     "mtime": 1785747669,
+     "lines": 19012,
+     "sha256": "dcd42c0b1dac37b4fdca7340c88f6a84284e7705a8bcf27c60a5449abaeafb63"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/Phi-4-mini-instruct/judge.jsonl",
+     "bytes": 1746028,
+     "mtime": 1785749909,
+     "lines": 2716,
+     "sha256": "7f21b32896b115117fbea13620a2d500922c5cb4da5b07825c8ef9a890a26729"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/Phi-4-mini-instruct/uq.jsonl",
+     "bytes": 391481455,
+     "mtime": 1785746928,
+     "lines": 5932,
+     "sha256": "9d7fbb083d81a3078a3ddb4daabbad375f6d05d82e17f91e892a49ab249296a8"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.5-4B",
+   "assessor": "Qwen3.5-4B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-4B/probes.aggtrue.jsonl",
+     "bytes": 35519353,
+     "mtime": 1785903765,
+     "lines": 2371,
+     "sha256": "182124dd388d6cd89a9e1f536c67ef950ee1297e2257b7f8d461b20f21ce5e75"
+    },
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-4B/probes.jsonl",
+     "bytes": 219592868,
+     "mtime": 1785903587,
+     "lines": 14550,
+     "sha256": "18f54627621baddca73a706ce6499a1d2cb993c4c54eed082a26e48ff176bc74"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-4B/judge.jsonl",
+     "bytes": 1538676,
+     "mtime": 1785904922,
+     "lines": 2371,
+     "sha256": "1ec141900674a11b7d31ccbbbbdad3711c871e37286306b4b35638107338240a"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-4B/uq.jsonl",
+     "bytes": 730049772,
+     "mtime": 1785902531,
+     "lines": 5458,
+     "sha256": "97c68f827357114ffc7407dbc56b99c09f4cce133dd32e83370ad86484f4a342"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.5-9B",
+   "assessor": "Qwen3.5-9B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-9B/probes.aggtrue.jsonl",
+     "bytes": 33658732,
+     "mtime": 1785912446,
+     "lines": 2296,
+     "sha256": "5c99db144c2098e840eb1a527470f902b10a83ce553358edad3d9f72d750e6eb"
+    },
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-9B/probes.jsonl",
+     "bytes": 205808160,
+     "mtime": 1785912148,
+     "lines": 14016,
+     "sha256": "f9a5b2259d8a38afa40e5b2c6a7ecd4704ae2814105b8a8710f4c262b2e4c47b"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-9B/judge.jsonl",
+     "bytes": 1424471,
+     "mtime": 1785913854,
+     "lines": 2296,
+     "sha256": "61b25a26e7e22934ea10980509587b3bc7780fac0bb51ca5c4c3dedb10489590"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/Qwen3.5-9B/uq.jsonl",
+     "bytes": 630879175,
+     "mtime": 1785910332,
+     "lines": 5252,
+     "sha256": "dcba905edccdd0f38334340631917852aa6f581e5025825c1bbc9b9eb865986e"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/Qwen3.6-35B-A3B/probes.jsonl",
+     "bytes": 225000521,
+     "mtime": 1784882897,
+     "lines": 15470,
+     "sha256": "a8936d3a310bf3c8bbd54080589df72581a3bb217110656620007f1201367126"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/Qwen3.6-35B-A3B/judge.jsonl",
+     "bytes": 1393528,
+     "mtime": 1784886451,
+     "lines": 2193,
+     "sha256": "1d1dadb9fda214a3bacd119d4c333ddd245545014ae2418d0f875d6eef1349ff"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/Qwen3.6-35B-A3B/uq.jsonl",
+     "bytes": 546925961,
+     "mtime": 1784869838,
+     "lines": 4970,
+     "sha256": "d1dadba3a1de11fd4e9bd25a7a0a9d330262731f064667bdabbad6a43dffb51f"
+    }
+   }
+  },
+  {
+   "family": "self",
+   "dataset": "hotpotqa",
+   "target": "gemma-3-4b-it",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "SPLIT": {
+     "path": "result/pivot/hotpotqa/gemma-3-4b-it/probes.jsonl",
+     "bytes": 258546662,
+     "mtime": 1785750080,
+     "lines": 17955,
+     "sha256": "26e5c3eeb287c7ec8edd19d3993001e5751dc4fe3ba1a2febac9adc1689a0594"
+    },
+    "labels": {
+     "path": "result/pivot/hotpotqa/gemma-3-4b-it/judge.jsonl",
+     "bytes": 1637747,
+     "mtime": 1785751485,
+     "lines": 2565,
+     "sha256": "c774c60985fed069eb19367d9ed3e0053b53f23c7ac9023ce2ab7953e4b8a0d3"
+    },
+    "generation": {
+     "path": "result/pivot/hotpotqa/gemma-3-4b-it/uq.jsonl",
+     "bytes": 234500472,
+     "mtime": 1785749408,
+     "lines": 5630,
+     "sha256": "ce312408de2d5de22ac38c00586c601a4ea8b4c9c74ffac609643ac3a57666c0"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 101149071,
+     "mtime": 1785812928,
+     "lines": 4765,
+     "sha256": "c765895c94d6660466c310e3cb10ab9bc3ddc1027d65120c44216d8c95556289"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 195723832,
+     "mtime": 1785812484,
+     "lines": 9530,
+     "sha256": "e5a5b8119e183652aede54371dfd23e4060bf8e2a2f2b00fa545aed98d9eb41d"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 98456638,
+     "mtime": 1785805031,
+     "lines": 4765,
+     "sha256": "0dc840f0abbc0b60c8526f289b190cc458e3905615de2fdfde157df580c584d7"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 189023749,
+     "mtime": 1785804822,
+     "lines": 9530,
+     "sha256": "7cf0ea107e807b628ccafe5ea17f0f482d5c28b2ec56e13d5a3a032fb37c4e9c"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 93079419,
+     "mtime": 1785825412,
+     "lines": 4765,
+     "sha256": "e23f03fa2e25e929ed9d645a6f78128dee47e8f22aa98f3b9411a80f58a5d4de"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 180014590,
+     "mtime": 1785824096,
+     "lines": 9530,
+     "sha256": "cf4318fb9bc66501cd7afd92601838154623f27f1e4705c12364bec4b7308431"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 102289991,
+     "mtime": 1785808643,
+     "lines": 4765,
+     "sha256": "85ca022a85ff8b75a767affffbe076c9608621740f592a165dc8d293223cae6b"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Llama-3.3-70B-Instruct/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 196825025,
+     "mtime": 1785808438,
+     "lines": 9530,
+     "sha256": "299f9fa4c0c5676f975520294870b4777a70b731363845732603ddda3af62231"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 122884268,
+     "mtime": 1785834728,
+     "lines": 6482,
+     "sha256": "3d8979d98d4afa12cafc9cf0a7cf9b17e9925e4be7389670b2c5a68e5b9fb9aa"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 239257067,
+     "mtime": 1785832080,
+     "lines": 12964,
+     "sha256": "1a0b9504f8d7c29ff42384520a412d0408002478fc995017b11298556743717c"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 122387372,
+     "mtime": 1785805642,
+     "lines": 6482,
+     "sha256": "9c73c01cf5906d63e0aa0b29aa3ccad81c22af63d04c09723c68d4c6d65d7311"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 234156262,
+     "mtime": 1785805389,
+     "lines": 12964,
+     "sha256": "e0ebe0beb2efa6b59afa7fa1eec5fcff7a504792cf91d7a65caba7a883fa33f8"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 114513708,
+     "mtime": 1785828107,
+     "lines": 6482,
+     "sha256": "476a686be79224edec919075aeb40d4820d0193de0a324b2ffb917a8ef1f0d6d"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 222131078,
+     "mtime": 1785827169,
+     "lines": 12964,
+     "sha256": "3601f5cb1778049ebf03139d619354519637c3fbe9b2dc84171f69ff1e28fb3c"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 125538942,
+     "mtime": 1785809250,
+     "lines": 6482,
+     "sha256": "bf61548f57e113d46864ffe563f2109136f3d55d19109003ab8ffc923025368d"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Mistral-7B-Instruct-v0.3/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 243587822,
+     "mtime": 1785809003,
+     "lines": 12964,
+     "sha256": "4a712192b3c7a1acd307292f4cd832f779f18b08c2fdbca910a2b89e33bf8add"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 123837834,
+     "mtime": 1785840232,
+     "lines": 6604,
+     "sha256": "9bc93a20580f7a95dc4734cb29c83cdbeab415717879647c4234fb2563b4d0ac"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 242753894,
+     "mtime": 1785837860,
+     "lines": 13215,
+     "sha256": "611b867524c240baf94762fc334042c1ca91bc32ea8cef1e179cec74d088653f"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 125194207,
+     "mtime": 1785814041,
+     "lines": 6604,
+     "sha256": "026f7cdc78fdaddfc8e22e4c3c463d728618d7ca5b20547f038de31b9a1dc925"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 243765975,
+     "mtime": 1785813556,
+     "lines": 13215,
+     "sha256": "9a3b90bd8e3e43f03072a4b8faa07d606ceb28a680a75608c4705f0ebff468ca"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 115827393,
+     "mtime": 1785830927,
+     "lines": 6604,
+     "sha256": "e2fb257d998e7494e0616bf1aef7c9f7ecfc015d8dad652ca5bddca359114a67"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 225633313,
+     "mtime": 1785829969,
+     "lines": 13215,
+     "sha256": "94d798e17430eefe11178f7c09d4209d644553315e93cf3978a9798c71d19194"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 126616911,
+     "mtime": 1785809824,
+     "lines": 6604,
+     "sha256": "329db66146c442b154cfe65c34471b5d8cc5a6deb0a95941f5c29059f860e2a9"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Phi-4-mini-instruct/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 246616774,
+     "mtime": 1785809586,
+     "lines": 13215,
+     "sha256": "861153fff029b49c3a5ce17330e4f71046e85e2a427526cfb0a099da84925d08"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 67152904,
+     "mtime": 1785844425,
+     "lines": 3197,
+     "sha256": "37dd8e71455b5570609cdbeaf9020f04f4e26b62fd95bb5009865fecb2db5078"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 134262270,
+     "mtime": 1785842801,
+     "lines": 6536,
+     "sha256": "4345a5cf3f4ef04ca8344b3916b1b800ecac7993ea505af9bd44990176cc5121"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 68183657,
+     "mtime": 1785814910,
+     "lines": 3197,
+     "sha256": "86d6822f402ed0719a4b1ba68e8d65b9ef038d6faf67609677d2b929aa9bd537"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 137236386,
+     "mtime": 1785814561,
+     "lines": 6536,
+     "sha256": "e73d8130c7ac65304c6b442526ee67721acbbed1f5052817c8a0025d86b8dd0b"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 66097717,
+     "mtime": 1785806068,
+     "lines": 3197,
+     "sha256": "a57ed16febf2440b1290dd938524f8595cfe8f66c3e325af28c1b7e9a26fdb14"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 132792142,
+     "mtime": 1785805901,
+     "lines": 6536,
+     "sha256": "632a89052f66fec41f6e4f8710b9ee9135148daf4abdf236ffaeb26ef17253e7"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "Qwen3.6-35B-A3B",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 68343169,
+     "mtime": 1785810239,
+     "lines": 3197,
+     "sha256": "983a7aa296e1ee3062ac07d63d3fb3fd40a30f70714075ad45b0b16e16f13de3"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/Qwen3.6-35B-A3B/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 136990901,
+     "mtime": 1785810079,
+     "lines": 6536,
+     "sha256": "5c5cdbb948010af6ce52ea32f35fb7895fec3066edfab9febf46044f03004c0e"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "deepseek-v4-flash",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 65668160,
+     "mtime": 1785847933,
+     "lines": 3304,
+     "sha256": "1da2f3634f6cc5c554d3efdf037d3ef8345dc7223a6382579ecdb455d1d25769"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 126377706,
+     "mtime": 1785846463,
+     "lines": 6617,
+     "sha256": "7574d96d5dbe7d10efa89f5c3d479334eb958791bead475122831226dd6a0d3f"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "deepseek-v4-flash",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 66458758,
+     "mtime": 1785815644,
+     "lines": 3304,
+     "sha256": "941a119a75acc1c58a096222132d77d06cbe2abed080e2082e4f59d03504d07f"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 128768622,
+     "mtime": 1785815337,
+     "lines": 6617,
+     "sha256": "8e1c44320bf2985143277686ea81c01b108ddd84ff622a4e0a19ac9ddb713fc7"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "deepseek-v4-flash",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 64762682,
+     "mtime": 1785806432,
+     "lines": 3304,
+     "sha256": "d1350c8e9c71d6b2403cb768b1585a9cfa069dd0b798c0b698da399d897a0b6d"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 124963703,
+     "mtime": 1785806283,
+     "lines": 6617,
+     "sha256": "03697c41142abb53547832e0e90fecfbbf4badb4bf2591379210e1882bde9bdc"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "deepseek-v4-flash",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 61262363,
+     "mtime": 1785832475,
+     "lines": 3304,
+     "sha256": "ab90fd0564a9f5c6ed169e893adefaffb50c9f15d530fc4c6eb8f1405302ce84"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 118691329,
+     "mtime": 1785831942,
+     "lines": 6617,
+     "sha256": "b01700839d16df0c60f541d6fa7519d6c9b67674e00874286be8651a0da303de"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "deepseek-v4-flash",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 66756355,
+     "mtime": 1785810593,
+     "lines": 3304,
+     "sha256": "9e6af271013d5b89d01eac2b6a95e1ce820227ee4c10a04e1e21d9a53bab9557"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/deepseek-v4-flash/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 129353601,
+     "mtime": 1785810450,
+     "lines": 6617,
+     "sha256": "16ed9e21bbf0e07633a7e765c7c8af75b851f024d6358ce37f16b6316cfeb1f3"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "gemma-3-4b-it",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 124983336,
+     "mtime": 1785853472,
+     "lines": 6790,
+     "sha256": "7667f521f016c96319c95f24ccf7bf4adfea2350391d9e0b2e003919d4b04f90"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 244541739,
+     "mtime": 1785851044,
+     "lines": 13580,
+     "sha256": "b5e92ec8bfeba5497fd9c706ee0901cdc611f21f91e77fad75da63184f987fb3"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "gemma-3-4b-it",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 126623116,
+     "mtime": 1785816802,
+     "lines": 6790,
+     "sha256": "e0e366ece104df4f39945cee56591360934c8d0c7dbc04bd0ea388ad346f55e9"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 245978306,
+     "mtime": 1785816304,
+     "lines": 13580,
+     "sha256": "c9332ad0d277025be53a4c9c99ae740c3e99f061f2168f7263cadfb7cbec2f94"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "gemma-3-4b-it",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 125753797,
+     "mtime": 1785807028,
+     "lines": 6790,
+     "sha256": "82ccfecec5fd97318c158f782cf3fe37e25a45f8cd0f10c3ea7acd1234c393d1"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 240096510,
+     "mtime": 1785806781,
+     "lines": 13580,
+     "sha256": "1991825ebbf154309d7a54c1079708039d53ef606b008f4ba64bf60b812db6da"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "alfworld",
+   "target": "gemma-3-4b-it",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 117098677,
+     "mtime": 1785835419,
+     "lines": 6790,
+     "sha256": "f0180c68745bbf91385bb97806c0fc461c3835e12ac6a1af77a43dfc85b3b884"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/alfworld/gemma-3-4b-it/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 227570752,
+     "mtime": 1785834420,
+     "lines": 13580,
+     "sha256": "335b2f902eb19ff1a79390dc0689e7c5d19b118743b54be23df483f813cc90b4"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Mistral-7B-Instruct-v0.3",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.Mistral-7B-Instruct-v0.3.response.jsonl",
+     "bytes": 38433040,
+     "mtime": 1785817307,
+     "lines": 2530,
+     "sha256": "d7bd5c7c54942af5acbf7bb662a7305760a2ac19e8e1afd40599a5c3c52bdfb1"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.Mistral-7B-Instruct-v0.3.stages.jsonl",
+     "bytes": 74563409,
+     "mtime": 1785817104,
+     "lines": 5060,
+     "sha256": "356f8d0402a0528da98b9a64c72d62a91e991037b747f8e141665ab55f5022cd"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 39440012,
+     "mtime": 1785807278,
+     "lines": 2530,
+     "sha256": "6ddc9dd1b820ec02cf0ce30e52a6f417127802875245dededb6e3b612a94358c"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 76842399,
+     "mtime": 1785807180,
+     "lines": 5060,
+     "sha256": "d8dc1fbfa19eff0a1e7c0522864d08ca4d779be97c007d6b596f5280c69b4f8e"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 36530916,
+     "mtime": 1785836119,
+     "lines": 2530,
+     "sha256": "5b40fbcdceffcfb96aad461e3a041407d67c5d5f4367fec684698b0ad229b457"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 70972437,
+     "mtime": 1785835879,
+     "lines": 5060,
+     "sha256": "87b6ba555cdfc42a6f898855a60be274acccb6e857ab38cf2fe7ded437fa6cb7"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Llama-3.3-70B-Instruct",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 39571696,
+     "mtime": 1785810850,
+     "lines": 2530,
+     "sha256": "5b749adb6f871ac0fd6fb9596524633c4a1073b237f0d66cf862f5f3d960a043"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Llama-3.3-70B-Instruct/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 75225016,
+     "mtime": 1785810748,
+     "lines": 5060,
+     "sha256": "c5395cd3ac1cb55b6c49bea79c358c0dfe4c52767129ac5d642d4ea9a1d1e7e1"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 48441467,
+     "mtime": 1785855804,
+     "lines": 3224,
+     "sha256": "c1c7796db49a79f29dd8faff8bafe82ead704e584d8526a00e77d106235cf0f4"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 94769902,
+     "mtime": 1785854877,
+     "lines": 6448,
+     "sha256": "d715d867a71fc157b2d5b630c7ec85379a511486317fb5745b59cd5c059485dc"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Phi-4-mini-instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.Phi-4-mini-instruct.response.jsonl",
+     "bytes": 47580534,
+     "mtime": 1785807543,
+     "lines": 3224,
+     "sha256": "e3cad7c60340e73d9a4dac8d989e269085b6b34858643af72d1d2ee961a1ab55"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.Phi-4-mini-instruct.stages.jsonl",
+     "bytes": 93543238,
+     "mtime": 1785807438,
+     "lines": 6448,
+     "sha256": "3ca3136490d8a2a53900556877775302930dc58ac45a7a2b25af1a493fed865c"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "Qwen3.6-35B-A3B",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.Qwen3.6-35B-A3B.response.jsonl",
+     "bytes": 43899684,
+     "mtime": 1785836958,
+     "lines": 3224,
+     "sha256": "e39e72d384607fdb08c434527dbdd39f26f9f8935d52550ce655683c80690294"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.Qwen3.6-35B-A3B.stages.jsonl",
+     "bytes": 85860247,
+     "mtime": 1785836669,
+     "lines": 6448,
+     "sha256": "29d3bc1c8b3a9fc683fd685e0821a58434e72f81bacfdbfa3e2df8df9c56d1ed"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Mistral-7B-Instruct-v0.3",
+   "assessor": "gemma-3-4b-it",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.gemma-3-4b-it.response.jsonl",
+     "bytes": 47990491,
+     "mtime": 1785811142,
+     "lines": 3224,
+     "sha256": "cf01f5c72f7dab0d79a59da554df6a4534b6b200f8ac7af6337f368873dfde7f"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Mistral-7B-Instruct-v0.3/ptrue.gemma-3-4b-it.stages.jsonl",
+     "bytes": 91664750,
+     "mtime": 1785811012,
+     "lines": 6448,
+     "sha256": "3bb39e8428b8a0cf3e3bdaa6a74b0e72248ecf7e47daacf81df7dbd85df5f681"
+    }
+   }
+  },
+  {
+   "family": "cross",
+   "dataset": "hotpotqa",
+   "target": "Phi-4-mini-instruct",
+   "assessor": "Llama-3.3-70B-Instruct",
+   "files": {
+    "AGG-true": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.Llama-3.3-70B-Instruct.response.jsonl",
+     "bytes": 39784977,
+     "mtime": 1785857684,
+     "lines": 2716,
+     "sha256": "739609bdd58858acb5d20d8a9152f318dfd6d5fcaea0f7114f46431e3b8da746"
+    },
+    "SPLIT": {
+     "path": "result/pivot/crossprobe/hotpotqa/Phi-4-mini-instruct/ptrue.Llama-3.3-70B-Instruct.stages.jsonl",
+     "bytes": 77942481,
+     "mtime": 1785856922,
+     "lines": 5432,
+     "sha256": "8ee389542cc09a228028b6e02faea375b29c3cc7fc3ccacd9c25102570d09ef4"
+    }
+   }
+  },
+  {

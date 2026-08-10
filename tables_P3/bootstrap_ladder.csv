@@ -1,0 +1,16 @@
+construct,tier,labels_required,label_source,time_to_deploy,cells,mean_ba,ci_lo,ci_hi
+violation+judgment,day1_violation_calibrated,0 human labels,environment emits automatically,immediate,22,0.8012,0.7776,0.8212
+violation+judgment,label_200_fitted,~200 labelled episodes on the target,human or judge ensemble,one labelling round,22,0.8083,0.7858,0.8292
+violation+judgment,steady_state_h,0 labels on the target,other targets of same judge x env,immediate once h exists,22,0.7986,0.7719,0.8228
+judgment,day1_violation_calibrated,0 human labels,environment emits automatically,immediate,22,0.8081,0.7867,0.8259
+judgment,label_200_fitted,~200 labelled episodes on the target,human or judge ensemble,one labelling round,22,0.8162,0.7940,0.8342
+judgment,steady_state_h,0 labels on the target,other targets of same judge x env,immediate once h exists,22,0.8068,0.7847,0.8264
+violation,day1_violation_calibrated,0 human labels,environment emits automatically,immediate,22,0.8011,0.7616,0.8423
+violation,label_200_fitted,~200 labelled episodes on the target,human or judge ensemble,one labelling round,22,0.8173,0.7755,0.8607
+violation,steady_state_h,0 labels on the target,other targets of same judge x env,immediate once h exists,22,0.7984,0.7586,0.8388
+outcome,day1_violation_calibrated,0 human labels,environment emits automatically,immediate,22,0.6717,0.6346,0.7101
+outcome,label_200_fitted,~200 labelled episodes on the target,human or judge ensemble,one labelling round,22,0.7175,0.6767,0.7621
+outcome,steady_state_h,0 labels on the target,other targets of same judge x env,immediate once h exists,22,0.6995,0.6616,0.7391
+y_env,day1_violation_calibrated,0 human labels,environment emits automatically,immediate,22,0.6976,0.6658,0.7314
+y_env,label_200_fitted,~200 labelled episodes on the target,human or judge ensemble,one labelling round,22,0.7422,0.7059,0.7798
+y_env,steady_state_h,0 labels on the target,other targets of same judge x env,immediate once h exists,22,0.7270,0.6947,0.7616

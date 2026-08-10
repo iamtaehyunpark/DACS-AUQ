@@ -1,0 +1,12 @@
+dataset,target,best_external,self_auroc,ext_auroc,delta,ci_lo,ci_hi,n_ext,note
+alfworld,Llama-3.3-70B-Instruct,Mistral-7B-Instruct-v0.3,0.7055,0.7232,0.0176,-0.0048,0.0412,4,
+alfworld,Mistral-7B-Instruct-v0.3,Qwen3.6-35B-A3B,0.6772,0.7829,0.1057,0.0644,0.1487,4,
+alfworld,Phi-4-mini-instruct,Mistral-7B-Instruct-v0.3,0.5585,0.6417,0.0832,0.0388,0.1260,4,
+alfworld,Qwen3.6-35B-A3B,Llama-3.3-70B-Instruct,0.6920,0.6869,-0.0051,-0.0256,0.0154,4,
+alfworld,deepseek-v4-flash,Qwen3.6-35B-A3B,0.7130,0.7260,0.0160,-0.0087,0.0404,5,
+alfworld,gemma-3-4b-it,Mistral-7B-Instruct-v0.3,0.4403,0.7326,0.2923,0.2375,0.3464,4,
+hotpotqa,Llama-3.3-70B-Instruct,Phi-4-mini-instruct,0.8041,0.8835,0.0795,0.0540,0.1034,4,
+hotpotqa,Mistral-7B-Instruct-v0.3,Qwen3.6-35B-A3B,0.9318,0.9649,0.0331,0.0129,0.0537,4,
+hotpotqa,Phi-4-mini-instruct,Qwen3.6-35B-A3B,0.8632,0.8832,0.0200,-0.0649,0.0947,4,
+hotpotqa,Qwen3.6-35B-A3B,Phi-4-mini-instruct,0.8829,0.9151,0.0321,0.0122,0.0518,4,
+hotpotqa,gemma-3-4b-it,Phi-4-mini-instruct,0.7979,0.9417,0.1438,0.0987,0.1939,4,
