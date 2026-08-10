@@ -26,3 +26,4 @@ N-grule,error-rate-indexed (g) transfer,tables_S1/L2_*/S1d_A28_1_console.txt,17/
 N-mixture,mixture-cut placement,tables_gate3/gate3_cells_violation-judgment.csv,8/22 capture -0.180,n/a,NEGATIVE RESULT
 N-retrostream,retrospective-stream mechanism,A31,not tested,n/a,DROPPED (A31)
 N-hindsight,hindsight-ceiling measurement,A35,void (template bug),n/a,DROPPED (A35)
+C-cost,"capable open judges dominate the tested frontier judge on both accuracy and per-step cost in the monitoring regime — measured $7.60/1k steps (gpt-4o, b3 receipt) vs ~$0.05–0.10/1k self-hosted at the measured 3,300 assessments/5min/A100",S5 cost column + throughput manifest,"−0.021 primary Δ; ~75–150× cost ratio",n/a — measured receipts,supported (scoped to tested frontier model)

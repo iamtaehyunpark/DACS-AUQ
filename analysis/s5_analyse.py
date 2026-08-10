@@ -212,11 +212,19 @@ def main():
                  "**%+.4f** over %d cells, gpt-4o ahead in %d, CI excluding 0 in %d. "
                  "**%s.**\n"
                  % (prim["mean"], prim["n"], prim["wins"], prim["ci_excl"], verdict))
-        L.append("Read with the cost column: this arm cost ~$19 of API spend across "
-                 "7,879 calls, of which ~$7 was wasted on the sample-file defect "
-                 "described above; the work itself needed ~4,950 calls. The open "
-                 "judges are self-hosted, so their marginal cost is GPU time already "
-                 "owned. That asymmetry is the point of the comparison.\n")
+        L.append("Read with the cost column. **Measured from the b3 receipt: "
+                 "$7.60 per 1,000 steps.** This arm ran 7,879 calls, so ~$60 of API "
+                 "spend, of which **~$22 was wasted** on the sample-file defect "
+                 "described above -- the work itself needed ~4,950 calls.\n")
+        L.append("An earlier version of this summary reported ~$19 total and "
+                 "~$2.40/1k. That was an ESTIMATE at assumed list pricing "
+                 "($2.50/1M input tokens), not a receipt, and the receipt "
+                 "supersedes it. The correction moves the number 3x against us, "
+                 "which is the direction that matters to record correctly.\n")
+        L.append("The open judges are self-hosted at ~$0.05-0.10/1k steps at market "
+                 "A100 rates, on the measured 3,300 assessments/5min/A100. That is a "
+                 "75-150x ratio against a frontier judge that is also less accurate "
+                 "on this task, and the asymmetry is the point of the comparison.\n")
     if b3d:
         shared = both
         agree = sum(1 for k in shared if b3[k][1] == b3d[k][1])
