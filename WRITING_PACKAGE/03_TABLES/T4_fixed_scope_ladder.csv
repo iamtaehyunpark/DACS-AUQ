@@ -1,0 +1,12 @@
+dataset,agent,auroc,n
+alfworld,Llama-70B,0.839,4765
+alfworld,deepseek-v4-flash,0.720,2322
+alfworld,Qwen-35B,0.697,3197
+alfworld,Mistral-7B,0.616,6482
+alfworld,gemma-3-4b,0.477,6790
+alfworld,Phi-4-mini,0.475,6604
+hotpotqa,Qwen-35B,0.842,2192
+hotpotqa,Llama-70B,0.820,2530
+hotpotqa,gemma-3-4b,0.725,2565
+hotpotqa,Mistral-7B,0.668,3224
+hotpotqa,Phi-4-mini,0.550,2716

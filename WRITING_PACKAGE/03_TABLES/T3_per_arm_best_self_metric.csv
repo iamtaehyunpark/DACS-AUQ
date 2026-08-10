@@ -1,0 +1,12 @@
+dataset,agent,best_metric,scope,auroc
+alfworld,Llama-70B,ptrue,SPLIT-action,0.883
+alfworld,deepseek-v4-flash,SP,SPLIT-thought,0.799
+alfworld,Qwen-35B,ptrue,AGG-mean,0.708
+alfworld,Mistral-7B,chat_ingen,AGG-true,0.657
+alfworld,gemma-3-4b,ptrue,SPLIT-action,0.642
+alfworld,Phi-4-mini,chat_ingen,AGG-true,0.622
+hotpotqa,Qwen-35B,ptrue,AGG-true,0.842
+hotpotqa,Llama-70B,ptrue,AGG-true,0.820
+hotpotqa,gemma-3-4b,ptrue,AGG-true,0.725
+hotpotqa,Mistral-7B,ptrue,SPLIT-action,0.723
+hotpotqa,Phi-4-mini,SP,SPLIT-thought,0.622

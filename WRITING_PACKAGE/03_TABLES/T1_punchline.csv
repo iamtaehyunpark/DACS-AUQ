@@ -1,0 +1,7 @@
+judge,scale,tier,f_violation_judgment,f_judgment,f_violation,f_outcome,f_y_env,cost_per_1k_steps,latency_class,qualifies_A1
+Qwen3.6-35B-A3B,35B (3B active),capable open (self-hosted),0.898,0.907,0.862,0.774,0.800,"~$0.05-0.10 (measured throughput, market A100 rates)",prefill + 1 token; 3300 assessments/5min/A100,yes (0.898)
+Llama-3.3-70B,70B,capable open (self-hosted),0.876,0.884,0.846,0.734,0.770,"~$0.05-0.10 (measured throughput, market A100 rates)",prefill + 1 token; 3300 assessments/5min/A100,yes (0.876)
+gpt-4o (frontier),API,frontier API,0.859,0.861,0.822,0.711,0.732,"$7.60 (measured, b3 receipt)",API round-trip; max_tokens=1,yes (0.859) — external judging only; no (b) audit
+Mistral-7B-v0.3,7B,small open,0.679,0.682,0.818,0.759,0.780,"~$0.05-0.10 (self-hosted)",prefill + 1 token,no (0.679)
+gemma-3-4b-it,4B,small open,0.590,0.582,0.649,0.598,0.605,"~$0.05-0.10 (self-hosted)",prefill + 1 token,no (0.590)
+Phi-4-mini,3.8B,small open,0.546,0.546,0.748,0.744,0.751,"~$0.05-0.10 (self-hosted)",prefill + 1 token,no (0.546)

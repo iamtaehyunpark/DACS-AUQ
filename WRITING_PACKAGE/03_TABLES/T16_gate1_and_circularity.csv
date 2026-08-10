@@ -1,0 +1,12 @@
+block,rule_or_subrule,verdict_or_steps,deciding_numbers
+gate-1,R1 qualification floors on f,FAIL,lowest capable-judge f 0.669 (Llama-70B) vs 0.70 floor; ordering inverted (Qwen 0.752 > Llama 0.669); ranges 0.34-1.00 / 0.40-1.00
+gate-1,R2 the g fit,PASS,weakest capable-judge |r| 0.948 vs 0.85 floor (alf/Llama 0.948; alf/Qwen 0.987; hot/Llama 0.976; hot/Qwen 0.987)
+gate-1,R3 crossprobe movement,FLAG,161 of 240 comparable cells move > 0.05 AUROC; largest -0.476 (hotpotqa/Qwen3.6/gemma/SPLIT-action)
+gate-1,R4 ensemble circularity audit,REPORTED,matrix arms 9.1% (2233/24631) Tier-A-incorrect called correct; 2.0% (410/20521) ex-A4; all arms 10.6% (3174/29998); soft 0.139/0.164
+circularity by sub-rule,A1_inadmissible,9768 steps (9610 judged),126 called correct (1.3%); soft 0.037
+circularity by sub-rule,A1_malformed_toolcall,89 steps (47 judged),0 called correct (0.0%); soft 0.028
+circularity by sub-rule,A2_nothing_happens,6062 steps (6000 judged),49 called correct (0.8%); soft 0.020
+circularity by sub-rule,A3_exact_repeat,14788 steps (14682 judged),276 called correct (1.9%); soft 0.040
+circularity by sub-rule,A3_repeat_query,2734 steps (2724 judged),9 called correct (0.3%); soft 0.012
+circularity by sub-rule,A4_zero_result,5785 steps (5785 judged),1823 called correct (31.5%); soft 0.429
+unanimity,judges voting correct on settled steps,0-of-3: 19944 (81.0%); 1-of-3: 1437 (5.8%); 2-of-3: 1017 (4.1%); 3-of-3: 2233 (9.1%),all 2233 miscalled steps were unanimous

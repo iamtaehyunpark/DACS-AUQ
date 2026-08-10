@@ -1,0 +1,11 @@
+comparison,construct,cells,mean_delta,gpt4o_wins,ci_excludes_0
+vs capable open judges,violation+judgment,22,-0.0209,8/22,4
+vs capable open judges,judgment,22,-0.0264,8/22,3
+vs capable open judges,violation,22,-0.0374,5/22,1
+vs capable open judges,outcome,22,-0.0643,3/22,1
+vs capable open judges,y_env,22,-0.0610,2/22,0
+vs ALL open judges,violation+judgment,56,+0.1473,42/56,38
+vs ALL open judges,judgment,56,+0.1469,42/56,37
+vs ALL open judges,violation,56,+0.0469,30/56,13
+vs ALL open judges,outcome,56,-0.0153,20/56,9
+vs ALL open judges,y_env,56,-0.0048,19/56,8

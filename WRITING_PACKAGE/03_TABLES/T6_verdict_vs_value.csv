@@ -1,0 +1,8 @@
+judge,n_cells,mean_gain_value_minus_verdict,cells_value_below_verdict
+Llama-3.3-70B,11,+0.044,2
+Qwen3.6-35B,11,+0.048,1
+Mistral-7B,11,+0.110,0
+gemma-3-4b,11,+0.107,0
+Phi-4-mini,11,+0.024,2
+deepseek (self; 1 cell) + Qwen3.5-4B/9B (2 each),5,+0.011...+0.098,0
+ALL,60,+0.065,5

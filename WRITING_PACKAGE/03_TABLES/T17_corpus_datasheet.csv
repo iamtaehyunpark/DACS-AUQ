@@ -1,0 +1,17 @@
+dataset,arm,steps,in_matrix,violation,outcome,judgment
+alfworld,Llama-3.3-70B-Instruct,4765,4765,1714,4366,4142
+alfworld,Mistral-7B-Instruct-v0.3,6482,6482,4616,5913,5866
+alfworld,Phi-4-mini-instruct,6611,6611,4109,6029,5682
+alfworld,Qwen3.5-27B,3445,0,967,3190,0
+alfworld,Qwen3.5-4B,4602,0,2464,4266,3475
+alfworld,Qwen3.5-9B,4590,0,1840,4133,3663
+alfworld,Qwen3.6-35B-A3B,3342,3342,1157,3140,2707
+alfworld,deepseek-v4-flash,3313,3313,779,2945,2981
+alfworld,gemma-3-4b-it,6790,6790,5538,6408,6372
+hotpotqa,Llama-3.3-70B-Instruct,2530,2530,139,1054,1845
+hotpotqa,Mistral-7B-Instruct-v0.3,3224,3224,899,2140,2607
+hotpotqa,Phi-4-mini-instruct,2716,2716,843,1558,2229
+hotpotqa,Qwen3.5-4B,2479,0,279,1279,1912
+hotpotqa,Qwen3.5-9B,2376,0,218,1231,1136
+hotpotqa,Qwen3.6-35B-A3B,2235,2235,92,1075,1784
+hotpotqa,gemma-3-4b-it,2565,2565,835,1281,2229

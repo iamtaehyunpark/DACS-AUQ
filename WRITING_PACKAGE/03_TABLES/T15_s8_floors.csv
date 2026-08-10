@@ -1,0 +1,17 @@
+part,item,content
+(a) six-judge table,Qwen3.6-35B-A3B,viol+jud 0.898; judgment 0.907; violation 0.862; outcome 0.774; y_env 0.800
+(a) six-judge table,Llama-3.3-70B,viol+jud 0.876; judgment 0.884; violation 0.846; outcome 0.734; y_env 0.770
+(a) six-judge table,gpt-4o (frontier),viol+jud 0.859; judgment 0.861; violation 0.822; outcome 0.711; y_env 0.732
+(a) six-judge table,Mistral-7B-v0.3,viol+jud 0.679; judgment 0.682; violation 0.818; outcome 0.759; y_env 0.780
+(a) six-judge table,gemma-3-4b-it,viol+jud 0.590; judgment 0.582; violation 0.649; outcome 0.598; y_env 0.605
+(a) six-judge table,Phi-4-mini,viol+jud 0.546; judgment 0.546; violation 0.748; outcome 0.744; y_env 0.751
+(a) floor adopted,A-1 permissive,primary-construct external AUROC >= 0.70; floors evaluated on the primary construct ONLY; environment-construct performance cannot qualify a judge; qualifies Qwen3.6/Llama-70B/gpt-4o; rejects Mistral/gemma/Phi; all three candidate sets partition identically (0.679 -> 0.876 gap)
+(b) criterion adopted,B-1,max jackknife swing <= 8 percentile points AND slope CI width <= 0.36 (stable widths 0.180-0.240; 1.5 x 0.240 = 0.36); per-(judge; environment) verdict; candidate NECESSARY condition; n=2; not sufficient; not independent evidence; validation open (S9 / future work)
+(b) verdicts,Llama-3.3-70B,stable both environments (swings 3.4 / 1.2) -> label-free eligible
+(b) verdicts,Qwen3.6-35B-A3B,hotpotqa stable (1.0) / alfworld UNSTABLE (11.7) -> label-free eligible on hotpotqa only
+(b) verdicts,gpt-4o,no (b) audit exists -> NOT label-free eligible
+(c) scope condition 1,external-judge only,self-cells excluded from fitting pools and from deployment; independence holds 9-10/11 arms under every construct; Part C's only unstable fit has the judge's own self-cell as its leverage point
+(c) scope condition 2,per environment family,fit and deploy within one environment; Part B: CI holds on hotpotqa and fails on alfworld; Part D is no-claim (-0.0024; CI [-0.0047; 0.0001] includes zero) and must not be read as licence to transfer
+(c) scope condition 3,interpolation only,no deployment on a target outside the reference pool's capability range; 27B extrapolation cell missed pi* by 31-55 percentile points
+(c) scope condition 4,label-free claims additionally require (b),a deployment claiming no target labels must satisfy the stability criterion not only discrimination
+status,NEW REGISTRATION,R1's FAIL stands in the ledger unchanged; no floor on f; no floor on frontier/API status; no multi-judge selection rule

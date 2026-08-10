@@ -1,0 +1,12 @@
+cell,L70B_verdict,Q35_g_rule_zero_target_labels,Q35_fitted_200_labels
+alfworld / Llama-70B,0.762,0.790,0.823
+alfworld / Mistral-7B,0.727,0.776,0.780
+alfworld / Phi-4-mini,0.665,0.739,0.748
+alfworld / Qwen-35B (self),0.649,0.602,0.664
+alfworld / deepseek-v4-flash,0.715,0.800,0.772
+alfworld / gemma-3-4b,0.707,0.811,0.811
+hotpotqa / Llama-70B,0.691,0.734,0.761
+hotpotqa / Mistral-7B,0.769,0.771,0.771
+hotpotqa / Phi-4-mini,0.826,0.825,0.836
+hotpotqa / Qwen-35B (self),0.619,0.597,0.790
+hotpotqa / gemma-3-4b,0.833,0.834,0.843

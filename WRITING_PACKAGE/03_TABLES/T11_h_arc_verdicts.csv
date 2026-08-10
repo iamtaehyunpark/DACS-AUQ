@@ -1,0 +1,9 @@
+gate,rule,labels,capable_stratum_pass_rate,capture,verdict
+A28 (gate-2b),fixed-percentile transfer,L1,15/22 (68%) CI [50%;86%],0.552 CI [0.364;0.718],G2b-R3 FAIL (capable) / G2b-R1 PASS (all judges: 44/55 = 80%; capture 0.775)
+A28 (gate-2b),fixed-percentile transfer,L2,12/22 (55%),0.310,G2b-R3 FAIL on primary
+A28.1 (gate-2b.1),error-rate-indexed g-rule,L1,18/22 (82%) CI [64%;95%],0.555 CI [0.084;0.844],G2b1-R1 PASS (marginal; both CIs straddle bars)
+A28.1 (gate-2b.1),error-rate-indexed g-rule,L2,17/22 (77%) CI [0.6364;0.9545],0.455 CI [0.0970;0.8471],G2b1-R3 FAIL on primary (pass of record)
+A33 (gate-3) arm 0,h-rule direct percentile map,L2,20/22 (91%) CI [0.7727;1.0000],0.940 CI [0.7964;1.0408],PASS (within-gate); closure NOT invoked
+A33 (gate-3) arm 1,mixture cut,L2,8/22 (36%) CI [0.18;0.55],-0.180 CI [-0.98;0.43],FAIL (4 abstentions counted as losses)
+A33 (gate-3) arm 2,violation-calibrated,L2,19/22 (86%) CI [0.7273;1.0000],0.969 CI [0.8822;1.0318],PASS; NOT label-free (human-annotation-free)
+A34 (gate-4) Part A,forecast-first validation (h-noself),L2,P-A1 6/8 vs >=8/10; P-A2 6/8; P-A3 0.750,pooled capture 0.750,FAIL; closure INVOKED; h scoped to within-gate validation only

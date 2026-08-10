@@ -1,0 +1,7 @@
+construct,judge,pi_hat,pi_star,ba_at_cut,V
+violation,Llama-70B,0.636,0.323,0.658,0.562
+violation,Qwen3.6,0.709,0.392,0.641,0.670
+outcome,Llama-70B,0.636,0.265,0.574,0.521
+outcome,Qwen3.6,0.709,0.162,0.584,0.598
+y_env,Llama-70B,0.636,0.263,0.595,0.526
+y_env,Qwen3.6,0.709,0.230,0.599,0.622

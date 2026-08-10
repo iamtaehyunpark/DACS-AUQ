@@ -1,0 +1,9 @@
+order,gate,rule,labels,pass_rate_pct,capture,verdict
+1,A28,fixed percentile,L1,68,0.552,FAIL (capable)
+2,A28,fixed percentile,L2,55,0.310,FAIL
+3,A28.1,g-rule,L1,82,0.555,PASS (marginal)
+4,A28.1,g-rule,L2,77,0.455,FAIL (pass of record)
+5,A33 arm 0,h-rule,L2,91,0.940,PASS (within-gate)
+6,A33 arm 1,mixture cut,L2,36,-0.180,FAIL
+7,A33 arm 2,violation-calibrated,L2,86,0.969,PASS (not label-free)
+8,A34 Part A,forecast-first (h-noself),L2,75,0.750,FAIL (P-A1 6/8 vs >=8/10); closure invoked
