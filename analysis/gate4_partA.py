@@ -206,10 +206,38 @@ def do_seal(a):
 
 
 def do_evaluate(a):
+    """Score the SEALED cuts against every construct.
+
+    The forecast is a fixed number per cell; the construct only changes the yardstick
+    it is measured against. Evaluating all of them touches nothing in the lock, and it
+    is what recovers the 27B extrapolation cell: the judge ensemble never ran on that
+    arm, so `judgment` is empty and the violation+judgment composite collapses to a
+    single class -- but violation / outcome / y_env are environment-labelled and fully
+    evaluable there.
+    """
     if not os.path.exists(a.forecasts):
         sys.exit("No sealed forecasts at %s — run --seal first." % a.forecasts)
     sealed = list(csv.DictReader(open(a.forecasts)))
-    lab = SL.load(a.labels, a.construct, in_matrix_only=False)
+    rows = []
+    for construct in [c.strip() for c in a.eval_constructs.split(",") if c.strip()]:
+        lab = SL.load(a.labels, construct, in_matrix_only=False)
+        rows.extend(_eval_one(a, sealed, lab, construct))
+    cols = list(sealed[0].keys()) + ["eval_construct", "n", "n_pos", "n_neg",
+                                     "realised_pct", "ba_at_cut", "ba_star", "V",
+                                     "note"]
+    os.makedirs(a.outdir, exist_ok=True)
+    p = os.path.join(a.outdir, "A_forecast_evaluation.csv")
+    with open(p, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+    print("evaluated %d rows (%d cells x %d constructs) -> %s"
+          % (len(rows), len(sealed), len(a.eval_constructs.split(",")), p))
+    return 0
+
+
+def _eval_one(a, sealed, lab, construct):
     rows = []
     for r in sealed:
         ds, tgt, judge = r["dataset"], r["target"], r["judge"]
@@ -220,9 +248,12 @@ def do_evaluate(a):
             yw = L.get(k)
             if yw is not None:
                 us.append(u); ys.append(yw[0])
+        npos = sum(1 for y in ys if y == 1)
         if len(us) < 50 or len(set(ys)) < 2:
-            rows.append(dict(r, n=len(us), realised_pct="", ba_at_cut="", V="",
-                             fitted="", note="no second class / too few labelled"))
+            rows.append(dict(r, eval_construct=construct, n=len(us), n_pos=npos,
+                             n_neg=len(ys) - npos, realised_pct="", ba_at_cut="",
+                             ba_star="", V="",
+                             note="single class under this construct"))
             continue
         pct_star, ba_star = best_cut_pct(us, ys)
         ba_cut = bal_acc(us, ys, float(r["cut"]))
@@ -243,22 +274,13 @@ def do_evaluate(a):
             if P.sum() and N.sum():
                 V = float(0.5 * (((vv == 1) & P).sum() / P.sum()
                                  + ((vv == 0) & N).sum() / N.sum()))
-        rows.append(dict(r, n=len(us), realised_pct="%.6f" % pct_star,
+        rows.append(dict(r, eval_construct=construct, n=len(us), n_pos=npos,
+                         n_neg=len(ys) - npos, realised_pct="%.6f" % pct_star,
                          ba_at_cut="" if ba_cut is None else "%.6f" % ba_cut,
                          ba_star="%.6f" % ba_star,
                          V="" if V is None else "%.6f" % V,
                          note=""))
-    cols = list(sealed[0].keys()) + ["n", "realised_pct", "ba_at_cut", "ba_star",
-                                     "V", "note"]
-    os.makedirs(a.outdir, exist_ok=True)
-    p = os.path.join(a.outdir, "A_forecast_evaluation.csv")
-    with open(p, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
-        w.writeheader()
-        for r in rows:
-            w.writerow(r)
-    print("evaluated %d forecast cells -> %s" % (len(rows), p))
-    return 0
+    return rows
 
 
 def main():
@@ -268,6 +290,8 @@ def main():
     ap.add_argument("--construct", default="violation+judgment")
     ap.add_argument("--forecasts", default="forecasts_A34.csv")
     ap.add_argument("--outdir", default="tables_gate4")
+    ap.add_argument("--eval-constructs",
+                    default="violation+judgment,judgment,violation,outcome,y_env")
     ap.add_argument("--seal", action="store_true")
     ap.add_argument("--evaluate", action="store_true")
     a = ap.parse_args()
