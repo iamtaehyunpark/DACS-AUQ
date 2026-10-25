@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Self-leniency with and without model-generated ground truth. The \emph{violation} column restricts the labels to environment rule violations, so no annotation model appears anywhere in the loop. Depression is the mean over 11 arms of (external score $-$ self score) on the same steps; the competence rows give the self-cell's error-rate estimate against its truth.}\label{tab:leniencycertain}
+\begin{tabular}{lrrr}
+\toprule
+measurement & annotation & primary & violation only \\
+\midrule
+score depression, incorrect steps & $+0.112$ & $+0.114$ & $+0.102$ \\
+score depression, correct steps & $+0.017$ & $+0.016$ & $+0.052$ \\
+\ \ \ (arms with the effect in the expected direction) & 7/11 & 7/11 & 6/11 \\
+\midrule
+competence error, self-cell (ALFWorld / Qwen3.6-35B) & $-0.135$ & $-0.170$ & $-0.121$ \\
+competence error, self-cell (ALFWorld / Llama-3.3-70B) & $-0.006$ & $+0.002$ & $+0.006$ \\
+competence error, self-cell (HotpotQA / Qwen3.6-35B) & $-0.082$ & $-0.070$ & $+0.034$ \\
+competence error, self-cell (HotpotQA / Llama-3.3-70B) & $+0.007$ & $-0.001$ & $-0.050$ \\
+cross-cell mean $|\Delta p|$ (comparison) & 0.060 & 0.060 & 0.043 \\
+\midrule
+fits where the self-cell is the leverage point & 2/4 & 1/4 & 2/4 \\
+\bottomrule
+\end{tabular}
+\end{table}

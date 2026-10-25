@@ -1,0 +1,43 @@
+\begin{table}[t]
+\centering
+\small
+\caption{What an external reading buys once the two confounds in the headline comparison are removed. $\Delta$ is the external reader's AUROC minus the agent's own best self-assessment, on identical steps, with a 95\% episode-clustered bootstrap interval. The self baseline is the best of the agent's four reading scopes, chosen in hindsight, which can only favour it. Primary construct.}
+\label{tab:matched}
+\begin{tabular}{lllrrrr}
+\toprule
+Environment & External reader & Agent read & $n$ & external & self (best) & $\Delta$ [95\% CI] \\
+\midrule
+\multicolumn{7}{l}{\emph{Same family: the family confound removed}} \\
+ALFWorld & Qwen3.6-35B & Qwen3.5-4B & 3754 & 0.767 & 0.665 & $+0.102$ [$+0.079$, $+0.127$] \\
+HotpotQA & Qwen3.6-35B & Qwen3.5-4B & 1914 & 0.922 & 0.877 & $+0.045$ [$+0.031$, $+0.059$] \\
+ALFWorld & Qwen3.6-35B & Qwen3.5-9B & 3859 & 0.781 & 0.728 & $+0.053$ [$+0.036$, $+0.071$] \\
+HotpotQA & Qwen3.6-35B & Qwen3.5-9B & 1202 & 0.911 & 0.876 & $+0.035$ [$+0.018$, $+0.053$] \\
+ALFWorld & Qwen3.6-35B & Qwen3.5-27B & \multicolumn{4}{l}{\emph{no usable paired cell (single class or <40 shared labelled steps)}} \\
+HotpotQA & Qwen3.6-35B & Qwen3.5-27B & \multicolumn{4}{l}{\emph{no labelled steps for this agent}} \\
+\midrule
+\multicolumn{7}{l}{\emph{Matched scale: the larger-judge confound removed}} \\
+ALFWorld & Qwen3.6-35B & Llama-3.3-70B & 4285 & 0.897 & 0.904 & $-0.007$ [$-0.024$, $+0.010$] \\
+ALFWorld & Llama-3.3-70B & Qwen3.6-35B & 2872 & 0.762 & 0.694 & $+0.068$ [$+0.036$, $+0.098$] \\
+HotpotQA & Qwen3.6-35B & Llama-3.3-70B & 1878 & 0.893 & 0.902 & $-0.009$ [$-0.026$, $+0.008$] \\
+HotpotQA & Llama-3.3-70B & Qwen3.6-35B & 1787 & 0.903 & 0.921 & $-0.018$ [$-0.035$, $-0.002$] \\
+\midrule
+\multicolumn{7}{l}{\emph{Small reading small: externality without capability}} \\
+ALFWorld & Mistral-7B & Phi-4-mini & 6005 & 0.620 & 0.547 & $+0.073$ [$+0.046$, $+0.099$] \\
+ALFWorld & Mistral-7B & Gemma-3-4B & 6507 & 0.730 & 0.668 & $+0.062$ [$+0.029$, $+0.094$] \\
+ALFWorld & Phi-4-mini & Mistral-7B & 6203 & 0.468 & 0.646 & $-0.179$ [$-0.209$, $-0.148$] \\
+ALFWorld & Phi-4-mini & Gemma-3-4B & 6507 & 0.514 & 0.668 & $-0.155$ [$-0.195$, $-0.114$] \\
+ALFWorld & Gemma-3-4B & Mistral-7B & 6203 & 0.421 & 0.646 & $-0.226$ [$-0.257$, $-0.194$] \\
+ALFWorld & Gemma-3-4B & Phi-4-mini & 6005 & 0.412 & 0.547 & $-0.136$ [$-0.163$, $-0.108$] \\
+HotpotQA & Mistral-7B & Phi-4-mini & 2282 & 0.704 & 0.632 & $+0.072$ [$+0.045$, $+0.097$] \\
+HotpotQA & Mistral-7B & Gemma-3-4B & 2248 & 0.727 & 0.751 & $-0.024$ [$-0.049$, $+0.001$] \\
+HotpotQA & Phi-4-mini & Mistral-7B & 2626 & 0.540 & 0.769 & $-0.229$ [$-0.253$, $-0.205$] \\
+HotpotQA & Phi-4-mini & Gemma-3-4B & 2248 & 0.595 & 0.751 & $-0.156$ [$-0.183$, $-0.129$] \\
+HotpotQA & Gemma-3-4B & Mistral-7B & 2626 & 0.677 & 0.769 & $-0.093$ [$-0.116$, $-0.069$] \\
+HotpotQA & Gemma-3-4B & Phi-4-mini & 2282 & 0.729 & 0.632 & $+0.097$ [$+0.072$, $+0.122$] \\
+\midrule
+\multicolumn{7}{l}{\emph{Boundary: the cells where self-assessment is not beaten}} \\
+HotpotQA & Qwen3.6-35B & Llama-3.3-70B & 1878 & 0.893 & 0.902 & $-0.009$ [$-0.026$, $+0.008$] \\
+HotpotQA & Llama-3.3-70B & Qwen3.6-35B & 1787 & 0.903 & 0.921 & $-0.018$ [$-0.035$, $-0.002$] \\
+\bottomrule
+\end{tabular}
+\end{table}

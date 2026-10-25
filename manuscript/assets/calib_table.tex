@@ -1,0 +1,45 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Probabilistic calibration of the per-step scores, primary construct. ECE is over ten equal-mass bins; Brier and ECE under \emph{recalibrated} come from an isotonic map fitted on one half of the episodes and applied to the other, using the same episode split as the label-calibrated cut, so no additional annotation is spent. $\bar{y}$ is the cell's rate of incorrect steps; the constant column is the Brier score of predicting $\bar{y}$ for every step and the verdict column that of the estimator's own yes/no answer.}
+\label{tab:calib}
+\begin{tabular}{llrrrrrrrr}
+\toprule
+& & & & \multicolumn{2}{c}{ECE} & \multicolumn{2}{c}{Brier} & \multicolumn{2}{c}{Brier baselines} \\
+\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(lr){9-10}
+Estimator & Trajectory source & $n$ & $\bar{y}$ & raw & recal. & raw & recal. & constant & verdict \\
+\midrule
+\multicolumn{10}{l}{\emph{ALFWorld}} \\
+Llama-3.3-70B & Llama-3.3-70B $^{\dagger}$ & 4285 & 0.53 & 0.193 & 0.022 & 0.210 & 0.155 & 0.249 & 0.228 \\
+Llama-3.3-70B & Mistral-7B & 6203 & 0.80 & 0.121 & 0.012 & 0.130 & 0.103 & 0.160 & 0.143 \\
+Llama-3.3-70B & Phi-4-mini & 6005 & 0.82 & 0.114 & 0.010 & 0.118 & 0.097 & 0.145 & 0.125 \\
+Llama-3.3-70B & Qwen3.6-35B & 2872 & 0.42 & 0.287 & 0.055 & 0.299 & 0.201 & 0.244 & 0.314 \\
+Llama-3.3-70B & DeepSeek-V4-Flash & 3067 & 0.34 & 0.174 & 0.031 & 0.201 & 0.154 & 0.224 & 0.219 \\
+Llama-3.3-70B & Gemma-3-4B & 6507 & 0.91 & 0.038 & 0.008 & 0.059 & 0.051 & 0.082 & 0.063 \\
+Qwen3.6-35B & Llama-3.3-70B & 4285 & 0.53 & 0.135 & 0.028 & 0.155 & 0.127 & 0.249 & 0.230 \\
+Qwen3.6-35B & Mistral-7B & 6203 & 0.80 & 0.021 & 0.012 & 0.100 & 0.099 & 0.160 & 0.136 \\
+Qwen3.6-35B & Phi-4-mini & 6005 & 0.82 & 0.057 & 0.008 & 0.097 & 0.092 & 0.145 & 0.128 \\
+Qwen3.6-35B & Qwen3.6-35B $^{\dagger}$ & 2872 & 0.42 & 0.149 & 0.035 & 0.243 & 0.224 & 0.244 & 0.366 \\
+Qwen3.6-35B & DeepSeek-V4-Flash & 3067 & 0.34 & 0.104 & 0.039 & 0.149 & 0.142 & 0.224 & 0.212 \\
+Qwen3.6-35B & Gemma-3-4B & 6507 & 0.91 & 0.011 & 0.005 & 0.051 & 0.052 & 0.082 & 0.064 \\
+\midrule
+\multicolumn{10}{l}{\emph{HotpotQA}} \\
+Llama-3.3-70B & Llama-3.3-70B $^{\dagger}$ & 1878 & 0.18 & 0.090 & 0.019 & 0.120 & 0.095 & 0.149 & 0.130 \\
+Llama-3.3-70B & Mistral-7B & 2626 & 0.56 & 0.143 & 0.017 & 0.151 & 0.117 & 0.246 & 0.166 \\
+Llama-3.3-70B & Phi-4-mini & 2282 & 0.57 & 0.097 & 0.012 & 0.125 & 0.099 & 0.245 & 0.139 \\
+Llama-3.3-70B & Qwen3.6-35B & 1787 & 0.11 & 0.069 & 0.018 & 0.088 & 0.069 & 0.095 & 0.095 \\
+Llama-3.3-70B & Gemma-3-4B & 2248 & 0.48 & 0.114 & 0.029 & 0.124 & 0.100 & 0.250 & 0.136 \\
+Qwen3.6-35B & Llama-3.3-70B & 1878 & 0.18 & 0.169 & 0.007 & 0.143 & 0.098 & 0.149 & 0.216 \\
+Qwen3.6-35B & Mistral-7B & 2626 & 0.56 & 0.135 & 0.017 & 0.146 & 0.120 & 0.246 & 0.206 \\
+Qwen3.6-35B & Phi-4-mini & 2282 & 0.57 & 0.084 & 0.014 & 0.104 & 0.090 & 0.245 & 0.148 \\
+Qwen3.6-35B & Qwen3.6-35B $^{\dagger}$ & 1787 & 0.11 & 0.110 & 0.015 & 0.086 & 0.066 & 0.095 & 0.121 \\
+Qwen3.6-35B & Gemma-3-4B & 2248 & 0.48 & 0.096 & 0.013 & 0.106 & 0.090 & 0.250 & 0.153 \\
+\midrule
+\emph{pooled} Llama-3.3-70B & ALFWorld (5 cells) & 24654 & 0.73 & 0.123 & 0.009 & 0.137 & 0.106 & --- & --- \\
+\emph{pooled} Qwen3.6-35B & ALFWorld (5 cells) & 26067 & 0.73 & 0.047 & 0.008 & 0.102 & 0.095 & --- & --- \\
+\emph{pooled} Llama-3.3-70B & HotpotQA (4 cells) & 8943 & 0.45 & 0.094 & 0.010 & 0.125 & 0.098 & --- & --- \\
+\emph{pooled} Qwen3.6-35B & HotpotQA (4 cells) & 9034 & 0.46 & 0.119 & 0.009 & 0.125 & 0.100 & --- & --- \\
+\bottomrule
+\end{tabular}
+\\[2pt]\footnotesize $^{\dagger}$ the estimator reading its own trajectories; pooled rows exclude those cells.
+\end{table}

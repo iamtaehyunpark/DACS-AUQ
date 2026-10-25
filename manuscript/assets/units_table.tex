@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\small
+\caption{What each route actually annotates. The calibrated route fits its cut on every labelled step in half of the target's episodes, so its annotation cost is a property of the cell, not a fixed budget; the learned critic's budgets are fixed step counts and are reported as the number of episodes those steps span. Median and range are over the 22 capable cells of the deployment table.}\label{tab:units}
+\begin{tabular}{lrrr}
+\toprule
+route & annotated steps & annotated episodes & annotation units fixed? \\
+\midrule
+calibrated cut & 1436\ (894--3254) & 70\ (60--250) & no \\
+day-one violation cut & 0 & 0 & yes (none) \\
+learned critic, 200 labels & 200 & 12\ (5--56) & yes \\
+learned critic, 1{,}000 labels & 1{,}000 & 42\ (22--220) & yes \\
+transferred map & 0 & 0 & yes (none) \\
+\bottomrule
+\end{tabular}
+\end{table}

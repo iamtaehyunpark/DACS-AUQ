@@ -1,0 +1,29 @@
+\begin{table}[t]\centering\small
+\caption{Label-source menu across error constructs and deployment routes. The registered primary construct is violation$+$judgment.}
+\label{tab:label_source_menu}
+\begin{tabular}{llcccc}
+\toprule
+Construct & Deployment Route & Labels Required & Source & Mean BA & 95\% CI \\
+\midrule
+violation+judgment & day one -- violation-calibrated & 0 & environment emits automatically & 0.8012 & [0.7776, 0.8212] \\
+ & ~full labelling pass (saturates $\sim$500 steps) -- fitted cut & 1{,}436 med.\ steps & human or judge ensemble & 0.8083 & [0.7858, 0.8292] \\
+ & steady state -- h-rule & 0 & other targets of same judge x env & 0.7986 & [0.7719, 0.8228] \\
+\midrule
+judgment & day one -- violation-calibrated & 0 & environment emits automatically & 0.8081 & [0.7867, 0.8259] \\
+ & ~full labelling pass (saturates $\sim$500 steps) -- fitted cut & 1{,}436 med.\ steps & human or judge ensemble & 0.8162 & [0.7940, 0.8342] \\
+ & steady state -- h-rule & 0 & other targets of same judge x env & 0.8068 & [0.7847, 0.8264] \\
+\midrule
+violation & day one -- violation-calibrated & 0 & environment emits automatically & 0.8011 & [0.7616, 0.8423] \\
+ & ~full labelling pass (saturates $\sim$500 steps) -- fitted cut & 1{,}436 med.\ steps & human or judge ensemble & 0.8173 & [0.7755, 0.8607] \\
+ & steady state -- h-rule & 0 & other targets of same judge x env & 0.7984 & [0.7586, 0.8388] \\
+\midrule
+outcome & day one -- violation-calibrated & 0 & environment emits automatically & 0.6717 & [0.6346, 0.7101] \\
+ & ~full labelling pass (saturates $\sim$500 steps) -- fitted cut & 1{,}436 med.\ steps & human or judge ensemble & 0.7175 & [0.6767, 0.7621] \\
+ & steady state -- h-rule & 0 & other targets of same judge x env & 0.6995 & [0.6616, 0.7391] \\
+\midrule
+y\_env & day one -- violation-calibrated & 0 & environment emits automatically & 0.6976 & [0.6658, 0.7314] \\
+ & ~full labelling pass (saturates $\sim$500 steps) -- fitted cut & 1{,}436 med.\ steps & human or judge ensemble & 0.7422 & [0.7059, 0.7798] \\
+ & steady state -- h-rule & 0 & other targets of same judge x env & 0.7270 & [0.6947, 0.7616] \\
+\bottomrule
+\end{tabular}
+\end{table}

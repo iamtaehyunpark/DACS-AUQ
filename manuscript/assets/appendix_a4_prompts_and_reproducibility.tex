@@ -1,0 +1,25 @@
+\subsection{Prompt Templates and Reproducibility Specifications}\label{app:prompts}
+
+\paragraph{Prompt Template for Online External Estimation ($P(\text{True})$).}
+\begin{quote}
+\small
+\texttt{You are evaluating the correctness of an AI agent's proposed step in context.}\\
+\texttt{[Task Description]: \{task\}}\\
+\texttt{[Interaction History]: \{history\}}\\
+\texttt{[Agent Reasoning]: \{thought\}}\\
+\texttt{[Proposed Action]: \{action\}}\\
+\texttt{Is the proposed step correct, productive, and admissible? Answer 'Yes' or 'No'.}\\
+\texttt{Answer:}
+\end{quote}
+
+The trust score $U_t$ is extracted via the normalized logit mass:
+\begin{equation}
+U_t = \frac{\exp(z_{\text{No}})}{\exp(z_{\text{Yes}}) + \exp(z_{\text{No}})}
+\end{equation}
+
+\paragraph{Hardware Throughput and Sizing Constants.}
+\begin{itemize}
+\item \textbf{Online Prefix Length}: 3,300 assessments / 5 minutes / A100 GPU (KV-prefix shared).
+\item \textbf{Hindsight Full-Length}: 375 assessments / 5 minutes / A100 (an $8.8\times$ compute expansion factor).
+\item \textbf{Fixed Seeds}: Master seed 13; Prequential seeds 13--22; Bootstrap draws 2,000.
+\end{itemize}

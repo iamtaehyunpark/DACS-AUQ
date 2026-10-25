@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Recipe invariance with a third estimator. A \emph{column} is one (estimator, environment, agent, construct) external cell, satisfied when the estimator's fixed evidence scope is within $0.02$ AUROC of the best scope for that cell; a \emph{cross arm} is one (estimator, environment, agent) cell on the primary construct, stable when the fixed scope is the best one there. All three estimators select the action-anchored scope.}
+\label{tab:recipe}
+\begin{tabular}{lrrrr}
+\toprule
+Estimators & Columns & within $0.02$ & Cross arms & scope stable \\
+\midrule
+Llama-3.3-70B, Qwen3.6-35B & 90 & 88 (97.8\%) & 18 & 15 (83.3\%) \\
+{}+ Gemma-3-27B & 145 & 133 (91.7\%) & 29 & 25 (86.2\%) \\
+\bottomrule
+\end{tabular}
+\end{table}

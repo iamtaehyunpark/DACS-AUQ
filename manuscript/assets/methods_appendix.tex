@@ -1,0 +1,137 @@
+\section{Methods in full}\label{app:methods}
+
+Every procedure the experiments compare against is specified here, so the paper
+stands without the repository. Each subsection names the file it was run from and
+that file's SHA-256 at the time of the runs reported.
+
+\subsection{Intrinsic self-assessment: metrics and evidence scopes}
+\label{app:methods:intrinsic}
+
+Source: \texttt{src/probes.py}, sha256
+\texttt{0c99cac7240ec9153c5417756b2cf6d8d35e0c647ae6253649250162a5d1f7cd}.
+
+Every intrinsic reading is a second call to the same model that produced the step,
+given the agent's own pre-action context plus the step's reasoning and proposed
+action. Three metrics were run; all three are reported as \emph{uncertainty} $U$,
+with $1$ meaning maximally uncertain, so higher always means more likely
+incorrect.
+
+\paragraph{$\ptrue$.} The model is asked a closed question --- ``Is the proposed
+action above the correct and appropriate next action for this task? Answer with a
+single word: Yes or No.'' --- and the answer is read from the \emph{first token's}
+top-logprobs rather than from generated text. Probability mass is summed over
+case and leading-space variants of Yes and of No, and $U = P(\mathrm{No}) /
+(P(\mathrm{Yes}) + P(\mathrm{No}))$. A record with no yes/no mass in the head is
+marked unparsed and excluded; it is never imputed. This is the only metric that
+needs logprob access, which is why a frontier model that refuses logprobs can be
+the agent in this framework but not the estimator.
+
+\paragraph{Separate verbalized confidence.} The model is asked, in a separate
+call, how confident it is that the step is correct, and answers in words. The
+reply is parsed to a number in $[0,1]$ and $U = 1 - \mathrm{confidence}$. This is
+the ``grounded verbalized channel'' the survey literature hopes for; on our
+measurements it is the inverted one for capable models.
+
+\paragraph{Post-hoc numeric confidence.} The same question on an explicit
+$0$--$100$ scale (``On a scale of 0-100, how confident are you that the agent's
+response above \ldots''), parsed to an integer and mapped to
+$U = 1 - n/100$. Unparseable replies are excluded on the same rule.
+
+\paragraph{Probe scope.} Every headline result uses a single whole-step
+probe: one call about the step as a unit, reasoning together with the chosen
+action. Narrower variants (reasoning-only, action-only, and their mean) exist
+in the release and underlie the recipe-stability analysis of
+\S\ref{sec:instrument}; no headline number uses them. Probe
+seeds are derived per (step, probe, stage) so no two probe calls on a step share
+an RNG stream.
+
+\subsection{The supervised process critic}\label{app:methods:critic}
+
+Source: \texttt{analysis/rev\_critic.py}, sha256
+\texttt{b9331ffd0001ad405712c1bbf659095f9a4288d8d355137bc2fa31404ae4bd74}.
+
+A per-step binary classifier trained on cheap trajectory features, with no
+additional model calls, evaluated per capable external cell on the primary
+construct.
+
+\paragraph{Features (leak-free set).} Step index and $\log(1+\mathrm{index})$;
+episode length so far; action string length in characters and in words; a one-hot
+action type over the sixteen ALFWorld/HotpotQA verbs
+(\texttt{go, take, open, close, put, toggle, heat, cool, clean, examine,
+inventory, look, search, lookup, finish, none}); plan length before the step, the
+change in plan length, and a plan-missing indicator; an environment indicator; and
+a one-hot over agent identity. The \emph{hybrid} variant adds history-only
+summaries of the external estimator's score over steps strictly before $t$
+(mean, max, min, count, last value), which cannot leak $U_t$.
+
+\paragraph{What is excluded, and why it must be.} Five features are withheld from
+the leak-free set: \texttt{in\_admissible}, \texttt{empty\_result},
+\texttt{loop\_flag}, \texttt{repeat\_dist}, \texttt{repeat\_count}. Under the
+primary construct these are not predictors of the label --- they are the Tier-A
+rules that \emph{define} its positive class, so a critic given them recomputes the
+label rather than predicting it. Including them moves the comparison by more than
+$0.12$ balanced accuracy and produces an apparent critic win; the leak-free set is
+the honest comparison and is the one reported.
+
+\paragraph{Models and hyperparameters, fixed in advance.} Logistic regression
+(\texttt{C}$=1.0$, \texttt{max\_iter}$=2000$, lbfgs solver) on standardized
+features, and gradient-boosted trees (100 estimators, max depth 3, learning rate
+$0.1$). No hyperparameter search was run at any point.
+
+\paragraph{Budget protocol.} Episodes are sorted by identifier and split in half;
+both fold directions are run and averaged. Within the fitting half, steps are
+taken \emph{in episode order} --- not sampled --- until the budget is reached,
+giving budgets of exactly $200$ and $1{,}000$ labelled steps. The estimator's own
+cut is fitted on the identical steps, so the two sides of the comparison see the
+same labels. Scoring is out-of-sample on the other half, and the $1{,}000$-step
+row covers only the cells whose fitting half contains that many labelled steps.
+
+\subsection{The unsupervised mixture cut}\label{app:methods:mixture}
+
+Scores are mapped to the logit scale and a two-component univariate Gaussian
+mixture is fitted by EM: $k$-means initialisation on perturbed quartiles, three
+restarts keeping the best log-likelihood, at most 200 iterations, convergence at
+$10^{-6}$. The cut is the equal-posterior boundary between the two components,
+found on a 4001-point grid between the fitted means (the closed-form quadratic
+root can fall outside the data range), then mapped back through the logistic.
+
+\paragraph{Abstention rule.} The arm declines to place a cut, rather than placing
+a bad one, in four cases: EM failure; a minority component weight below $0.05$; a
+separation between component means below $0.25$ on the logit scale; or no sign
+change of the posterior difference between the means. Abstentions are counted as
+losses wherever a pass rate is reported --- never dropped.
+
+The procedure uses no labels at all, only the target's own score distribution.
+
+\subsection{The fixed-percentile and error-rate-indexed rules}
+\label{app:methods:simplerules}
+
+Sources: \texttt{the released cut-transfer module}, sha256
+\texttt{3021afcb3a716bd4a4985a77dc888daeb14334cf6f1ca907650877e5ade36a1e};
+\texttt{the released indexed-cut module}, sha256
+\texttt{9463a268b096b146f8429d7a111b39b311815a7398cafc1cd69356e543f9e91b}.
+
+Both rules transfer from the same reference pool the operating-point map uses: all
+other targets of that (estimator, environment), self-cells excluded.
+
+\paragraph{Raw threshold transfer.} Pool the reference cells' steps, fit the
+balanced-accuracy-optimal cut on the pool, and apply that \emph{score value}
+directly to the new target. This is the baseline the level-shift result rules out.
+
+\paragraph{Fixed percentile.} Take the same pooled cut, record what percentile it
+occupies within the pooled scores, and place the new target's cut at that
+percentile of its own unlabelled scores. Transfers a rank rather than a level, and
+needs no labels on the target.
+
+\paragraph{Error-rate-indexed rule.} Fit a linear map $g$ from a reference cell's
+mean score to its error rate, over the same pool. For a new target, predict
+$\hat{p} = g(\bar{u})$, clipped to $[0.02, 0.98]$, and cut at the
+$100(1-\hat{p})$-th percentile of its own scores. This embeds the identity
+``optimal percentile $= 100(1-p)$'', which the measurements contradict: realised
+optimal percentiles deviate from it by up to $26$ points, so even an oracle handed
+the true error rate places the cut suboptimally.
+
+\paragraph{Common evaluation.} All rules place a cut without reading any label of
+the target being scored, and all are evaluated by balanced accuracy against the
+same labels on the same steps. Realised flag rates match requested percentiles to
+within $0.001$; no tie-lumping occurs.

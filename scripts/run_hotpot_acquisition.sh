@@ -9,16 +9,17 @@ OUT_ARG="${1:-runs/hotpot_acquisition}"
 N_EPISODES="${2:-10}"
 PY="${REACT_PY:-python3}"
 SEED="${REACT_SEED:-233}"
-JUDGE_ENV_FILE="${AZURE_JUDGE_ENV_FILE:-/home/user/.config/azure_judge.env}"
+JUDGE_ENV_FILE="${AZURE_JUDGE_ENV_FILE:-}"
 
-if [[ ! -r "$JUDGE_ENV_FILE" ]]; then
-  echo "Azure judge env file is not readable: $JUDGE_ENV_FILE" >&2
-  echo "set AZURE_JUDGE_ENV_FILE if the server stores it elsewhere" >&2
-  exit 1
+if [[ -n "$JUDGE_ENV_FILE" ]]; then
+  if [[ ! -r "$JUDGE_ENV_FILE" ]]; then
+    echo "Azure judge env file is not readable: $JUDGE_ENV_FILE" >&2
+    exit 1
+  fi
+  # Optional local credential file; credentials can also be exported directly.
+  # shellcheck disable=SC1090
+  source "$JUDGE_ENV_FILE"
 fi
-# Server-owned chmod-600 file; values are inherited by both judge_hotpot.py processes.
-# shellcheck disable=SC1090
-source "$JUDGE_ENV_FILE"
 
 case "$OUT_ARG" in
   /*) OUT_DIR="$OUT_ARG" ;;
@@ -41,12 +42,12 @@ for target in "$DEC_UQ" "$ENT_UQ" "$DEC_PROBES" "$ENT_PROBES" "$DEC_JUDGE" "$ENT
   fi
 done
 
-curl -sS http://localhost:8000/v1/models >/dev/null || {
-  echo "no model server at :8000 — run scripts/serve.sh first" >&2
+curl -fsS "${REACT_BASE_URL:-http://localhost:8000/v1}/models" >/dev/null || {
+  echo "model server is unreachable — run scripts/serve.sh or set REACT_BASE_URL" >&2
   exit 1
 }
 if [[ -z "${AZURE_JUDGE_ENDPOINT:-}" || -z "${AZURE_JUDGE_KEY:-}" ]]; then
-  echo "Azure judge env file must export AZURE_JUDGE_ENDPOINT and AZURE_JUDGE_KEY" >&2
+  echo "export AZURE_JUDGE_ENDPOINT and AZURE_JUDGE_KEY, or set AZURE_JUDGE_ENV_FILE" >&2
   exit 1
 fi
 

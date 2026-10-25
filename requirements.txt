@@ -1,0 +1,14 @@
+# Direct client/analysis dependencies; not an exact original-run lockfile.
+# Install ALFWorld/TextWorld and GPU serving (vLLM) separately; see docs.
+openai
+transformers
+numpy<2
+pandas
+pyarrow
+matplotlib
+PyYAML
+requests
+beautifulsoup4
+# The vendored ReAct wrappers use Gym's legacy four-value step API.
+gym>=0.23,<0.24
+plotly

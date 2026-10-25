@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Evidence configuration behind every headline result. All headline numbers use the same bundle: the estimator is given exactly the context the agent had when it proposed the step, plus the step itself. An automated check of 28,050 sampled steps across every scoring pass confirmed the estimator's history block is identical to the agent's own pre-action history in 28,050 of them.}\label{tab:evconf}
+\begin{tabular}{llll}
+\toprule
+result & scoring unit & evidence given to the estimator & includes this step's result? \\
+\midrule
+independence (self vs.\ external) & whole step, one probe & prior steps + this step's reasoning and proposed action & no \\
+score-over-verdict channel & whole step, one probe & prior steps + this step's reasoning and proposed action & no \\
+estimator tier & whole step, one probe & prior steps + this step's reasoning and proposed action & no \\
+frontier comparison & whole step, one probe & prior steps + this step's reasoning and proposed action & no \\
+operating-point map & whole step, one probe & prior steps + this step's reasoning and proposed action & no \\
+deployment menu & whole step, one probe & prior steps + this step's reasoning and proposed action & no \\
+deferral demonstration & whole step, one probe & prior steps + the proposed step, read before it is executed & no \\
+\bottomrule
+\end{tabular}
+\end{table}

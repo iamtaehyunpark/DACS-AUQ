@@ -19,11 +19,10 @@ requests = types.ModuleType("requests")
 requests.exceptions = types.SimpleNamespace(Timeout=type("Timeout", (Exception,), {}))
 sys.modules.setdefault("requests", requests)
 
-uqlog = types.ModuleType("uqlog")
-uqlog.instrumented_chat = lambda *a, **k: None
-uqlog.char_to_token_span = lambda gen, start, end: [0, 1] if end > start else [0, 0]
-uqlog.content_span = lambda gen, raw, start, ends: [0, 1] if raw else None
-sys.modules.setdefault("uqlog", uqlog)
+# Exercise the real span helpers; only the unused tokenizer dependency is stubbed.
+transformers = types.ModuleType("transformers")
+transformers.AutoTokenizer = type("DummyTokenizer", (), {})
+sys.modules.setdefault("transformers", transformers)
 
 import chat_react_hotpot as decoupled
 import chat_react_hotpot_entangled as entangled
@@ -51,11 +50,11 @@ class FakeRuntime:
             "prompt_token_ids": [1],
             "prompt_tokens": 1,
             "completion_raw": content,
-            "completion_tokens": 1,
+            "completion_tokens": len(content),
             "finish_reason": "stop",
             "gen_logprobs": [
                 {
-                    "token": content,
+                    "token": character,
                     "bytes": [],
                     "logprob": -0.1,
                     "top": [
@@ -63,6 +62,7 @@ class FakeRuntime:
                         for i in range(20)
                     ],
                 }
+                for character in content
             ],
             "config": {"seed": seed, "max_tokens": max_tokens},
             "latency_ms": 1.0,

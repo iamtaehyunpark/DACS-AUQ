@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\caption{How much labelling the calibrated cut needs. Cells, episode split and evaluation half are identical across rows; only the number of labelled steps used to fit the cut changes. The cut saturates by roughly 500 labelled steps, within $0.004$ of fitting on the whole half. The 1{,}000 and 2{,}000 rows cover fewer cells, because a cell's fitting half is often smaller than the budget, and are not comparable to the rest.}\label{tab:budget}
+\begin{tabular}{lrrl}
+\toprule
+labelled steps used & cells & mean \ba & 95\% CI \\
+\midrule
+100 & 22 & 0.7843 & [0.7556, 0.8101] \\
+200 & 22 & 0.7889 & [0.7599, 0.8140] \\
+\textbf{500} & 22 & \textbf{0.7977} & [0.7735, 0.8197] \\
+1{,}000 & 18 & 0.7956 & [0.7683, 0.8207] \\
+2{,}000 & 6 & 0.7917 & [0.7789, 0.8066] \\
+all of the fitting half & 22 & 0.8014 & [0.7780, 0.8220] \\
+\bottomrule
+\end{tabular}
+\end{table}
